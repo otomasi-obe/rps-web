@@ -1,0 +1,31 @@
+# robots.txt for RPS Generator - Universitas Diponegoro
+# Allow all search engines and AI bots to crawl
+
+User-agent: *
+Allow: /
+
+# Specific bots
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+# Sitemap location
+Sitemap: https://rps.otomasi.app/sitemap.xml
+Sitemap: https://otomasi.app/sitemap.xml
