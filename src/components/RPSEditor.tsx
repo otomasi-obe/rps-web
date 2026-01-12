@@ -307,8 +307,10 @@ Target lulusan mampu:
               if (e.key === 'Enter') {
                 // Auto-expand on enter
                 setTimeout(() => {
-                  e.currentTarget.style.height = 'auto';
-                  e.currentTarget.style.height = Math.min(e.currentTarget.scrollHeight, 500) + 'px';
+                  if (e.currentTarget) {
+                    e.currentTarget.style.height = 'auto';
+                    e.currentTarget.style.height = Math.min(e.currentTarget.scrollHeight, 500) + 'px';
+                  }
                 }, 0);
               }
             }}

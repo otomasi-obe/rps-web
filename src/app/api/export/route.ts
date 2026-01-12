@@ -25,6 +25,11 @@ export async function POST(request: NextRequest) {
       semester: rpsData.identity.semester,
       status: rpsData.identity.status || 'Mata Kuliah Wajib',
       prasyarat: rpsData.identity.prasyarat || '-',
+      // Add authority data
+      koordinatorMK: rpsData.authority?.koordinatorMK || { nama: '', nip: '', jabatan: 'Koordinator Mata Kuliah' },
+      koordinatorGPM: rpsData.authority?.koordinatorGPM || { nama: '', nip: '', jabatan: 'Koordinator GPM' },
+      ketuaProdi: rpsData.authority?.ketuaProdi || { nama: '', nip: '', jabatan: 'Ketua Prodi' },
+      dekan: rpsData.authority?.dekan || { nama: '', nip: '', jabatan: 'Dekan' },
     };
 
     // Convert rpsData to Python format
@@ -58,9 +63,19 @@ export async function POST(request: NextRequest) {
         cpmk3: a.distribusiCPMK?.cpmk3 ? `${a.distribusiCPMK.cpmk3}%` : '',
         cpmk4: a.distribusiCPMK?.cpmk4 ? `${a.distribusiCPMK.cpmk4}%` : '',
       })),
-      referensi: rpsData.references.map(r => 
-        `${r.penulis}. ${r.judul}. ${r.tahun || ''}`
-      ),
+      referensi: rpsData.references.map(r => {
+        // Format: Penulis. Judul. Tahun
+        const parts = [];
+        if (r.penulis && r.penulis.trim()) parts.push(r.penulis.trim());
+        if (r.judul && r.judul.trim()) parts.push(r.judul.trim());
+        if (r.tahun) parts.push(String(r.tahun));
+        
+        // If judul only (old format compatibility), use judul directly
+        if (parts.length === 0 && r.judul) return r.judul;
+        if (parts.length === 1 && r.judul && !r.penulis) return r.judul;
+        
+        return parts.join('. ');
+      }),
     };
 
     // Call Python API

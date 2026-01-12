@@ -83,7 +83,7 @@ class AIToJSON:
     def generate_prompt(self, course_name: str, course_code: str, sks: int, 
                        semester: int, status: str = "Mata Kuliah Wajib", 
                        prereq: str = "-", additional_context: str = "") -> str:
-        """Generate prompt for OpenAI to create complete RPS content."""
+        """Generate prompt for OpenAI to create complete RPS content matching template structure."""
         
         return f"""Anda adalah ahli kurikulum pendidikan tinggi Indonesia. Buatkan Rencana Pembelajaran Semester (RPS) lengkap untuk mata kuliah berikut:
 
@@ -104,43 +104,66 @@ Buatkan RPS dalam format JSON dengan struktur PERSIS seperti berikut. PENTING: H
     "deskripsi": "Deskripsi mata kuliah 3-5 kalimat yang menjelaskan tujuan, cakupan, dan manfaat mata kuliah ini bagi mahasiswa",
     
     "cpl": [
-        {{"kode": "CPL3", "pernyataan": "Capaian Pembelajaran Lulusan yang relevan dengan mata kuliah"}},
-        {{"kode": "CPL4", "pernyataan": "Capaian Pembelajaran Lulusan yang relevan dengan mata kuliah"}},
-        {{"kode": "CPL10", "pernyataan": "Capaian Pembelajaran Lulusan yang relevan dengan mata kuliah"}}
+        {{"kode": "CPL3", "pernyataan": "Capaian Pembelajaran Lulusan yang relevan dengan mata kuliah", "ik_kode": "IK 3-1", "ik_pernyataan": "Indikator kinerja spesifik untuk CPL3"}},
+        {{"kode": "CPL4", "pernyataan": "Capaian Pembelajaran Lulusan yang relevan dengan mata kuliah", "ik_kode": "IK 4-1", "ik_pernyataan": "Indikator kinerja spesifik untuk CPL4"}},
+        {{"kode": "CPL10", "pernyataan": "Capaian Pembelajaran Lulusan yang relevan dengan mata kuliah", "ik_kode": "IK 10-1", "ik_pernyataan": "Indikator kinerja spesifik untuk CPL10"}}
     ],
     
     "cpmk": [
-        {{"kode": "CPMK 1", "pernyataan": "Capaian Pembelajaran Mata Kuliah ke-1 yang spesifik dan terukur", "mapping_cpl": "CPL3"}},
-        {{"kode": "CPMK 2", "pernyataan": "Capaian Pembelajaran Mata Kuliah ke-2 yang spesifik dan terukur", "mapping_cpl": "CPL4"}},
-        {{"kode": "CPMK 3", "pernyataan": "Capaian Pembelajaran Mata Kuliah ke-3 yang spesifik dan terukur", "mapping_cpl": "CPL4"}},
-        {{"kode": "CPMK 4", "pernyataan": "Capaian Pembelajaran Mata Kuliah ke-4 yang spesifik dan terukur", "mapping_cpl": "CPL10"}}
+        {{"kode": "CPMK 1", "pernyataan": "Mahasiswa mampu [capaian spesifik 1]", "mapping_cpl": "CPL3"}},
+        {{"kode": "CPMK 2", "pernyataan": "Mahasiswa mampu [capaian spesifik 2]", "mapping_cpl": "CPL3"}},
+        {{"kode": "CPMK 3", "pernyataan": "Mahasiswa mampu [capaian spesifik 3]", "mapping_cpl": "CPL4"}},
+        {{"kode": "CPMK 4", "pernyataan": "Mahasiswa mampu [capaian spesifik 4]", "mapping_cpl": "CPL10"}}
     ],
     
     "minggu": [
-        {{"minggu": 1, "cpmk": "CPMK 1", "topik": "Topik minggu 1", "metode": "TM SCL / Demo", "waktu": "3x50'", "pengalaman": "Pengalaman belajar", "indikator": "Indikator pencapaian", "bobot": "5"}},
-        {{"minggu": 2, "cpmk": "CPMK 1", "topik": "Topik minggu 2", "metode": "Hands-on", "waktu": "3x50'", "pengalaman": "Pengalaman belajar", "indikator": "Indikator pencapaian", "bobot": "5"}},
-        {{"minggu": 3, "cpmk": "CPMK 2", "topik": "Topik minggu 3", "metode": "Hands-on / Demo", "waktu": "3x50'", "pengalaman": "Pengalaman belajar", "indikator": "Indikator pencapaian", "bobot": "5"}},
-        {{"minggu": 4, "cpmk": "CPMK 2", "topik": "Topik minggu 4", "metode": "PBL", "waktu": "3x50'", "pengalaman": "Pengalaman belajar", "indikator": "Indikator pencapaian", "bobot": "5"}},
-        {{"minggu": 5, "cpmk": "CPMK 2", "topik": "Topik minggu 5", "metode": "PBL / Demo", "waktu": "3x50'", "pengalaman": "Pengalaman belajar", "indikator": "Indikator pencapaian", "bobot": "10"}},
-        {{"minggu": 6, "cpmk": "CPMK 3", "topik": "Topik minggu 6", "metode": "Hands-on", "waktu": "3x50'", "pengalaman": "Pengalaman belajar", "indikator": "Indikator pencapaian", "bobot": "5"}},
-        {{"minggu": 7, "cpmk": "CPMK 3", "topik": "Topik minggu 7", "metode": "Hands-on / Studi Kasus", "waktu": "3x50'", "pengalaman": "Pengalaman belajar", "indikator": "Indikator pencapaian", "bobot": "10"}},
-        {{"minggu": 8, "cpmk": "UTS", "topik": "Ujian Tengah Semester: evaluasi materi minggu 1-7", "metode": "Uji praktik / Tertulis", "waktu": "3x50'", "pengalaman": "Mengerjakan soal ujian", "indikator": "Fungsi sesuai spesifikasi", "bobot": "15"}},
-        {{"minggu": 9, "cpmk": "CPMK 2", "topik": "Topik minggu 9", "metode": "Hands-on", "waktu": "3x50'", "pengalaman": "Pengalaman belajar", "indikator": "Indikator pencapaian", "bobot": "5"}},
-        {{"minggu": 10, "cpmk": "CPMK 3", "topik": "Topik minggu 10", "metode": "Hands-on", "waktu": "3x50'", "pengalaman": "Pengalaman belajar", "indikator": "Indikator pencapaian", "bobot": "10"}},
-        {{"minggu": 11, "cpmk": "CPMK 2", "topik": "Topik minggu 11", "metode": "Hands-on / Tugas", "waktu": "3x50'", "pengalaman": "Pengalaman belajar", "indikator": "Indikator pencapaian", "bobot": "5"}},
-        {{"minggu": 12, "cpmk": "CPMK 1", "topik": "Topik minggu 12", "metode": "Demo / Hands-on", "waktu": "3x50'", "pengalaman": "Pengalaman belajar", "indikator": "Indikator pencapaian", "bobot": "5"}},
-        {{"minggu": 13, "cpmk": "CPMK 4", "topik": "Proyek: perencanaan dan desain", "metode": "PjBL", "waktu": "3x50'", "pengalaman": "Menyusun proposal proyek", "indikator": "Proposal feasible", "bobot": "5"}},
-        {{"minggu": 14, "cpmk": "CPMK 4", "topik": "Proyek: implementasi", "metode": "PjBL", "waktu": "3x50'", "pengalaman": "Build dan integrasi", "indikator": "Milestone tercapai", "bobot": "5"}},
-        {{"minggu": 15, "cpmk": "CPMK 4", "topik": "Proyek: pengujian dan dokumentasi", "metode": "PjBL", "waktu": "3x50'", "pengalaman": "Menyusun laporan", "indikator": "Laporan lengkap", "bobot": "5"}},
-        {{"minggu": 16, "cpmk": "UAS", "topik": "Ujian Akhir Semester: demo proyek dan evaluasi keseluruhan", "metode": "Demo / Presentasi", "waktu": "3x50'", "pengalaman": "Demo proyek dan Q&A", "indikator": "Sistem bekerja, argumentasi baik", "bobot": "15"}}
+        {{"minggu": 1, "cpmk": "CPMK 1", "topik": "Topik minggu 1", "metode": ["TM SCL"], "waktu": "3x50'", "pengalaman": "Pengalaman belajar mahasiswa", "indikator": "Indikator pencapaian", "bobot": 5}},
+        {{"minggu": 2, "cpmk": "CPMK 1", "topik": "Topik minggu 2", "metode": ["TM SCL"], "waktu": "3x50'", "pengalaman": "Pengalaman belajar mahasiswa", "indikator": "Indikator pencapaian", "bobot": 10}},
+        {{"minggu": 3, "cpmk": "CPMK 1", "topik": "Topik minggu 3", "metode": ["TM SCL", "Think-Pair-Share"], "waktu": "3x50'", "pengalaman": "Pengalaman belajar mahasiswa", "indikator": "Indikator pencapaian", "bobot": 5}},
+        {{"minggu": 4, "cpmk": "CPMK 1", "topik": "Topik minggu 4", "metode": ["TM SCL", "Think-Pair-Share"], "waktu": "3x50'", "pengalaman": "Pengalaman belajar mahasiswa", "indikator": "Indikator pencapaian", "bobot": 5}},
+        {{"minggu": 5, "cpmk": "CPMK 2", "topik": "Topik minggu 5", "metode": ["TM SCL"], "waktu": "3x50'", "pengalaman": "Pengalaman belajar mahasiswa", "indikator": "Indikator pencapaian", "bobot": 10}},
+        {{"minggu": 6, "cpmk": "CPMK 2", "topik": "Topik minggu 6", "metode": ["CBL", "Small Group Discussion"], "waktu": "3x50'", "pengalaman": "Pengalaman belajar mahasiswa", "indikator": "Indikator pencapaian", "bobot": 5}},
+        {{"minggu": 7, "cpmk": "CPMK 2", "topik": "Topik minggu 7", "metode": ["CBL", "Think-Pair-Share"], "waktu": "3x50'", "pengalaman": "Pengalaman belajar mahasiswa", "indikator": "Indikator pencapaian", "bobot": 10}},
+        {{"minggu": 8, "cpmk": "UTS", "topik": "UTS - Ujian Tengah Semester", "metode": ["UTS"], "waktu": "UTS", "pengalaman": "UTS", "indikator": "UTS", "bobot": 0}},
+        {{"minggu": 9, "cpmk": "CPMK 3", "topik": "Topik minggu 9", "metode": ["TM SCL"], "waktu": "3x50'", "pengalaman": "Pengalaman belajar mahasiswa", "indikator": "Indikator pencapaian", "bobot": 5}},
+        {{"minggu": 10, "cpmk": "CPMK 1", "topik": "Topik minggu 10", "metode": ["TM SCL"], "waktu": "3x50'", "pengalaman": "Pengalaman belajar mahasiswa", "indikator": "Indikator pencapaian", "bobot": 5}},
+        {{"minggu": 11, "cpmk": "CPMK 1", "topik": "Topik minggu 11", "metode": ["TM SCL"], "waktu": "3x50'", "pengalaman": "Pengalaman belajar mahasiswa", "indikator": "Indikator pencapaian", "bobot": 5}},
+        {{"minggu": 12, "cpmk": "CPMK 3", "topik": "Topik minggu 12", "metode": ["PBL"], "waktu": "3x50'", "pengalaman": "Pengalaman belajar mahasiswa", "indikator": "Indikator pencapaian", "bobot": 5}},
+        {{"minggu": 13, "cpmk": "CPMK 3", "topik": "Topik minggu 13", "metode": ["PBL"], "waktu": "3x50'", "pengalaman": "Pengalaman belajar mahasiswa", "indikator": "Indikator pencapaian", "bobot": 10}},
+        {{"minggu": 14, "cpmk": "CPMK 2", "topik": "Topik minggu 14", "metode": ["PBL"], "waktu": "3x50'", "pengalaman": "Pengalaman belajar mahasiswa", "indikator": "Indikator pencapaian", "bobot": 5}},
+        {{"minggu": 15, "cpmk": "CPMK 2", "topik": "Topik minggu 15", "metode": ["PBL"], "waktu": "3x50'", "pengalaman": "Pengalaman belajar mahasiswa", "indikator": "Indikator pencapaian", "bobot": 5}},
+        {{"minggu": 16, "cpmk": "UAS", "topik": "UAS - Ujian Akhir Semester", "metode": ["UAS"], "waktu": "UAS", "pengalaman": "UAS", "indikator": "UAS", "bobot": 0}}
     ],
     
     "penilaian": [
-        {{"komponen": "Aktivitas Partisipatif", "bobot": "10%", "kriteria": "Kehadiran, partisipasi aktif, disiplin, dan kontribusi dalam diskusi", "cpmk1": "2%", "cpmk2": "2%", "cpmk3": "3%", "cpmk4": "3%"}},
-        {{"komponen": "Tugas/Laporan", "bobot": "30%", "kriteria": "Kualitas laporan, ketepatan waktu, pemahaman analisis, dan dokumentasi", "cpmk1": "10%", "cpmk2": "10%", "cpmk3": "10%", "cpmk4": ""}},
-        {{"komponen": "UTS", "bobot": "15%", "kriteria": "Pemahaman materi setengah semester pertama", "cpmk1": "5%", "cpmk2": "5%", "cpmk3": "5%", "cpmk4": ""}},
-        {{"komponen": "Proyek", "bobot": "30%", "kriteria": "Kualitas prototipe, implementasi, integrasi, kerja tim, dan demonstrasi", "cpmk1": "", "cpmk2": "10%", "cpmk3": "10%", "cpmk4": "10%"}},
-        {{"komponen": "UAS", "bobot": "15%", "kriteria": "Pemahaman materi keseluruhan dan presentasi proyek akhir", "cpmk1": "", "cpmk2": "", "cpmk3": "5%", "cpmk4": "10%"}}
+        {{"komponen": "Aktivitas Partisipatif", "bobot": "20%", "kriteria": "Kehadiran, partisipasi aktif, disiplin, dan kontribusi dalam diskusi", "cpmk1": "5%", "cpmk2": "5%", "cpmk3": "5%", "cpmk4": "5%"}},
+        {{"komponen": "Project/ Problem/ Case Based Learning", "bobot": "30%", "kriteria": "Analisis kasus, kualitas laporan, dan presentasi", "cpmk1": "", "cpmk2": "10%", "cpmk3": "10%", "cpmk4": "10%"}},
+        {{"komponen": "Kuis", "bobot": "10%", "kriteria": "Pemahaman materi dan pengembangan konsep", "cpmk1": "5%", "cpmk2": "", "cpmk3": "", "cpmk4": "5%"}},
+        {{"komponen": "UTS", "bobot": "20%", "kriteria": "Ujian Tengah Semester", "cpmk1": "10%", "cpmk2": "10%", "cpmk3": "", "cpmk4": ""}},
+        {{"komponen": "UAS", "bobot": "20%", "kriteria": "Ujian Akhir Semester", "cpmk1": "", "cpmk2": "", "cpmk3": "10%", "cpmk4": "10%"}}
+    ],
+    
+    "assessment_summary": {{
+        "total_bobot": "100%",
+        "cpmk1_total": "20%",
+        "cpmk2_total": "25%",
+        "cpmk3_total": "25%",
+        "cpmk4_total": "30%"
+    }},
+    
+    "media_assessment": {{
+        "qui": "10%",
+        "prs": "20%",
+        "pro": "30%",
+        "uts": "20%",
+        "uas": "20%"
+    }},
+    
+    "cpl_cpmk_mapping": [
+        {{"cpl": "CPL3", "ik": "IK 3-1", "ik_pernyataan": "Indikator kinerja untuk CPL3", "cpmk": "CPMK 1", "cpmk_pernyataan": "Pernyataan CPMK 1", "bobot": "20%", "media": "Kuis, Tugas Kasus, Project Kelompok, UTS, UAS", "qui": "5", "prs": "5", "pro": "", "uts": "10", "uas": ""}},
+        {{"cpl": "CPL3", "ik": "IK 3-2", "ik_pernyataan": "Indikator kinerja untuk CPL3", "cpmk": "CPMK 2", "cpmk_pernyataan": "Pernyataan CPMK 2", "bobot": "25%", "media": "Tugas Makalah, Aktivitas Partisipatif, UTS", "qui": "", "prs": "5", "pro": "10", "uts": "10", "uas": ""}},
+        {{"cpl": "CPL4", "ik": "IK 4-1", "ik_pernyataan": "Indikator kinerja untuk CPL4", "cpmk": "CPMK 3", "cpmk_pernyataan": "Pernyataan CPMK 3", "bobot": "25%", "media": "Aktivitas Partisipatif, Final Project, UAS", "qui": "", "prs": "5", "pro": "10", "uts": "", "uas": "10"}},
+        {{"cpl": "CPL10", "ik": "IK 10-1", "ik_pernyataan": "Indikator kinerja untuk CPL10", "cpmk": "CPMK 4", "cpmk_pernyataan": "Pernyataan CPMK 4", "bobot": "30%", "media": "Kuis, Tugas Esai, UAS", "qui": "5", "prs": "5", "pro": "10", "uts": "", "uas": "10"}}
     ],
     
     "referensi": [
@@ -151,11 +174,33 @@ Buatkan RPS dalam format JSON dengan struktur PERSIS seperti berikut. PENTING: H
         "Jurnal atau publikasi terkait"
     ],
     
-    "cpl_cpmk_mapping": [
-        {{"cpl": "CPL3", "ik": "IK 3-1", "ik_pernyataan": "Indikator kinerja untuk CPL3", "cpmk": "CPMK 1", "cpmk_pernyataan": "Pernyataan CPMK 1", "bobot": "20%", "media": "Kuis, Laporan, UTS", "kuis": "5", "prs": "5", "pro": "", "uts": "10", "uas": ""}},
-        {{"cpl": "", "ik": "IK 3-2", "ik_pernyataan": "Indikator kinerja untuk CPL3", "cpmk": "CPMK 2", "cpmk_pernyataan": "Pernyataan CPMK 2", "bobot": "25%", "media": "Tugas, Laporan, UTS", "kuis": "", "prs": "5", "pro": "10", "uts": "10", "uas": ""}},
-        {{"cpl": "CPL4", "ik": "IK 4-1", "ik_pernyataan": "Indikator kinerja untuk CPL4", "cpmk": "CPMK 3", "cpmk_pernyataan": "Pernyataan CPMK 3", "bobot": "25%", "media": "Laporan, Proyek", "kuis": "", "prs": "", "pro": "15", "uts": "", "uas": "10"}},
-        {{"cpl": "CPL10", "ik": "IK 10-1", "ik_pernyataan": "Indikator kinerja untuk CPL10", "cpmk": "CPMK 4", "cpmk_pernyataan": "Pernyataan CPMK 4", "bobot": "30%", "media": "Partisipasi, Proyek, UAS", "kuis": "", "prs": "5", "pro": "", "uts": "", "uas": "15"}}
+    "metode_pembelajaran": [
+        "TM SCL (Teaching Method with Student Centered Learning)",
+        "PBL (Problem Based Learning)",
+        "CBL (Case Based Learning)",
+        "PjBL (Project Based Learning)",
+        "Think-Pair-Share (TPS)",
+        "Small Group Discussion",
+        "Ceramah",
+        "Tugas Mandiri",
+        "Kuis"
+    ],
+    
+    "learning_experience_keywords": [
+        "Memahami",
+        "Menjelaskan",
+        "Menghitung",
+        "Menganalisis",
+        "Melakukan",
+        "Mengerjakan",
+        "Mempresentasikan",
+        "Mendiskusikan",
+        "Membuat laporan",
+        "Mengisi formulir",
+        "Memproses",
+        "Melaporkan",
+        "Menyediakan informasi",
+        "Memecahkan masalah"
     ]
 }}
 

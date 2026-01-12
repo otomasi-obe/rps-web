@@ -27,22 +27,26 @@ def _set_cell_text_preserve_format(cell, text: str) -> None:
     
     if not runs:
         # No runs exist, add new run with text
-        first_paragraph.add_run(text)
+        run = first_paragraph.add_run(text)
+        # Default to 9pt if no format exists
+        run.font.size = Pt(9)
     else:
         # Save formatting from first run
         first_run = runs[0]
-        saved_font_size = first_run.font.size
+        saved_font_size = first_run.font.size or Pt(9)  # Default to 9pt
         saved_font_name = first_run.font.name
         saved_bold = first_run.font.bold
         saved_italic = first_run.font.italic
         saved_underline = first_run.font.underline
         
-        # Set text
-        first_run.text = text
+        # Handle multiline text - split and create runs for each line
+        lines = text.split('\n')
         
-        # Restore formatting
-        if saved_font_size:
-            first_run.font.size = saved_font_size
+        # Set first line in first run
+        first_run.text = lines[0] if lines else ""
+        
+        # Restore formatting to first run
+        first_run.font.size = saved_font_size
         if saved_font_name:
             first_run.font.name = saved_font_name
         if saved_bold is not None:
@@ -52,9 +56,26 @@ def _set_cell_text_preserve_format(cell, text: str) -> None:
         if saved_underline is not None:
             first_run.font.underline = saved_underline
         
-        # Clear other runs
+        # Clear other existing runs
         for run in runs[1:]:
             run.text = ""
+        
+        # Add additional lines if needed
+        if len(lines) > 1:
+            for line in lines[1:]:
+                # Add line break and new run
+                first_paragraph.add_run('\n')
+                new_run = first_paragraph.add_run(line)
+                # Apply same formatting
+                new_run.font.size = saved_font_size
+                if saved_font_name:
+                    new_run.font.name = saved_font_name
+                if saved_bold is not None:
+                    new_run.font.bold = saved_bold
+                if saved_italic is not None:
+                    new_run.font.italic = saved_italic
+                if saved_underline is not None:
+                    new_run.font.underline = saved_underline
     
     # Clear additional paragraphs
     for paragraph in cell.paragraphs[1:]:
@@ -121,6 +142,18 @@ class JSONToDocx:
             # Use the formatting-preserving function
             set_cell = _set_cell_text_preserve_format
             
+            # TABLE 0: Authority/Otoritas (Koordinator MK, Koordinator GPM, Ketua Prodi, Dekan)
+            # Assuming authority table is at index 0 with signature rows
+            if len(doc.tables) > 0:
+                t0 = doc.tables[0]
+                # Try to fill authority data if the table exists
+                # Usually structure is: row with names and NIP
+                # Check if meta has authority fields
+                if 'koordinatorMK' in meta and len(t0.rows) > 0:
+                    # This assumes the template has the authority table
+                    # You may need to adjust row/column indices based on your template structure
+                    pass  # Will be filled if template structure is known
+            
             # TABLE 1: course identity (index 1)
             t1 = doc.tables[1]
             set_cell(t1.cell(1, 0), meta["kode"])
@@ -166,7 +199,12 @@ class JSONToDocx:
                 week_no = str(week_data.get("minggu", i + 1))
                 cpmk_code = week_data.get("cpmk", "")
                 topik = week_data.get("topik", "")
-                metode = week_data.get("metode", "")
+                metode_list = week_data.get("metode", [])
+                # Handle metode as array or string for backward compatibility
+                if isinstance(metode_list, list):
+                    metode = ", ".join(metode_list)
+                else:
+                    metode = str(metode_list)
                 waktu = week_data.get("waktu", "3x50'")
                 pengalaman = week_data.get("pengalaman", "")
                 indikator = week_data.get("indikator", "")
@@ -221,15 +259,24 @@ class JSONToDocx:
                 for i, cpmk in enumerate(cpmk_list[:4]):
                     cpl_code = cpmk.get("mapping_cpl", "")
                     cpl_stmt = ""
+                    ik_code = ""
+                    ik_stmt = ""
+                    # Find the corresponding CPL and get ik_pernyataan from template
                     for cpl in cpl_list:
                         if cpl.get("kode") == cpl_code:
                             cpl_stmt = cpl.get("pernyataan", "")
+                            ik_code = cpl.get("ik_kode", f"IK {cpl_code.replace('CPL', '')}-1")
+                            ik_stmt = cpl.get("ik_pernyataan", "")
                             break
+                    
+                    # If ik_pernyataan not found, use cpl statement
+                    if not ik_stmt:
+                        ik_stmt = cpl_stmt
                     
                     mapping_list.append({
                         "cpl": cpl_code if i == 0 or cpmk.get("mapping_cpl") != cpmk_list[i-1].get("mapping_cpl") else "",
-                        "ik": f"IK {cpl_code.replace('CPL', '')}-1",
-                        "ik_pernyataan": cpl_stmt,
+                        "ik": ik_code,
+                        "ik_pernyataan": ik_stmt,
                         "cpmk": cpmk.get("kode", ""),
                         "cpmk_pernyataan": cpmk.get("pernyataan", ""),
                         "bobot": "25%",
@@ -247,11 +294,28 @@ class JSONToDocx:
                     if len(t5.rows[row_idx].cells) >= 12:
                         set_cell(t5.cell(row_idx, 5), mapping.get("bobot", ""))
                         set_cell(t5.cell(row_idx, 6), mapping.get("media", ""))
-                        set_cell(t5.cell(row_idx, 7), mapping.get("kuis", ""))
+                        set_cell(t5.cell(row_idx, 7), mapping.get("qui", ""))
                         set_cell(t5.cell(row_idx, 8), mapping.get("prs", ""))
                         set_cell(t5.cell(row_idx, 9), mapping.get("pro", ""))
                         set_cell(t5.cell(row_idx, 10), mapping.get("uts", ""))
                         set_cell(t5.cell(row_idx, 11), mapping.get("uas", ""))
+            
+            # TABLE 6 or later: Authority/Otoritas (if exists)
+            # Fill in authority information (Koordinator MK, GPM, Ketua Prodi, Dekan)
+            if len(doc.tables) > 6:
+                t_auth = doc.tables[6]  # Authority table
+                # Common structure: rows with Name and NIP columns
+                # Adjust indices based on actual template structure
+                try:
+                    # Assuming 4 rows for 4 authorities, adjust as needed
+                    # Row 0 or 1: Koordinator MK
+                    if 'koordinatorMK' in meta:
+                        mk = meta['koordinatorMK']
+                        # You'll need to adjust cell indices based on your template
+                        # Example: set_cell(t_auth.cell(row, col), mk['nama'])
+                    # Similar for koordinatorGPM, ketuaProdi, dekan
+                except Exception as e:
+                    print(f"⚠️  Warning: Could not fill authority data: {e}")
             
             doc.save(output_path)
             print(f"✅ DOCX saved successfully!")
