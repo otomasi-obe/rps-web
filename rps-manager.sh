@@ -52,8 +52,8 @@ check_status() {
     fi
     
     # Check Python API
-    PYTHON_PID=$(pgrep -f "api_server.py" 2>/dev/null)
-    if [ -n "$PYTHON_PID" ]; then
+    if systemctl is-active --quiet rps-python-api 2>/dev/null; then
+        PYTHON_PID=$(pgrep -f "api_server.py" 2>/dev/null)
         echo -e "   ${GREEN}✓${NC} Python API:     ${GREEN}RUNNING${NC} (PID: $PYTHON_PID)"
     else
         echo -e "   ${RED}✗${NC} Python API:     ${RED}STOPPED${NC}"
@@ -172,20 +172,18 @@ start_services() {
         echo -e "   ${GREEN}✓${NC} Next.js restarted via PM2"
     fi
     
-    # Start Python API
-    PYTHON_PID=$(pgrep -f "api_server.py" 2>/dev/null)
-    if [ -z "$PYTHON_PID" ]; then
-        cd "$PYTHON_DIR"
-        nohup python3 api_server.py > "$PYTHON_LOG" 2>&1 &
+    # Start Python API via systemd
+    if ! systemctl is-active --quiet rps-python-api 2>/dev/null; then
+        sudo systemctl start rps-python-api
         sleep 2
-        PYTHON_PID=$(pgrep -f "api_server.py" 2>/dev/null)
-        if [ -n "$PYTHON_PID" ]; then
+        if systemctl is-active --quiet rps-python-api; then
+            PYTHON_PID=$(pgrep -f "api_server.py" 2>/dev/null)
             echo -e "   ${GREEN}✓${NC} Python API started (PID: $PYTHON_PID)"
         else
-            echo -e "   ${RED}✗${NC} Failed to start Python API. Check $PYTHON_LOG"
+            echo -e "   ${RED}✗${NC} Failed to start Python API"
         fi
     else
-        echo -e "   ${YELLOW}!${NC} Python API already running (PID: $PYTHON_PID)"
+        echo -e "   ${YELLOW}!${NC} Python API already running"
     fi
     
     pm2 save 2>/dev/null
@@ -198,13 +196,8 @@ stop_services() {
     pm2 stop rps-web 2>/dev/null
     echo -e "   ${GREEN}✓${NC} Next.js stopped"
     
-    PYTHON_PID=$(pgrep -f "api_server.py" 2>/dev/null)
-    if [ -n "$PYTHON_PID" ]; then
-        pkill -f "api_server.py"
-        echo -e "   ${GREEN}✓${NC} Python API stopped"
-    else
-        echo -e "   ${YELLOW}!${NC} Python API was not running"
-    fi
+    sudo systemctl stop rps-python-api 2>/dev/null
+    echo -e "   ${GREEN}✓${NC} Python API stopped"
     
     echo -e "   ${YELLOW}!${NC} Nginx left running (use 'sudo systemctl stop nginx' to stop)"
     echo ""
@@ -219,13 +212,10 @@ restart_services() {
     pm2 restart rps-web 2>/dev/null
     echo -e "   ${GREEN}✓${NC} Next.js restarted"
     
-    pkill -f "api_server.py" 2>/dev/null
-    sleep 1
-    cd "$PYTHON_DIR"
-    nohup python3 api_server.py > "$PYTHON_LOG" 2>&1 &
+    sudo systemctl restart rps-python-api 2>/dev/null
     sleep 2
-    PYTHON_PID=$(pgrep -f "api_server.py" 2>/dev/null)
-    if [ -n "$PYTHON_PID" ]; then
+    if systemctl is-active --quiet rps-python-api; then
+        PYTHON_PID=$(pgrep -f "api_server.py" 2>/dev/null)
         echo -e "   ${GREEN}✓${NC} Python API restarted (PID: $PYTHON_PID)"
     else
         echo -e "   ${RED}✗${NC} Failed to restart Python API"
