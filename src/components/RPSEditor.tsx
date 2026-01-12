@@ -37,7 +37,7 @@ export default function RPSEditor() {
   const [additionalContext, setAdditionalContext] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [usePythonAPI, setUsePythonAPI] = useState(true); // Use Python API by default
+  const usePythonAPI = true; // Always use Python API
 
   // Update RPS data
   const updateRPS = (updates: Partial<RPSData>) => {
@@ -284,19 +284,6 @@ export default function RPSEditor() {
 
       {/* Action Buttons */}
       <div className="card">
-        <div className="flex flex-wrap gap-2 justify-between items-center mb-4">
-          {/* Python API Toggle */}
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={usePythonAPI}
-              onChange={(e) => setUsePythonAPI(e.target.checked)}
-              className="w-4 h-4"
-            />
-            <span className="font-medium">Gunakan Python API (GPT-5 Mini + Template DOCX)</span>
-            {usePythonAPI && <span className="text-green-600">✓</span>}
-          </label>
-        </div>
         <div className="flex flex-wrap gap-2 justify-between items-center">
           <div className="flex flex-wrap gap-2">
             <button

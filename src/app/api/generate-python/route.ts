@@ -28,36 +28,43 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Call Python API for full generation
-    const response = await fetch(`${PYTHON_API_URL}/generate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        courseName: identity.nama,
-        courseCode: identity.kode || 'MK001',
-        sks: identity.sks || 3,
-        semester: identity.semester || 1,
-        status: identity.status || 'Mata Kuliah Wajib',
-        prereq: identity.prasyarat || '-',
-        jenisMK,
-      }),
-    });
+    // Call Python API for full generation with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 280000); // 280 seconds (4min 40s)
+    
+    try {
+      const response = await fetch(`${PYTHON_API_URL}/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          courseName: identity.nama,
+          courseCode: identity.kode || 'MK001',
+          sks: identity.sks || 3,
+          semester: identity.semester || 1,
+          status: identity.status || 'Mata Kuliah Wajib',
+          prereq: identity.prasyarat || '-',
+          jenisMK,
+        }),
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `Python API error: ${response.status}`);
-    }
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Python API error: ${response.status}`);
+      }
 
-    const result = await response.json();
+      const result = await response.json();
 
-    if (!result.success || !result.data) {
-      throw new Error('Invalid response from Python API');
-    }
+      if (!result.success || !result.data) {
+        throw new Error('Invalid response from Python API');
+      }
 
-    // Convert Python format to our TypeScript format
-    const data = result.data;
+      // Convert Python format to our TypeScript format
+      const data = result.data;
     const convertedData = {
       deskripsiSingkat: data.deskripsi,
       cplList: data.cpl.map((c: { kode: string; pernyataan: string }) => ({
@@ -125,7 +132,19 @@ export async function POST(request: NextRequest) {
       success: true,
       data: convertedData,
     });
-
+      
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      
+      if (error.name === 'AbortError') {
+        return NextResponse.json(
+          { error: 'Request timeout. AI generation took too long. Please try again.' },
+          { status: 504 }
+        );
+      }
+      
+      throw error;
+    }
   } catch (error) {
     console.error('Generate error:', error);
     return NextResponse.json(

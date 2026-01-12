@@ -21,7 +21,13 @@ import tempfile
 import base64
 from pathlib import Path
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from socketserver import ThreadingMixIn
 from urllib.parse import parse_qs, urlparse
+
+# Threaded HTTP Server for handling concurrent requests
+class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
+    """Handle requests in a separate thread."""
+    daemon_threads = True
 
 # Add current directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -108,8 +114,26 @@ class RPSAPIHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-Type', 'application/json')
         self._set_cors_headers()
+        
+        # Convert to JSON
+        json_str = json.dumps(data, ensure_ascii=False)
+        json_bytes = json_str.encode('utf-8')
+        
+        # Set content length
+        self.send_header('Content-Length', str(len(json_bytes)))
         self.end_headers()
-        self.wfile.write(json.dumps(data, ensure_ascii=False).encode())
+        
+        # Send in chunks for large responses (64KB chunks)
+        chunk_size = 65536
+        for i in range(0, len(json_bytes), chunk_size):
+            chunk = json_bytes[i:i+chunk_size]
+            try:
+                self.wfile.write(chunk)
+                self.wfile.flush()
+            except Exception as e:
+                print(f"❌ Error sending chunk: {e}")
+                break
+
     
     def _handle_generate(self, data):
         """Generate RPS content via OpenAI."""
@@ -140,6 +164,7 @@ class RPSAPIHandler(BaseHTTPRequestHandler):
     
     def _handle_export(self, data):
         """Export RPS to DOCX."""
+        print("\n📄 Starting DOCX export...")
         rps_data = data.get('rpsData', {})
         meta = data.get('meta', {})
         
@@ -197,15 +222,16 @@ class RPSAPIHandler(BaseHTTPRequestHandler):
 
 
 def run_server(port=5000):
-    server_address = ('', port)
-    httpd = HTTPServer(server_address, RPSAPIHandler)
-    print(f"🚀 RPS API Server running on http://localhost:{port}")
+    server_address = ('0.0.0.0', port)
+    httpd = ThreadedHTTPServer(server_address, RPSAPIHandler)
+    print(f"🚀 RPS API Server running on http://0.0.0.0:{port}")
     print("=" * 50)
     print("Endpoints:")
     print(f"  GET  http://localhost:{port}/health")
     print(f"  POST http://localhost:{port}/generate")
     print(f"  POST http://localhost:{port}/export")
     print("=" * 50)
+    print("🔄 Multi-threaded mode: Ready for concurrent requests")
     httpd.serve_forever()
 
 
