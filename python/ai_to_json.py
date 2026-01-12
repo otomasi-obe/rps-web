@@ -33,21 +33,36 @@ class AIToJSON:
             self._init_client()
     
     def _load_api_key(self) -> bool:
-        """Load OpenAI API key from api_openai.txt file."""
+        """Load OpenAI API key from .env.local or api_openai.txt file."""
         try:
             import os
+            
+            # Try loading from .env.local first (parent directory)
             script_dir = os.path.dirname(os.path.abspath(__file__))
+            parent_dir = os.path.dirname(script_dir)
+            env_file = os.path.join(parent_dir, '.env.local')
+            
+            if os.path.exists(env_file):
+                with open(env_file, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        if line.startswith('OPENAI_API_KEY='):
+                            self.api_key = line.split('=', 1)[1].strip()
+                            if self.api_key:
+                                print("✅ OpenAI API key loaded from .env.local")
+                                return True
+            
+            # Fallback to api_openai.txt
             api_file_path = os.path.join(script_dir, 'api_openai.txt')
+            if os.path.exists(api_file_path):
+                with open(api_file_path, 'r', encoding='utf-8') as f:
+                    self.api_key = f.read().strip()
+                
+                if self.api_key:
+                    print("✅ OpenAI API key loaded from api_openai.txt")
+                    return True
             
-            with open(api_file_path, 'r', encoding='utf-8') as f:
-                self.api_key = f.read().strip()
-            
-            if not self.api_key:
-                print("❌ Empty API key in api_openai.txt")
-                return False
-            
-            print("✅ OpenAI API key loaded successfully")
-            return True
+            print("❌ API key not found in .env.local or api_openai.txt")
+            return False
         except FileNotFoundError:
             print("❌ api_openai.txt file not found")
             return False
@@ -193,8 +208,7 @@ Output JSON saja, tanpa markdown formatting atau penjelasan."""
                         {"role": "system", "content": "You are an expert in Indonesian higher education curriculum design."},
                         {"role": "user", "content": prompt}
                     ],
-                    temperature=0.7,
-                    max_tokens=4000,
+                    max_completion_tokens=4000,
                 )
                 
                 if response.choices and len(response.choices) > 0:
