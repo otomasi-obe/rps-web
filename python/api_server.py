@@ -32,26 +32,19 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 # Add current directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from rps_generator_v2 import (
-    get_rps_generation_prompt,
-    parse_json_response,
-    fill_docx_with_rps,
-    _set_cell_text_preserve_format
-)
-from openai_bot import OpenAIBot
+from ai_to_json import AIToJSON
+from json_to_docx import JSONToDocx
 
-# Global bot instance
-_bot = None
+# Global AI generator instance
+_generator = None
 
-def get_bot():
-    global _bot
-    if _bot is None or not _bot.is_bot_ready():
-        _bot = OpenAIBot()
-        if not _bot.setup_driver():
-            raise Exception("Failed to setup OpenAI client")
-        if not _bot.open_openai():
-            raise Exception("Failed to initialize OpenAI connection")
-    return _bot
+def get_generator():
+    global _generator
+    if _generator is None:
+        _generator = AIToJSON()
+        if not _generator.client:
+            raise Exception("Failed to initialize AI generator")
+    return _generator
 
 
 class RPSAPIHandler(BaseHTTPRequestHandler):
@@ -146,14 +139,18 @@ class RPSAPIHandler(BaseHTTPRequestHandler):
         
         print(f"\n📝 Generating RPS for: {course_name}")
         
-        bot = get_bot()
-        prompt = get_rps_generation_prompt(course_name, course_code, sks, semester, status, prereq)
+        generator = get_generator()
+        rps_data = generator.generate_rps_json(
+            course_name=course_name,
+            course_code=course_code,
+            sks=sks,
+            semester=semester,
+            status=status,
+            prereq=prereq
+        )
         
-        response = bot.send_message(prompt)
-        if not response:
-            raise Exception("Empty response from OpenAI")
-        
-        rps_data = parse_json_response(response)
+        if not rps_data:
+            raise Exception("Failed to generate RPS content")
         
         print(f"✅ Generated RPS with {len(rps_data.get('minggu', []))} weeks")
         
@@ -194,12 +191,16 @@ class RPSAPIHandler(BaseHTTPRequestHandler):
             output_path = tmp.name
         
         try:
-            fill_docx_with_rps(
-                template_path=str(template_path),
-                output_path=output_path,
+            # Use JSONToDocx converter
+            converter = JSONToDocx(template_path=str(template_path))
+            success = converter.export_to_docx(
                 rps_data=rps_data,
-                meta=meta
+                meta=meta,
+                output_path=output_path
             )
+            
+            if not success:
+                raise Exception("Failed to export DOCX")
             
             # Read file and encode as base64
             with open(output_path, 'rb') as f:

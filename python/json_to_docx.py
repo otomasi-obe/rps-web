@@ -1,0 +1,315 @@
+#!/usr/bin/env python3
+"""
+JSON to DOCX Exporter
+====================
+Convert RPS JSON data to formatted DOCX document.
+Handles template filling and format preservation.
+"""
+
+import json
+from pathlib import Path
+from typing import Optional
+
+
+def _set_cell_text_preserve_format(cell, text: str) -> None:
+    """Replace cell text while FULLY preserving formatting (font size, name, bold, etc.)."""
+    from docx.shared import Pt
+    
+    text = str(text) if text is not None else ""
+    
+    if not cell.paragraphs:
+        cell.text = text
+        return
+    
+    # Get the first paragraph
+    first_paragraph = cell.paragraphs[0]
+    runs = list(first_paragraph.runs)
+    
+    if not runs:
+        # No runs exist, add new run with text
+        first_paragraph.add_run(text)
+    else:
+        # Save formatting from first run
+        first_run = runs[0]
+        saved_font_size = first_run.font.size
+        saved_font_name = first_run.font.name
+        saved_bold = first_run.font.bold
+        saved_italic = first_run.font.italic
+        saved_underline = first_run.font.underline
+        
+        # Set text
+        first_run.text = text
+        
+        # Restore formatting
+        if saved_font_size:
+            first_run.font.size = saved_font_size
+        if saved_font_name:
+            first_run.font.name = saved_font_name
+        if saved_bold is not None:
+            first_run.font.bold = saved_bold
+        if saved_italic is not None:
+            first_run.font.italic = saved_italic
+        if saved_underline is not None:
+            first_run.font.underline = saved_underline
+        
+        # Clear other runs
+        for run in runs[1:]:
+            run.text = ""
+    
+    # Clear additional paragraphs
+    for paragraph in cell.paragraphs[1:]:
+        for run in paragraph.runs:
+            run.text = ""
+
+
+class JSONToDocx:
+    """Convert RPS JSON to DOCX document."""
+    
+    def __init__(self, template_path: Optional[str] = None):
+        """
+        Initialize JSON to DOCX converter.
+        
+        Args:
+            template_path: Path to template DOCX. If None, looks for RPS.docx in same directory.
+        """
+        if template_path:
+            self.template_path = Path(template_path)
+        else:
+            # Default: look for RPS.docx in same directory as this script
+            script_dir = Path(__file__).parent
+            self.template_path = script_dir / 'RPS.docx'
+    
+    def validate_template(self) -> bool:
+        """Check if template exists."""
+        if not self.template_path.exists():
+            print(f"❌ Template not found: {self.template_path}")
+            return False
+        print(f"✅ Template found: {self.template_path}")
+        return True
+    
+    def export_to_docx(self, rps_data: dict, meta: dict, output_path: str) -> bool:
+        """
+        Export RPS JSON data to DOCX file.
+        
+        Args:
+            rps_data: Dictionary containing RPS data (deskripsi, cpl, cpmk, minggu, etc.)
+            meta: Dictionary with course metadata (nama, kode, sks, semester, status, prasyarat)
+            output_path: Path where to save the output DOCX
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            from docx import Document
+        except ImportError:
+            print("❌ Missing dependency 'python-docx'. Install with: pip install python-docx")
+            return False
+        
+        if not self.validate_template():
+            return False
+        
+        print(f"\n📄 Converting JSON to DOCX...")
+        print(f"   Template: {self.template_path}")
+        print(f"   Output: {output_path}")
+        
+        try:
+            doc = Document(str(self.template_path))
+            
+            if len(doc.tables) < 6:
+                raise ValueError("Template structure unexpected: expected at least 6 tables")
+            
+            # Use the formatting-preserving function
+            set_cell = _set_cell_text_preserve_format
+            
+            # TABLE 1: course identity (index 1)
+            t1 = doc.tables[1]
+            set_cell(t1.cell(1, 0), meta["kode"])
+            set_cell(t1.cell(1, 1), meta["nama"])
+            set_cell(t1.cell(1, 2), meta["nama"])
+            set_cell(t1.cell(1, 3), str(meta["sks"]))
+            set_cell(t1.cell(1, 4), str(meta["semester"]))
+            set_cell(t1.cell(1, 5), meta["status"])
+            set_cell(t1.cell(1, 6), meta["prasyarat"])
+            
+            # Row 3: description
+            deskripsi = rps_data.get("deskripsi", "")
+            for c in range(1, 7):
+                set_cell(t1.cell(3, c), deskripsi)
+            
+            # Row 4-6: CPL
+            cpl_list = rps_data.get("cpl", [])
+            for i, cpl in enumerate(cpl_list[:3]):
+                row_idx = 4 + i
+                set_cell(t1.cell(row_idx, 1), cpl.get("kode", f"CPL{i+1}"))
+                for c in range(2, 7):
+                    set_cell(t1.cell(row_idx, c), cpl.get("pernyataan", ""))
+            
+            # TABLE 2: CPMK (index 2)
+            t2 = doc.tables[2]
+            set_cell(t2.cell(0, 1), "Setelah menyelesaikan mata kuliah ini, mahasiswa diharapkan mampu:")
+            set_cell(t2.cell(0, 2), "Setelah menyelesaikan mata kuliah ini, mahasiswa diharapkan mampu:")
+            
+            cpmk_list = rps_data.get("cpmk", [])
+            cpmk_dict = {c.get("kode", ""): c.get("pernyataan", "") for c in cpmk_list}
+            
+            for i, cpmk in enumerate(cpmk_list[:4]):
+                row_idx = 1 + i
+                set_cell(t2.cell(row_idx, 1), cpmk.get("kode", f"CPMK {i+1}"))
+                set_cell(t2.cell(row_idx, 2), cpmk.get("pernyataan", ""))
+            
+            # TABLE 3: weekly plan (index 3)
+            t3 = doc.tables[3]
+            minggu_list = rps_data.get("minggu", [])
+            
+            for i, week_data in enumerate(minggu_list[:16]):
+                row_idx = 4 + i  # Rows 4-19 are weeks 1-16
+                week_no = str(week_data.get("minggu", i + 1))
+                cpmk_code = week_data.get("cpmk", "")
+                topik = week_data.get("topik", "")
+                metode = week_data.get("metode", "")
+                waktu = week_data.get("waktu", "3x50'")
+                pengalaman = week_data.get("pengalaman", "")
+                indikator = week_data.get("indikator", "")
+                bobot = str(week_data.get("bobot", ""))
+                
+                # Check if it's UTS or UAS (merged row)
+                if cpmk_code in ("UTS", "UAS"):
+                    set_cell(t3.cell(row_idx, 0), week_no)
+                    merged_text = f"{cpmk_code}\n{topik}\nBobot: {bobot}%"
+                    set_cell(t3.cell(row_idx, 1), merged_text)
+                else:
+                    kemampuan = f"{cpmk_code}:\n{cpmk_dict.get(cpmk_code, '')}"
+                    set_cell(t3.cell(row_idx, 0), week_no)
+                    set_cell(t3.cell(row_idx, 1), kemampuan)
+                    set_cell(t3.cell(row_idx, 2), topik)
+                    for c in range(3, 7):
+                        set_cell(t3.cell(row_idx, c), metode)
+                    set_cell(t3.cell(row_idx, 7), waktu)
+                    set_cell(t3.cell(row_idx, 8), pengalaman)
+                    set_cell(t3.cell(row_idx, 9), indikator)
+                    set_cell(t3.cell(row_idx, 10), bobot)
+            
+            # Row 20: references
+            referensi_list = rps_data.get("referensi", [])
+            referensi_text = "\n".join(referensi_list)
+            for c in range(0, 11):
+                set_cell(t3.cell(20, c), referensi_text)
+            
+            # TABLE 4: assessment (index 4)
+            t4 = doc.tables[4]
+            penilaian_list = rps_data.get("penilaian", [])
+            
+            for i, penilaian in enumerate(penilaian_list[:5]):
+                row_idx = 2 + i
+                if row_idx < len(t4.rows):
+                    set_cell(t4.cell(row_idx, 1), penilaian.get("komponen", ""))
+                    set_cell(t4.cell(row_idx, 2), penilaian.get("bobot", ""))
+                    set_cell(t4.cell(row_idx, 3), penilaian.get("kriteria", ""))
+                    # CPMK distribution columns
+                    if len(t4.rows[row_idx].cells) >= 8:
+                        set_cell(t4.cell(row_idx, 4), penilaian.get("cpmk1", ""))
+                        set_cell(t4.cell(row_idx, 5), penilaian.get("cpmk2", ""))
+                        set_cell(t4.cell(row_idx, 6), penilaian.get("cpmk3", ""))
+                        set_cell(t4.cell(row_idx, 7), penilaian.get("cpmk4", ""))
+            
+            # TABLE 5: CPL-CPMK mapping (index 5)
+            t5 = doc.tables[5]
+            mapping_list = rps_data.get("cpl_cpmk_mapping", [])
+            
+            # If no explicit mapping, create from cpmk list
+            if not mapping_list:
+                for i, cpmk in enumerate(cpmk_list[:4]):
+                    cpl_code = cpmk.get("mapping_cpl", "")
+                    cpl_stmt = ""
+                    for cpl in cpl_list:
+                        if cpl.get("kode") == cpl_code:
+                            cpl_stmt = cpl.get("pernyataan", "")
+                            break
+                    
+                    mapping_list.append({
+                        "cpl": cpl_code if i == 0 or cpmk.get("mapping_cpl") != cpmk_list[i-1].get("mapping_cpl") else "",
+                        "ik": f"IK {cpl_code.replace('CPL', '')}-1",
+                        "ik_pernyataan": cpl_stmt,
+                        "cpmk": cpmk.get("kode", ""),
+                        "cpmk_pernyataan": cpmk.get("pernyataan", ""),
+                        "bobot": "25%",
+                        "media": "Laporan, Tugas",
+                    })
+            
+            for i, mapping in enumerate(mapping_list[:4]):
+                row_idx = 2 + i
+                if row_idx < len(t5.rows):
+                    set_cell(t5.cell(row_idx, 0), mapping.get("cpl", ""))
+                    set_cell(t5.cell(row_idx, 1), mapping.get("ik", ""))
+                    set_cell(t5.cell(row_idx, 2), mapping.get("ik_pernyataan", ""))
+                    set_cell(t5.cell(row_idx, 3), mapping.get("cpmk", ""))
+                    set_cell(t5.cell(row_idx, 4), mapping.get("cpmk_pernyataan", ""))
+                    if len(t5.rows[row_idx].cells) >= 12:
+                        set_cell(t5.cell(row_idx, 5), mapping.get("bobot", ""))
+                        set_cell(t5.cell(row_idx, 6), mapping.get("media", ""))
+                        set_cell(t5.cell(row_idx, 7), mapping.get("kuis", ""))
+                        set_cell(t5.cell(row_idx, 8), mapping.get("prs", ""))
+                        set_cell(t5.cell(row_idx, 9), mapping.get("pro", ""))
+                        set_cell(t5.cell(row_idx, 10), mapping.get("uts", ""))
+                        set_cell(t5.cell(row_idx, 11), mapping.get("uas", ""))
+            
+            doc.save(output_path)
+            print(f"✅ DOCX saved successfully!")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Error converting to DOCX: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
+
+# Standalone usage
+if __name__ == "__main__":
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="Convert RPS JSON to DOCX")
+    parser.add_argument("--json", required=True, help="Input JSON file with RPS data")
+    parser.add_argument("--output", default="RPS_output.docx", help="Output DOCX file")
+    parser.add_argument("--template", help="Custom template DOCX path (optional)")
+    parser.add_argument("--nama", default="Mata Kuliah", help="Course name")
+    parser.add_argument("--kode", default="MK001", help="Course code")
+    parser.add_argument("--sks", type=int, default=3, help="SKS")
+    parser.add_argument("--semester", type=int, default=1, help="Semester")
+    parser.add_argument("--status", default="Mata Kuliah Wajib", help="Course status")
+    parser.add_argument("--prasyarat", default="-", help="Prerequisites")
+    
+    args = parser.parse_args()
+    
+    print("🚀 JSON to DOCX Converter")
+    print("=" * 60)
+    
+    # Load JSON
+    try:
+        with open(args.json, 'r', encoding='utf-8') as f:
+            rps_data = json.load(f)
+        print(f"✅ Loaded JSON from: {args.json}")
+    except Exception as e:
+        print(f"❌ Failed to load JSON: {e}")
+        exit(1)
+    
+    # Prepare meta
+    meta = {
+        "nama": args.nama,
+        "kode": args.kode,
+        "sks": args.sks,
+        "semester": args.semester,
+        "status": args.status,
+        "prasyarat": args.prasyarat,
+    }
+    
+    # Convert
+    converter = JSONToDocx(template_path=args.template)
+    success = converter.export_to_docx(rps_data, meta, args.output)
+    
+    if success:
+        print(f"\n✅ Conversion complete!")
+        print(f"   Output: {args.output}")
+    else:
+        print(f"\n❌ Conversion failed!")
+        exit(1)
