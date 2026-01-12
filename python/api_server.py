@@ -222,9 +222,9 @@ class RPSAPIHandler(BaseHTTPRequestHandler):
 
 
 def run_server(port=5000):
-    server_address = ('0.0.0.0', port)
+    server_address = ('127.0.0.1', port)
     httpd = ThreadedHTTPServer(server_address, RPSAPIHandler)
-    print(f"🚀 RPS API Server running on http://0.0.0.0:{port}")
+    print(f"🚀 RPS API Server running on http://127.0.0.1:{port} (localhost only)")
     print("=" * 50)
     print("Endpoints:")
     print(f"  GET  http://localhost:{port}/health")
