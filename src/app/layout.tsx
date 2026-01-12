@@ -3,7 +3,35 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: 'RPS Generator - Sistem Pembuatan RPS',
-  description: 'Sistem web untuk membuat Rencana Pembelajaran Semester (RPS) dengan bantuan AI',
+  description: 'Sistem web untuk membuat Rencana Pembelajaran Semester (RPS) dengan bantuan AI untuk Universitas Diponegoro Sekolah Vokasi',
+  keywords: 'RPS, Rencana Pembelajaran Semester, Generator RPS, AI RPS, Universitas Diponegoro, Undip, Sekolah Vokasi, Pendidikan Tinggi, Kurikulum',
+  authors: [{ name: 'Universitas Diponegoro' }],
+  creator: 'Sekolah Vokasi Universitas Diponegoro',
+  publisher: 'Universitas Diponegoro',
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'id_ID',
+    url: 'https://170.64.166.119',
+    title: 'RPS Generator - Sistem Pembuatan RPS',
+    description: 'Sistem web untuk membuat Rencana Pembelajaran Semester (RPS) dengan bantuan AI untuk Universitas Diponegoro',
+    siteName: 'RPS Generator Undip',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'RPS Generator - Sistem Pembuatan RPS',
+    description: 'Sistem web untuk membuat Rencana Pembelajaran Semester (RPS) dengan bantuan AI',
+  },
 }
 
 export default function RootLayout({
