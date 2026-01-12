@@ -37,7 +37,6 @@ export default function RPSEditor() {
   const [additionalContext, setAdditionalContext] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const usePythonAPI = true; // Always use Python API
 
   // Update RPS data
   const updateRPS = (updates: Partial<RPSData>) => {
@@ -72,10 +71,7 @@ export default function RPSEditor() {
     setError(null);
 
     try {
-      // Use Python API if enabled
-      const apiPath = usePythonAPI ? '/api/generate-python' : '/api/generate';
-      
-      const response = await fetch(apiPath, {
+      const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -99,7 +95,7 @@ export default function RPSEditor() {
       // Merge generated data
       const generatedData = result.data;
       
-      if (type === 'full' || usePythonAPI) {
+      if (type === 'full') {
         setRpsData(prev => ({
           ...prev,
           deskripsiSingkat: generatedData.deskripsiSingkat || prev.deskripsiSingkat,
@@ -117,7 +113,7 @@ export default function RPSEditor() {
         updateRPS({ cpmkList: generatedData.cpmkList });
       }
 
-      setSuccess(`Berhasil generate ${type === 'full' ? 'RPS lengkap' : type.toUpperCase()} menggunakan ${usePythonAPI ? 'Python API' : 'Next.js API'}`);
+      setSuccess(`Berhasil generate ${type === 'full' ? 'RPS lengkap' : type.toUpperCase()}`);
       setTimeout(() => setSuccess(null), 3000);
 
     } catch (err) {
@@ -138,10 +134,7 @@ export default function RPSEditor() {
     setError(null);
 
     try {
-      // Use Python API if enabled  
-      const apiPath = usePythonAPI ? '/api/export-python' : '/api/export';
-      
-      const response = await fetch(apiPath, {
+      const response = await fetch('/api/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

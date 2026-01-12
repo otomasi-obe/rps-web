@@ -1,23 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
-import { 
-  SYSTEM_PROMPT, 
-  generateFullRPSPrompt,
-  generateCourseDescriptionPrompt,
-  generateCPLPrompt,
-  generateCPMKPrompt,
-  generateWeeklyPlanPrompt 
-} from '@/lib/prompts';
 import { CourseIdentity, Institution } from '@/types/rps';
 
-// Initialize OpenAI client
-const getOpenAIClient = () => {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY environment variable is not set');
-  }
-  return new OpenAI({ apiKey });
-};
+// Python API URL
+const PYTHON_API_URL = process.env.PYTHON_API_URL || 'http://localhost:5000';
 
 interface GenerateRequest {
   type: 'full' | 'description' | 'cpl' | 'cpmk' | 'weeklyPlan';
@@ -25,7 +10,6 @@ interface GenerateRequest {
   institution: Institution;
   jenisMK?: 'teori' | 'praktikum' | 'campuran';
   additionalContext?: string;
-  // For partial generation
   deskripsiSingkat?: string;
   cplList?: { kode: string; pernyataan: string }[];
   cpmkList?: { kode: string; pernyataan: string }[];
@@ -34,7 +18,7 @@ interface GenerateRequest {
 export async function POST(request: NextRequest) {
   try {
     const body: GenerateRequest = await request.json();
-    const { type, identity, institution, jenisMK = 'campuran', additionalContext } = body;
+    const { identity, jenisMK = 'campuran' } = body;
 
     // Validate required fields
     if (!identity?.nama) {
@@ -44,85 +28,127 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const openai = getOpenAIClient();
+    // Call Python API for full generation with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 280000); // 280 seconds (4min 40s)
+    
+    try {
+      const response = await fetch(`${PYTHON_API_URL}/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          courseName: identity.nama,
+          courseCode: identity.kode || 'MK001',
+          sks: identity.sks || 3,
+          semester: identity.semester || 1,
+          status: identity.status || 'Mata Kuliah Wajib',
+          prereq: identity.prasyarat || '-',
+          jenisMK,
+        }),
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
 
-    // Build prompt based on generation type
-    let userPrompt: string;
-    switch (type) {
-      case 'description':
-        userPrompt = generateCourseDescriptionPrompt(identity, institution, additionalContext);
-        break;
-      case 'cpl':
-        userPrompt = generateCPLPrompt(identity, institution, jenisMK);
-        break;
-      case 'cpmk':
-        if (!body.cplList || !body.deskripsiSingkat) {
-          return NextResponse.json(
-            { error: 'CPL dan deskripsi harus ada untuk generate CPMK' },
-            { status: 400 }
-          );
-        }
-        userPrompt = generateCPMKPrompt(identity, body.cplList, body.deskripsiSingkat);
-        break;
-      case 'weeklyPlan':
-        if (!body.cpmkList || !body.deskripsiSingkat) {
-          return NextResponse.json(
-            { error: 'CPMK dan deskripsi harus ada untuk generate rencana mingguan' },
-            { status: 400 }
-          );
-        }
-        userPrompt = generateWeeklyPlanPrompt(identity, body.deskripsiSingkat, body.cpmkList, jenisMK);
-        break;
-      case 'full':
-      default:
-        userPrompt = generateFullRPSPrompt(identity, institution, jenisMK, additionalContext);
-        break;
-    }
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Python API error: ${response.status}`);
+      }
 
-    // Call OpenAI API
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', // Cost-effective model
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: userPrompt }
-      ],
-      response_format: { type: 'json_object' },
-      temperature: 0.7,
-      max_tokens: 4000,
-    });
+      const result = await response.json();
 
-    const content = completion.choices[0]?.message?.content;
-    if (!content) {
-      throw new Error('Empty response from OpenAI');
-    }
+      if (!result.success || !result.data) {
+        throw new Error('Invalid response from Python API');
+      }
 
-    // Parse JSON response
-    const result = JSON.parse(content);
+      // Convert Python format to our TypeScript format
+      const data = result.data;
+    const convertedData = {
+      deskripsiSingkat: data.deskripsi,
+      cplList: data.cpl.map((c: { kode: string; pernyataan: string }) => ({
+        kode: c.kode,
+        pernyataan: c.pernyataan,
+      })),
+      cpmkList: data.cpmk.map((c: { kode: string; pernyataan: string }) => ({
+        kode: c.kode,
+        pernyataan: c.pernyataan,
+      })),
+      weeklyPlan: data.minggu.map((w: { 
+        minggu: number; 
+        cpmk: string; 
+        topik: string; 
+        metode: string; 
+        waktu: string; 
+        pengalaman: string; 
+        indikator: string; 
+        bobot: string 
+      }) => ({
+        mingguKe: w.minggu,
+        kemampuanAkhir: w.cpmk,
+        bahanKajian: w.topik,
+        metodePembelajaran: {
+          tmScl: w.metode,
+          pbl: '',
+          cbl: '',
+          pjbl: '',
+        },
+        waktu: w.waktu,
+        pengalamanBelajar: w.pengalaman,
+        penilaian: {
+          kriteria: w.indikator,
+          bobot: parseInt(w.bobot) || 0,
+        },
+      })),
+      assessmentMethods: data.penilaian.map((p: { 
+        komponen: string; 
+        bobot: string; 
+        kriteria: string;
+        cpmk1?: string;
+        cpmk2?: string;
+        cpmk3?: string;
+        cpmk4?: string;
+      }) => ({
+        teknik: p.komponen,
+        persentase: parseInt(p.bobot.replace('%', '')) || 0,
+        kriteria: p.kriteria,
+        distribusiCPMK: {
+          cpmk1: parseInt(p.cpmk1?.replace('%', '') || '0') || 0,
+          cpmk2: parseInt(p.cpmk2?.replace('%', '') || '0') || 0,
+          cpmk3: parseInt(p.cpmk3?.replace('%', '') || '0') || 0,
+          cpmk4: parseInt(p.cpmk4?.replace('%', '') || '0') || 0,
+        },
+      })),
+      references: data.referensi.map((r: string, i: number) => ({
+        judul: r,
+        penulis: '',
+        tahun: undefined,
+        jenis: 'buku' as const,
+      })),
+    };
 
     return NextResponse.json({
       success: true,
-      data: result,
-      usage: completion.usage,
+      data: convertedData,
     });
-
-  } catch (error) {
-    console.error('OpenAI API Error:', error);
-    
-    if (error instanceof Error) {
-      if (error.message.includes('OPENAI_API_KEY')) {
+      
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      
+      if (error.name === 'AbortError') {
         return NextResponse.json(
-          { error: 'API Key belum dikonfigurasi. Silakan set OPENAI_API_KEY di environment.' },
-          { status: 500 }
+          { error: 'Request timeout. AI generation took too long. Please try again.' },
+          { status: 504 }
         );
       }
-      return NextResponse.json(
-        { error: `Error: ${error.message}` },
-        { status: 500 }
-      );
+      
+      throw error;
     }
-
+  } catch (error) {
+    console.error('Generate error:', error);
     return NextResponse.json(
-      { error: 'Terjadi kesalahan saat generate konten' },
+      { error: error instanceof Error ? error.message : 'Failed to generate content' },
       { status: 500 }
     );
   }
