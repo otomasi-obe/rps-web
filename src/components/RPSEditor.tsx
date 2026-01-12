@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { RPSData, createEmptyRPS, samplePraktikumMekatronika } from '@/types/rps';
 
-// Tab Components
+// Section Components
 import IdentityTab from '@/components/tabs/IdentityTab';
 import CPLTab from '@/components/tabs/CPLTab';
 import CPMKTab from '@/components/tabs/CPMKTab';
@@ -11,32 +11,20 @@ import WeeklyPlanTab from '@/components/tabs/WeeklyPlanTab';
 import AssessmentTab from '@/components/tabs/AssessmentTab';
 import ReferencesTab from '@/components/tabs/ReferencesTab';
 
-type TabId = 'identity' | 'cpl' | 'cpmk' | 'weeklyPlan' | 'assessment' | 'references';
-
-interface Tab {
-  id: TabId;
-  label: string;
-  icon: string;
-}
-
-const TABS: Tab[] = [
-  { id: 'identity', label: 'Identitas MK', icon: '📋' },
-  { id: 'cpl', label: 'CPL', icon: '🎯' },
-  { id: 'cpmk', label: 'CPMK', icon: '📊' },
-  { id: 'weeklyPlan', label: 'Rencana Mingguan', icon: '📅' },
-  { id: 'assessment', label: 'Penilaian', icon: '✅' },
-  { id: 'references', label: 'Referensi', icon: '📚' },
-];
-
 export default function RPSEditor() {
   const [rpsData, setRpsData] = useState<RPSData>(createEmptyRPS());
-  const [activeTab, setActiveTab] = useState<TabId>('identity');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [jenisMK, setJenisMK] = useState<'teori' | 'praktikum' | 'campuran'>('campuran');
-  const [additionalContext, setAdditionalContext] = useState('');
+  const [promptRpsMantap, setPromptRpsMantap] = useState('');
+  const [cplContext, setCplContext] = useState('');
+  const [cpmkContext, setCpmkContext] = useState('');
+  const [weeklyPlanContext, setWeeklyPlanContext] = useState('');
+  const [referencesContext, setReferencesContext] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [generatingType, setGeneratingType] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
 
   // Update RPS data
   const updateRPS = (updates: Partial<RPSData>) => {
@@ -47,6 +35,15 @@ export default function RPSEditor() {
   const loadSample = () => {
     setRpsData(samplePraktikumMekatronika);
     setJenisMK('praktikum');
+    setPromptRpsMantap(`Mata kuliah ini adalah praktikum mekatronika dan robotika yang fokus pada:
+- Robotika mobile dan autonomous systems
+- Menggunakan Arduino dan sensor ultrasonik
+- Proyek akhir: line follower robot dengan obstacle avoidance
+
+Target lulusan mampu:
+- Merancang dan membuat robot mobile
+- Program mikrokontroler dengan C/C++
+- Integrasi sensor dan aktuator`);
     setSuccess('Data contoh berhasil dimuat');
     setTimeout(() => setSuccess(null), 3000);
   };
@@ -61,14 +58,24 @@ export default function RPSEditor() {
   };
 
   // Generate with AI
-  const generateWithAI = async (type: 'full' | 'description' | 'cpl' | 'cpmk' | 'weeklyPlan') => {
+  const generateWithAI = async (type: 'full' | 'description' | 'cpl' | 'cpmk' | 'weeklyPlan' | 'references', customContext?: string) => {
     if (!rpsData.identity.nama) {
       setError('Nama mata kuliah harus diisi terlebih dahulu');
       return;
     }
 
+    // Block other generates if full is running
+    if (isGenerating && generatingType === 'full' && type !== 'full') {
+      setError('Tidak bisa generate saat Generate RPS Lengkap sedang berjalan');
+      return;
+    }
+
     setIsGenerating(true);
+    setGeneratingType(type);
+    setProgress(0);
     setError(null);
+
+    // Progress only for button spinner (no interval)
 
     try {
       const response = await fetch('/api/generate', {
@@ -79,12 +86,14 @@ export default function RPSEditor() {
           identity: rpsData.identity,
           institution: rpsData.institution,
           jenisMK,
-          additionalContext,
+          additionalContext: customContext || promptRpsMantap,
           deskripsiSingkat: rpsData.deskripsiSingkat,
           cplList: rpsData.cplList,
           cpmkList: rpsData.cpmkList,
         }),
       });
+
+      setProgress(100);
 
       const result = await response.json();
 
@@ -111,15 +120,22 @@ export default function RPSEditor() {
         updateRPS({ cplList: generatedData.cplList });
       } else if (type === 'cpmk') {
         updateRPS({ cpmkList: generatedData.cpmkList });
+      } else if (type === 'weeklyPlan') {
+        updateRPS({ weeklyPlan: generatedData.weeklyPlan });
+      } else if (type === 'references') {
+        updateRPS({ references: generatedData.references });
       }
 
       setSuccess(`Berhasil generate ${type === 'full' ? 'RPS lengkap' : type.toUpperCase()}`);
       setTimeout(() => setSuccess(null), 3000);
 
     } catch (err) {
+      setProgress(0);
       setError(err instanceof Error ? err.message : 'Terjadi kesalahan');
     } finally {
       setIsGenerating(false);
+      setGeneratingType(null);
+      setTimeout(() => setProgress(0), 500);
     }
   };
 
@@ -208,58 +224,6 @@ export default function RPSEditor() {
     reader.readAsText(file);
   };
 
-  // Render active tab content
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'identity':
-        return (
-          <IdentityTab
-            data={rpsData}
-            onUpdate={updateRPS}
-            jenisMK={jenisMK}
-            onJenisMKChange={setJenisMK}
-            additionalContext={additionalContext}
-            onAdditionalContextChange={setAdditionalContext}
-            onGenerateDescription={() => generateWithAI('description')}
-            isGenerating={isGenerating}
-          />
-        );
-      case 'cpl':
-        return (
-          <CPLTab
-            data={rpsData}
-            onUpdate={updateRPS}
-            onGenerate={() => generateWithAI('cpl')}
-            isGenerating={isGenerating}
-          />
-        );
-      case 'cpmk':
-        return (
-          <CPMKTab
-            data={rpsData}
-            onUpdate={updateRPS}
-            onGenerate={() => generateWithAI('cpmk')}
-            isGenerating={isGenerating}
-          />
-        );
-      case 'weeklyPlan':
-        return (
-          <WeeklyPlanTab
-            data={rpsData}
-            onUpdate={updateRPS}
-            onGenerate={() => generateWithAI('weeklyPlan')}
-            isGenerating={isGenerating}
-          />
-        );
-      case 'assessment':
-        return <AssessmentTab data={rpsData} onUpdate={updateRPS} />;
-      case 'references':
-        return <ReferencesTab data={rpsData} onUpdate={updateRPS} />;
-      default:
-        return null;
-    }
-  };
-
   return (
     <div className="space-y-4">
       {/* Alert Messages */}
@@ -284,8 +248,8 @@ export default function RPSEditor() {
               disabled={isGenerating || !rpsData.identity.nama}
               className="btn btn-primary flex items-center gap-2"
             >
-              {isGenerating ? <span className="spinner" /> : '🤖'}
-              Generate RPS dengan AI
+              {isGenerating && generatingType === 'full' ? <span className="spinner" /> : '🤖'}
+              Generate RPS Lengkap
             </button>
             <button onClick={loadSample} className="btn btn-secondary">
               📥 Muat Contoh
@@ -314,23 +278,137 @@ export default function RPSEditor() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="card p-0">
-        <div className="flex border-b border-slate-200 overflow-x-auto">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`tab whitespace-nowrap ${
-                activeTab === tab.id ? 'tab-active' : 'tab-inactive'
-              }`}
-            >
-              <span className="mr-2">{tab.icon}</span>
-              {tab.label}
-            </button>
-          ))}
+      {/* Prompt RPS Mantap Section */}
+      <div className="card bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200">
+        <div className="space-y-3">
+          <div>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-slate-800 mb-1">💡 Prompt RPS Mantap</h3>
+              {!rpsData.identity.nama && <span className="text-xs text-slate-500 italic">(Nama mata kuliah belum diisi)</span>}
+            </div>
+            {rpsData.identity.nama && (
+              <p className="text-sm font-medium text-purple-700 mb-2">
+                {rpsData.identity.nama}
+              </p>
+            )}
+            <p className="text-xs text-slate-600 mb-3">
+              Masukan ide-ide, kebutuhan khusus, atau instruksi detail untuk menggenerate RPS yang lebih disesuaikan
+            </p>
+          </div>
+          <textarea
+            value={promptRpsMantap}
+            onChange={(e) => {
+              setPromptRpsMantap(e.target.value);
+              // Auto-expand textarea
+              e.target.style.height = 'auto';
+              e.target.style.height = Math.min(e.target.scrollHeight, 500) + 'px';
+            }}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                // Auto-expand on enter
+                setTimeout(() => {
+                  e.currentTarget.style.height = 'auto';
+                  e.currentTarget.style.height = Math.min(e.currentTarget.scrollHeight, 500) + 'px';
+                }, 0);
+              }
+            }}
+            placeholder="Contoh prompt lengkap:&#10;- Fokus pada praktik hands-on menggunakan Arduino dan sensor&#10;- Proyek akhir adalah membuat robot line follower&#10;- Gunakan metodologi PBL (Problem-Based Learning) untuk minggu 5-12&#10;- Integrasi dengan industri: undang praktisi dari perusahaan robotika&#10;- Sertifikasi Arduino sebagai pencapaian tambahan"
+            rows={8}
+            style={{ overflow: 'hidden', resize: 'none' }}
+            className="w-full text-sm"
+          />
         </div>
-        <div className="p-6">{renderTabContent()}</div>
+      </div>
+
+      {/* Section: Identitas MK */}
+      <div className="card">
+        <h2 className="text-2xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <span>📋</span>
+          Identitas Mata Kuliah
+        </h2>
+        <IdentityTab
+          data={rpsData}
+          onUpdate={updateRPS}
+          jenisMK={jenisMK}
+          onJenisMKChange={setJenisMK}
+        />
+      </div>
+
+      {/* Section: CPL */}
+      <div className="card">
+        <h2 className="text-2xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <span>🎯</span>
+          Capaian Pembelajaran Lulusan (CPL)
+        </h2>
+        <CPLTab
+          data={rpsData}
+          onUpdate={updateRPS}
+          onGenerate={() => generateWithAI('cpl', cplContext)}
+          isGenerating={isGenerating && generatingType === 'cpl'}
+          contextValue={cplContext}
+          onContextChange={setCplContext}
+          progress={progress}
+        />
+      </div>
+
+      {/* Section: CPMK */}
+      <div className="card">
+        <h2 className="text-2xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <span>📊</span>
+          Capaian Pembelajaran Mata Kuliah (CPMK)
+        </h2>
+        <CPMKTab
+          data={rpsData}
+          onUpdate={updateRPS}
+          onGenerate={() => generateWithAI('cpmk', cpmkContext)}
+          isGenerating={isGenerating && generatingType === 'cpmk'}
+          contextValue={cpmkContext}
+          onContextChange={setCpmkContext}
+          progress={progress}
+        />
+      </div>
+
+      {/* Section: Rencana Mingguan */}
+      <div className="card">
+        <h2 className="text-2xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <span>📅</span>
+          Rencana Pembelajaran Mingguan
+        </h2>
+        <WeeklyPlanTab
+          data={rpsData}
+          onUpdate={updateRPS}
+          onGenerate={() => generateWithAI('weeklyPlan', weeklyPlanContext)}
+          isGenerating={isGenerating && generatingType === 'weeklyPlan'}
+          contextValue={weeklyPlanContext}
+          onContextChange={setWeeklyPlanContext}
+          progress={progress}
+        />
+      </div>
+
+      {/* Section: Penilaian */}
+      <div className="card">
+        <h2 className="text-2xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <span>✅</span>
+          Metode Penilaian
+        </h2>
+        <AssessmentTab data={rpsData} onUpdate={updateRPS} />
+      </div>
+
+      {/* Section: Referensi */}
+      <div className="card">
+        <h2 className="text-2xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <span>📚</span>
+          Referensi
+        </h2>
+        <ReferencesTab 
+          data={rpsData} 
+          onUpdate={updateRPS}
+          onGenerate={() => generateWithAI('references', referencesContext)}
+          isGenerating={isGenerating && generatingType === 'references'}
+          contextValue={referencesContext}
+          onContextChange={setReferencesContext}
+          progress={progress}
+        />
       </div>
 
       {/* JSON Preview */}

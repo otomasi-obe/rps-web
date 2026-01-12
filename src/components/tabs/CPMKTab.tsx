@@ -8,9 +8,12 @@ interface CPMKTabProps {
   onUpdate: (updates: Partial<RPSData>) => void;
   onGenerate: () => void;
   isGenerating: boolean;
+  contextValue?: string;
+  onContextChange?: (value: string) => void;
+  progress?: number;
 }
 
-export default function CPMKTab({ data, onUpdate, onGenerate, isGenerating }: CPMKTabProps) {
+export default function CPMKTab({ data, onUpdate, onGenerate, isGenerating, contextValue = '', onContextChange, progress = 0 }: CPMKTabProps) {
   const updateCPMK = (index: number, updates: Partial<CPMK>) => {
     const newList = [...data.cpmkList];
     newList[index] = { ...newList[index], ...updates };
@@ -38,27 +41,41 @@ export default function CPMKTab({ data, onUpdate, onGenerate, isGenerating }: CP
 
   return (
     <div className="space-y-6">
+      {/* Generate Section with Context Input */}
+      <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200">
+        <div className="mb-3">
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            💡 Konteks untuk Generate CPMK (Opsional)
+          </label>
+          <textarea
+            value={contextValue}
+            onChange={(e) => onContextChange?.(e.target.value)}
+            placeholder="Contoh: Mahasiswa harus mampu membuat aplikasi web full-stack, desain database, dan deploy ke cloud..."
+            rows={2}
+            className="w-full text-sm"
+          />
+        </div>
+        <button
+          onClick={onGenerate}
+          disabled={isGenerating || !canGenerate}
+          className="btn btn-primary text-sm flex items-center gap-2"
+          title={!canGenerate ? 'Isi CPL dan deskripsi terlebih dahulu' : ''}
+        >
+          {isGenerating ? <span className="spinner" /> : '🤖'}
+          Generate CPMK dengan AI
+        </button>
+      </div>
+
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-lg font-semibold text-slate-800">📊 Capaian Pembelajaran Mata Kuliah (CPMK)</h3>
+          <h3 className="text-lg font-semibold text-slate-800">📊 Daftar CPMK</h3>
           <p className="text-sm text-slate-500 mt-1">
             Setelah menyelesaikan pembelajaran mata kuliah ini, mahasiswa diharapkan mampu:
           </p>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={onGenerate}
-            disabled={isGenerating || !canGenerate}
-            className="btn btn-secondary text-sm flex items-center gap-2"
-            title={!canGenerate ? 'Isi CPL dan deskripsi terlebih dahulu' : ''}
-          >
-            {isGenerating ? <span className="spinner" /> : '🤖'}
-            Generate CPMK
-          </button>
-          <button onClick={addCPMK} className="btn btn-primary text-sm">
-            + Tambah CPMK
-          </button>
-        </div>
+        <button onClick={addCPMK} className="btn btn-secondary text-sm">
+          + Tambah CPMK
+        </button>
       </div>
 
       {!canGenerate && (

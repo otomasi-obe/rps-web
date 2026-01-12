@@ -130,34 +130,98 @@ class RPSAPIHandler(BaseHTTPRequestHandler):
     
     def _handle_generate(self, data):
         """Generate RPS content via OpenAI."""
+        generate_type = data.get('type', 'full')  # full, cpl, cpmk, weeklyPlan, references
         course_name = data.get('courseName', 'Mata Kuliah')
         course_code = data.get('courseCode', 'MK001')
         sks = data.get('sks', 3)
         semester = data.get('semester', 1)
         status = data.get('status', 'Mata Kuliah Wajib')
         prereq = data.get('prereq', '-')
+        additional_context = data.get('additionalContext', '')
         
-        print(f"\n📝 Generating RPS for: {course_name}")
+        # Additional data for partial generation
+        deskripsi = data.get('deskripsiSingkat', '')
+        cpl_list = data.get('cplList', [])
+        cpmk_list = data.get('cpmkList', [])
+        
+        print(f"\n📝 Generating {generate_type.upper()} for: {course_name}")
+        if additional_context:
+            print(f"💡 Additional context provided ({len(additional_context)} chars)")
         
         generator = get_generator()
-        rps_data = generator.generate_rps_json(
-            course_name=course_name,
-            course_code=course_code,
-            sks=sks,
-            semester=semester,
-            status=status,
-            prereq=prereq
-        )
         
-        if not rps_data:
-            raise Exception("Failed to generate RPS content")
+        # Handle different generation types
+        if generate_type == 'cpl':
+            result = generator.generate_cpl_json(
+                course_name=course_name,
+                course_code=course_code,
+                sks=sks,
+                semester=semester,
+                deskripsi=deskripsi,
+                additional_context=additional_context
+            )
+            if result:
+                self._send_json({'success': True, 'data': {'cpl': result}})
+            else:
+                raise Exception("Failed to generate CPL")
         
-        print(f"✅ Generated RPS with {len(rps_data.get('minggu', []))} weeks")
+        elif generate_type == 'cpmk':
+            result = generator.generate_cpmk_json(
+                course_name=course_name,
+                course_code=course_code,
+                sks=sks,
+                semester=semester,
+                deskripsi=deskripsi,
+                cpl_list=cpl_list,
+                additional_context=additional_context
+            )
+            if result:
+                self._send_json({'success': True, 'data': {'cpmk': result}})
+            else:
+                raise Exception("Failed to generate CPMK")
         
-        self._send_json({
-            'success': True,
-            'data': rps_data
-        })
+        elif generate_type == 'weeklyPlan':
+            result = generator.generate_weekly_plan_json(
+                course_name=course_name,
+                course_code=course_code,
+                sks=sks,
+                semester=semester,
+                deskripsi=deskripsi,
+                cpmk_list=cpmk_list,
+                additional_context=additional_context
+            )
+            if result:
+                self._send_json({'success': True, 'data': {'minggu': result}})
+            else:
+                raise Exception("Failed to generate Weekly Plan")
+        
+        elif generate_type == 'references':
+            result = generator.generate_references_json(
+                course_name=course_name,
+                course_code=course_code,
+                additional_context=additional_context
+            )
+            if result:
+                self._send_json({'success': True, 'data': {'referensi': result}})
+            else:
+                raise Exception("Failed to generate References")
+        
+        else:  # full generation
+            rps_data = generator.generate_rps_json(
+                course_name=course_name,
+                course_code=course_code,
+                sks=sks,
+                semester=semester,
+                status=status,
+                prereq=prereq,
+                additional_context=additional_context
+            )
+            
+            if not rps_data:
+                raise Exception("Failed to generate RPS content")
+            
+            print(f"✅ Generated RPS with {len(rps_data.get('minggu', []))} weeks")
+            self._send_json({'success': True, 'data': rps_data})
     
     def _handle_export(self, data):
         """Export RPS to DOCX."""

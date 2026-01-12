@@ -82,7 +82,7 @@ class AIToJSON:
     
     def generate_prompt(self, course_name: str, course_code: str, sks: int, 
                        semester: int, status: str = "Mata Kuliah Wajib", 
-                       prereq: str = "-") -> str:
+                       prereq: str = "-", additional_context: str = "") -> str:
         """Generate prompt for OpenAI to create complete RPS content."""
         
         return f"""Anda adalah ahli kurikulum pendidikan tinggi Indonesia. Buatkan Rencana Pembelajaran Semester (RPS) lengkap untuk mata kuliah berikut:
@@ -94,6 +94,8 @@ class AIToJSON:
 - Semester: {semester}
 - Status: {status}
 - Prasyarat: {prereq}
+
+{f"## Konteks Tambahan:{chr(10)}{additional_context}{chr(10)}" if additional_context.strip() else ""}
 
 ## Instruksi:
 Buatkan RPS dalam format JSON dengan struktur PERSIS seperti berikut. PENTING: Hanya output JSON murni tanpa markdown code block.
@@ -207,8 +209,7 @@ Output JSON saja, tanpa markdown formatting atau penjelasan."""
                     messages=[
                         {"role": "system", "content": "You are an expert in Indonesian higher education curriculum design."},
                         {"role": "user", "content": prompt}
-                    ],
-                    max_completion_tokens=4000,
+                    ]
                 )
                 
                 if response.choices and len(response.choices) > 0:
@@ -234,7 +235,7 @@ Output JSON saja, tanpa markdown formatting atau penjelasan."""
     
     def generate_rps_json(self, course_name: str, course_code: str, sks: int, 
                          semester: int, status: str = "Mata Kuliah Wajib", 
-                         prereq: str = "-") -> Optional[dict]:
+                         prereq: str = "-", additional_context: str = "") -> Optional[dict]:
         """
         Generate complete RPS content as JSON.
         
@@ -245,6 +246,7 @@ Output JSON saja, tanpa markdown formatting atau penjelasan."""
             semester: Semester number
             status: Course status (Wajib/Pilihan)
             prereq: Prerequisites
+            additional_context: Additional context for AI generation
             
         Returns:
             Dictionary with RPS data or None if failed
@@ -252,7 +254,7 @@ Output JSON saja, tanpa markdown formatting atau penjelasan."""
         print(f"\n📝 Generating RPS for: {course_name}")
         print("=" * 60)
         
-        prompt = self.generate_prompt(course_name, course_code, sks, semester, status, prereq)
+        prompt = self.generate_prompt(course_name, course_code, sks, semester, status, prereq, additional_context)
         response = self.send_message(prompt)
         
         if not response:
@@ -271,6 +273,179 @@ Output JSON saja, tanpa markdown formatting atau penjelasan."""
         except json.JSONDecodeError as e:
             print(f"❌ Failed to parse JSON: {e}")
             print(f"Response preview: {response[:500]}...")
+            return None
+    
+    def generate_cpl_json(self, course_name: str, course_code: str, sks: int,
+                         semester: int, deskripsi: str = "", additional_context: str = "") -> Optional[list]:
+        """Generate CPL (Capaian Pembelajaran Lulusan) only."""
+        print(f"\n🎯 Generating CPL for: {course_name}")
+        
+        prompt = f"""Anda adalah ahli kurikulum pendidikan tinggi Indonesia. 
+
+## Mata Kuliah:
+- Nama: {course_name}
+- Kode: {course_code}
+- SKS: {sks}
+- Semester: {semester}
+{f"- Deskripsi: {deskripsi}" if deskripsi else ""}
+
+{f"## Konteks Tambahan:{chr(10)}{additional_context}{chr(10)}" if additional_context.strip() else ""}
+
+Buatkan daftar CPL (Capaian Pembelajaran Lulusan) yang relevan untuk mata kuliah ini. CPL adalah kompetensi yang diharapkan dimiliki mahasiswa setelah lulus dari program studi.
+
+Format output JSON murni tanpa markdown:
+[
+    {{"kode": "CPL3", "pernyataan": "Mampu menerapkan pengetahuan..."}},
+    {{"kode": "CPL4", "pernyataan": "Mampu merancang solusi..."}},
+    {{"kode": "CPL10", "pernyataan": "Mampu bekerja sama dalam tim..."}}
+]
+
+Buatkan 3-5 CPL yang spesifik dan relevan. Output JSON saja."""
+        
+        response = self.send_message(prompt)
+        if not response:
+            return None
+        
+        try:
+            cpl_data = self.parse_json_response(response)
+            print(f"✅ Generated {len(cpl_data)} CPL items")
+            return cpl_data
+        except json.JSONDecodeError as e:
+            print(f"❌ Failed to parse JSON: {e}")
+            return None
+    
+    def generate_cpmk_json(self, course_name: str, course_code: str, sks: int,
+                          semester: int, deskripsi: str = "", cpl_list: list = None,
+                          additional_context: str = "") -> Optional[list]:
+        """Generate CPMK (Capaian Pembelajaran Mata Kuliah) only."""
+        print(f"\n📊 Generating CPMK for: {course_name}")
+        
+        cpl_info = ""
+        if cpl_list:
+            cpl_info = "\n## CPL yang sudah ada:\n" + "\n".join([f"- {c.get('kode', '')}: {c.get('pernyataan', '')}" for c in cpl_list])
+        
+        prompt = f"""Anda adalah ahli kurikulum pendidikan tinggi Indonesia.
+
+## Mata Kuliah:
+- Nama: {course_name}
+- Kode: {course_code}
+- SKS: {sks}
+- Semester: {semester}
+{f"- Deskripsi: {deskripsi}" if deskripsi else ""}
+
+{cpl_info}
+
+{f"## Konteks Tambahan:{chr(10)}{additional_context}{chr(10)}" if additional_context.strip() else ""}
+
+Buatkan daftar CPMK (Capaian Pembelajaran Mata Kuliah) yang spesifik untuk mata kuliah ini. CPMK adalah kompetensi yang diharapkan dikuasai mahasiswa setelah menyelesaikan mata kuliah ini.
+
+Format output JSON murni tanpa markdown:
+[
+    {{"kode": "CPMK 1", "pernyataan": "Mahasiswa mampu menjelaskan...", "mapping_cpl": "CPL3"}},
+    {{"kode": "CPMK 2", "pernyataan": "Mahasiswa mampu menerapkan...", "mapping_cpl": "CPL4"}},
+    {{"kode": "CPMK 3", "pernyataan": "Mahasiswa mampu menganalisis...", "mapping_cpl": "CPL4"}},
+    {{"kode": "CPMK 4", "pernyataan": "Mahasiswa mampu merancang...", "mapping_cpl": "CPL10"}}
+]
+
+Buatkan 4-6 CPMK yang terukur dan spesifik. Pastikan mapping_cpl sesuai dengan CPL yang ada. Output JSON saja."""
+        
+        response = self.send_message(prompt)
+        if not response:
+            return None
+        
+        try:
+            cpmk_data = self.parse_json_response(response)
+            print(f"✅ Generated {len(cpmk_data)} CPMK items")
+            return cpmk_data
+        except json.JSONDecodeError as e:
+            print(f"❌ Failed to parse JSON: {e}")
+            return None
+    
+    def generate_weekly_plan_json(self, course_name: str, course_code: str, sks: int,
+                                  semester: int, deskripsi: str = "", cpmk_list: list = None,
+                                  additional_context: str = "") -> Optional[list]:
+        """Generate rencana pembelajaran mingguan (16 minggu) only."""
+        print(f"\n📅 Generating Weekly Plan for: {course_name}")
+        
+        cpmk_info = ""
+        if cpmk_list:
+            cpmk_info = "\n## CPMK yang sudah ada:\n" + "\n".join([f"- {c.get('kode', '')}: {c.get('pernyataan', '')}" for c in cpmk_list])
+        
+        prompt = f"""Anda adalah ahli kurikulum pendidikan tinggi Indonesia.
+
+## Mata Kuliah:
+- Nama: {course_name}
+- Kode: {course_code}
+- SKS: {sks}
+- Semester: {semester}
+{f"- Deskripsi: {deskripsi}" if deskripsi else ""}
+
+{cpmk_info}
+
+{f"## Konteks Tambahan:{chr(10)}{additional_context}{chr(10)}" if additional_context.strip() else ""}
+
+Buatkan rencana pembelajaran mingguan untuk 16 minggu. Minggu 8 adalah UTS dan Minggu 16 adalah UAS.
+
+Format output JSON murni tanpa markdown:
+[
+    {{"minggu": 1, "cpmk": "CPMK 1", "topik": "Pengenalan dan konsep dasar", "metode": "TM SCL / Demo", "waktu": "3x50'", "pengalaman": "Menyimak penjelasan dan mengamati demo", "indikator": "Mampu menjelaskan konsep", "bobot": "5"}},
+    {{"minggu": 2, "cpmk": "CPMK 1", "topik": "Praktik hands-on topik 1", "metode": "Hands-on", "waktu": "3x50'", "pengalaman": "Praktik langsung", "indikator": "Implementasi dasar berhasil", "bobot": "5"}},
+    ...
+    {{"minggu": 8, "cpmk": "UTS", "topik": "Ujian Tengah Semester: evaluasi materi minggu 1-7", "metode": "Uji praktik / Tertulis", "waktu": "3x50'", "pengalaman": "Mengerjakan soal ujian", "indikator": "Fungsi sesuai spesifikasi", "bobot": "15"}},
+    ...
+    {{"minggu": 16, "cpmk": "UAS", "topik": "Ujian Akhir Semester: demo proyek dan evaluasi keseluruhan", "metode": "Demo / Presentasi", "waktu": "3x50'", "pengalaman": "Demo proyek dan Q&A", "indikator": "Sistem bekerja, argumentasi baik", "bobot": "15"}}
+]
+
+Total bobot harus 100%. Pastikan konten relevan dengan "{course_name}". Output JSON saja."""
+        
+        response = self.send_message(prompt)
+        if not response:
+            return None
+        
+        try:
+            weekly_data = self.parse_json_response(response)
+            print(f"✅ Generated {len(weekly_data)} weeks of content")
+            return weekly_data
+        except json.JSONDecodeError as e:
+            print(f"❌ Failed to parse JSON: {e}")
+            return None
+    
+    def generate_references_json(self, course_name: str, course_code: str,
+                                additional_context: str = "") -> Optional[list]:
+        """Generate daftar referensi only."""
+        print(f"\n📚 Generating References for: {course_name}")
+        
+        prompt = f"""Anda adalah ahli kurikulum pendidikan tinggi Indonesia.
+
+## Mata Kuliah:
+- Nama: {course_name}
+- Kode: {course_code}
+
+{f"## Konteks Tambahan:{chr(10)}{additional_context}{chr(10)}" if additional_context.strip() else ""}
+
+Buatkan daftar referensi (buku, jurnal, dokumentasi) yang relevan untuk mata kuliah ini. Berikan referensi yang nyata dan dapat diakses.
+
+Format output JSON murni tanpa markdown:
+[
+    "Judul Buku 1, Penulis, Penerbit, Tahun",
+    "Judul Buku 2, Penulis, Penerbit, Tahun",
+    "Judul Jurnal/Paper, Penulis, Journal Name, Tahun",
+    "Dokumentasi/Website: URL atau nama resource",
+    "Referensi tambahan yang relevan"
+]
+
+Buatkan 5-8 referensi yang berkualitas dan relevan dengan "{course_name}". Output JSON saja."""
+        
+        response = self.send_message(prompt)
+        if not response:
+            return None
+        
+        try:
+            references_data = self.parse_json_response(response)
+            print(f"✅ Generated {len(references_data)} references")
+            return references_data
+        except json.JSONDecodeError as e:
+            print(f"❌ Failed to parse JSON: {e}")
             return None
 
 

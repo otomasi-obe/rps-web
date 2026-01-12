@@ -8,9 +8,12 @@ interface CPLTabProps {
   onUpdate: (updates: Partial<RPSData>) => void;
   onGenerate: () => void;
   isGenerating: boolean;
+  contextValue?: string;
+  onContextChange?: (value: string) => void;
+  progress?: number;
 }
 
-export default function CPLTab({ data, onUpdate, onGenerate, isGenerating }: CPLTabProps) {
+export default function CPLTab({ data, onUpdate, onGenerate, isGenerating, contextValue = '', onContextChange, progress = 0 }: CPLTabProps) {
   const updateCPL = (index: number, updates: Partial<CPL>) => {
     const newList = [...data.cplList];
     newList[index] = { ...newList[index], ...updates };
@@ -36,26 +39,40 @@ export default function CPLTab({ data, onUpdate, onGenerate, isGenerating }: CPL
 
   return (
     <div className="space-y-6">
+      {/* Generate Section with Context Input */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
+        <div className="mb-3">
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            💡 Konteks untuk Generate CPL (Opsional)
+          </label>
+          <textarea
+            value={contextValue}
+            onChange={(e) => onContextChange?.(e.target.value)}
+            placeholder="Contoh: Fokus pada kemampuan analisis data, pemrograman Python, dan machine learning..."
+            rows={2}
+            className="w-full text-sm"
+          />
+        </div>
+        <button
+          onClick={onGenerate}
+          disabled={isGenerating || !data.identity.nama}
+          className="btn btn-primary text-sm flex items-center gap-2"
+        >
+          {isGenerating ? <span className="spinner" /> : '🤖'}
+          Generate CPL dengan AI
+        </button>
+      </div>
+
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-lg font-semibold text-slate-800">🎯 Capaian Pembelajaran Lulusan (CPL)</h3>
+          <h3 className="text-lg font-semibold text-slate-800">🎯 Daftar CPL</h3>
           <p className="text-sm text-slate-500 mt-1">
             CPL yang dibebankan pada mata kuliah ini
           </p>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={onGenerate}
-            disabled={isGenerating || !data.identity.nama}
-            className="btn btn-secondary text-sm flex items-center gap-2"
-          >
-            {isGenerating ? <span className="spinner" /> : '🤖'}
-            Generate CPL
-          </button>
-          <button onClick={addCPL} className="btn btn-primary text-sm">
-            + Tambah CPL
-          </button>
-        </div>
+        <button onClick={addCPL} className="btn btn-secondary text-sm">
+          + Tambah CPL
+        </button>
       </div>
 
       <div className="space-y-4">

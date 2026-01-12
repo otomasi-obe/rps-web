@@ -8,9 +8,12 @@ interface WeeklyPlanTabProps {
   onUpdate: (updates: Partial<RPSData>) => void;
   onGenerate: () => void;
   isGenerating: boolean;
+  contextValue?: string;
+  onContextChange?: (value: string) => void;
+  progress?: number;
 }
 
-export default function WeeklyPlanTab({ data, onUpdate, onGenerate, isGenerating }: WeeklyPlanTabProps) {
+export default function WeeklyPlanTab({ data, onUpdate, onGenerate, isGenerating, contextValue = '', onContextChange, progress = 0 }: WeeklyPlanTabProps) {
   const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
 
   const updateWeek = (index: number, updates: Partial<WeeklyPlan>) => {
@@ -37,9 +40,34 @@ export default function WeeklyPlanTab({ data, onUpdate, onGenerate, isGenerating
 
   return (
     <div className="space-y-6">
+      {/* Generate Section with Context Input */}
+      <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg border border-purple-200">
+        <div className="mb-3">
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            💡 Konteks untuk Generate Rencana Mingguan (Opsional)
+          </label>
+          <textarea
+            value={contextValue}
+            onChange={(e) => onContextChange?.(e.target.value)}
+            placeholder="Contoh: Minggu 1-4 fokus teori, minggu 5-12 praktik, minggu 13-15 proyek kelompok..."
+            rows={2}
+            className="w-full text-sm"
+          />
+        </div>
+        <button
+          onClick={onGenerate}
+          disabled={isGenerating || !canGenerate}
+          className="btn btn-primary text-sm flex items-center gap-2"
+          title={!canGenerate ? 'Isi CPMK dan deskripsi terlebih dahulu' : ''}
+        >
+          {isGenerating ? <span className="spinner" /> : '🤖'}
+          Generate Rencana Mingguan dengan AI
+        </button>
+      </div>
+
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-lg font-semibold text-slate-800">📅 Rencana Pembelajaran Mingguan</h3>
+          <h3 className="text-lg font-semibold text-slate-800">📅 Daftar Rencana Mingguan</h3>
           <p className="text-sm text-slate-500 mt-1">
             Rencana pembelajaran untuk 16 minggu (1 semester)
           </p>
@@ -48,14 +76,6 @@ export default function WeeklyPlanTab({ data, onUpdate, onGenerate, isGenerating
           <span className={`text-sm font-medium ${totalBobot === 100 ? 'text-green-600' : 'text-red-600'}`}>
             Total Bobot: {totalBobot}%
           </span>
-          <button
-            onClick={onGenerate}
-            disabled={isGenerating || !canGenerate}
-            className="btn btn-secondary text-sm flex items-center gap-2"
-          >
-            {isGenerating ? <span className="spinner" /> : '🤖'}
-            Generate Rencana
-          </button>
         </div>
       </div>
 

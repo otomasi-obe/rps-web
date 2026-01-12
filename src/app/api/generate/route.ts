@@ -5,7 +5,7 @@ import { CourseIdentity, Institution } from '@/types/rps';
 const PYTHON_API_URL = process.env.PYTHON_API_URL || 'http://localhost:5000';
 
 interface GenerateRequest {
-  type: 'full' | 'description' | 'cpl' | 'cpmk' | 'weeklyPlan';
+  type: 'full' | 'description' | 'cpl' | 'cpmk' | 'weeklyPlan' | 'references';
   identity: CourseIdentity;
   institution: Institution;
   jenisMK?: 'teori' | 'praktikum' | 'campuran';
@@ -18,7 +18,7 @@ interface GenerateRequest {
 export async function POST(request: NextRequest) {
   try {
     const body: GenerateRequest = await request.json();
-    const { identity, jenisMK = 'campuran' } = body;
+    const { identity, jenisMK = 'campuran', additionalContext, type = 'full', deskripsiSingkat, cplList, cpmkList } = body;
 
     // Validate required fields
     if (!identity?.nama) {
@@ -39,6 +39,7 @@ export async function POST(request: NextRequest) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          type,
           courseName: identity.nama,
           courseCode: identity.kode || 'MK001',
           sks: identity.sks || 3,
@@ -46,6 +47,10 @@ export async function POST(request: NextRequest) {
           status: identity.status || 'Mata Kuliah Wajib',
           prereq: identity.prasyarat || '-',
           jenisMK,
+          additionalContext: additionalContext || '',
+          deskripsiSingkat: deskripsiSingkat || '',
+          cplList: cplList || [],
+          cpmkList: cpmkList || [],
         }),
         signal: controller.signal,
       });
@@ -65,6 +70,73 @@ export async function POST(request: NextRequest) {
 
       // Convert Python format to our TypeScript format
       const data = result.data;
+      
+      // Handle partial generation
+      if (type === 'cpl') {
+        const convertedData = {
+          cplList: data.cpl.map((c: { kode: string; pernyataan: string }) => ({
+            kode: c.kode,
+            pernyataan: c.pernyataan,
+          })),
+        };
+        return NextResponse.json({ success: true, data: convertedData });
+      }
+      
+      if (type === 'cpmk') {
+        const convertedData = {
+          cpmkList: data.cpmk.map((c: { kode: string; pernyataan: string; mapping_cpl?: string }) => ({
+            kode: c.kode,
+            pernyataan: c.pernyataan,
+          })),
+        };
+        return NextResponse.json({ success: true, data: convertedData });
+      }
+      
+      if (type === 'weeklyPlan') {
+        const convertedData = {
+          weeklyPlan: data.minggu.map((w: { 
+            minggu: number; 
+            cpmk: string; 
+            topik: string; 
+            metode: string; 
+            waktu: string; 
+            pengalaman: string; 
+            indikator: string; 
+            bobot: string 
+          }) => ({
+            mingguKe: w.minggu,
+            kemampuanAkhir: w.cpmk,
+            bahanKajian: w.topik,
+            metodePembelajaran: {
+              tmScl: w.metode,
+              pbl: '',
+              cbl: '',
+              pjbl: '',
+            },
+            waktu: w.waktu,
+            pengalamanBelajar: w.pengalaman,
+            penilaian: {
+              kriteria: w.indikator,
+              bobot: parseInt(w.bobot) || 0,
+            },
+          })),
+        };
+        return NextResponse.json({ success: true, data: convertedData });
+      }
+      
+      if (type === 'references') {
+        const convertedData = {
+          references: data.referensi.map((r: string) => ({
+            judul: r,
+            penulis: '',
+            tahun: undefined,
+            jenis: 'buku' as const,
+          })),
+        };
+        return NextResponse.json({ success: true, data: convertedData });
+      }
+      
+      // Full generation
     const convertedData = {
       deskripsiSingkat: data.deskripsi,
       cplList: data.cpl.map((c: { kode: string; pernyataan: string }) => ({

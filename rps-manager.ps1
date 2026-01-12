@@ -6,6 +6,8 @@ param([string]$Command = "")
 # Configuration
 $AppDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $PythonDir = Join-Path $AppDir "python"
+$VenvDir = Join-Path $AppDir "venv"
+$PythonExe = Join-Path $VenvDir "Scripts\python.exe"
 
 function Write-Header {
     Write-Host ""
@@ -72,10 +74,11 @@ function Check-Status {
         Write-Host "   NO - Node.js: Not installed" -ForegroundColor Red
     }
     
-    if (Get-Command python -ErrorAction SilentlyContinue) {
-        Write-Host "   OK - Python: $(python --version)" -ForegroundColor Green
+    if (Test-Path $PythonExe) {
+        $pythonVersion = & $PythonExe --version 2>&1
+        Write-Host "   OK - Python (venv): $pythonVersion" -ForegroundColor Green
     } else {
-        Write-Host "   NO - Python: Not installed" -ForegroundColor Red
+        Write-Host "   NO - Python venv: Not found" -ForegroundColor Red
     }
     
     # Access URLs
@@ -95,13 +98,15 @@ function Start-Services {
     Write-Host "Starting Services..." -ForegroundColor Yellow
     Write-Host ""
     
+    $nextjsStarted = $false
+    $pythonStarted = $false
+    
     # Start Next.js
     if (!(Get-ProcessByPort 3000)) {
         Write-Host "   Starting Next.js..." -ForegroundColor Gray
         $nextCmd = "Set-Location '$AppDir'; npm run dev"
         Start-Process powershell -ArgumentList "-NoExit", "-Command", $nextCmd
-        Start-Sleep -Seconds 3
-        Write-Host "   OK - Next.js started" -ForegroundColor Green
+        $nextjsStarted = $true
     } else {
         Write-Host "   SKIP - Next.js already running" -ForegroundColor Yellow
     }
@@ -109,12 +114,35 @@ function Start-Services {
     # Start Python API
     if (!(Get-ProcessByPort 5000)) {
         Write-Host "   Starting Python API..." -ForegroundColor Gray
-        $pythonCmd = "Set-Location '$PythonDir'; python api_server.py"
+        $pythonCmd = "Set-Location '$PythonDir'; & '$PythonExe' api_server.py"
         Start-Process powershell -ArgumentList "-NoExit", "-Command", $pythonCmd
-        Start-Sleep -Seconds 3
-        Write-Host "   OK - Python API started" -ForegroundColor Green
+        $pythonStarted = $true
     } else {
         Write-Host "   SKIP - Python API already running" -ForegroundColor Yellow
+    }
+    
+    # Wait for services to be ready (check ports)
+    if ($nextjsStarted -or $pythonStarted) {
+        Write-Host "   Waiting for services to start..." -ForegroundColor Gray
+        $timeout = 0
+        while ($timeout -lt 30) {
+            $nextOk = Get-ProcessByPort 3000
+            $pythonOk = Get-ProcessByPort 5000
+            
+            if (($nextjsStarted -and $nextOk) -or !$nextjsStarted) {
+                Write-Host "   OK - Next.js started" -ForegroundColor Green
+            }
+            if (($pythonStarted -and $pythonOk) -or !$pythonStarted) {
+                Write-Host "   OK - Python API started" -ForegroundColor Green
+            }
+            
+            if ((!$nextjsStarted -or $nextOk) -and (!$pythonStarted -or $pythonOk)) {
+                break
+            }
+            
+            Start-Sleep -Seconds 1
+            $timeout++
+        }
     }
     
     Write-Host ""
@@ -126,7 +154,10 @@ function Stop-Services {
     Write-Host "Stopping Services..." -ForegroundColor Yellow
     Write-Host ""
     
+    # Stop both services concurrently
     $nextProcess = Get-ProcessByPort 3000
+    $pythonProcess = Get-ProcessByPort 5000
+    
     if ($nextProcess) {
         Stop-Process -Id $nextProcess.Id -Force -ErrorAction SilentlyContinue
         Write-Host "   OK - Next.js stopped" -ForegroundColor Green
@@ -134,7 +165,6 @@ function Stop-Services {
         Write-Host "   SKIP - Next.js not running" -ForegroundColor Yellow
     }
     
-    $pythonProcess = Get-ProcessByPort 5000
     if ($pythonProcess) {
         Stop-Process -Id $pythonProcess.Id -Force -ErrorAction SilentlyContinue
         Write-Host "   OK - Python API stopped" -ForegroundColor Green
@@ -151,7 +181,7 @@ function Restart-Services {
     Write-Host "Restarting Services..." -ForegroundColor Yellow
     Write-Host ""
     Stop-Services
-    Start-Sleep -Seconds 2
+    Start-Sleep -Seconds 1
     Start-Services
 }
 

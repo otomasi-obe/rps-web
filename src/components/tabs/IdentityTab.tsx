@@ -8,10 +8,6 @@ interface IdentityTabProps {
   onUpdate: (updates: Partial<RPSData>) => void;
   jenisMK: 'teori' | 'praktikum' | 'campuran';
   onJenisMKChange: (value: 'teori' | 'praktikum' | 'campuran') => void;
-  additionalContext: string;
-  onAdditionalContextChange: (value: string) => void;
-  onGenerateDescription: () => void;
-  isGenerating: boolean;
 }
 
 export default function IdentityTab({
@@ -19,10 +15,6 @@ export default function IdentityTab({
   onUpdate,
   jenisMK,
   onJenisMKChange,
-  additionalContext,
-  onAdditionalContextChange,
-  onGenerateDescription,
-  isGenerating,
 }: IdentityTabProps) {
   return (
     <div className="space-y-6">
@@ -293,38 +285,10 @@ export default function IdentityTab({
       {/* Description */}
       <section>
         <h3 className="text-lg font-semibold text-slate-800 mb-4">📝 Deskripsi Singkat Mata Kuliah</h3>
-        <div className="space-y-2">
-          <textarea
-            value={data.deskripsiSingkat}
-            onChange={(e) => onUpdate({ deskripsiSingkat: e.target.value })}
-            placeholder="Deskripsi singkat mata kuliah (2-4 kalimat)..."
-            rows={4}
-            className="w-full"
-          />
-          <div className="flex gap-2">
-            <button
-              onClick={onGenerateDescription}
-              disabled={isGenerating || !data.identity.nama}
-              className="btn btn-secondary text-sm flex items-center gap-2"
-            >
-              {isGenerating ? <span className="spinner" /> : '🤖'}
-              Generate Deskripsi dengan AI
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* Additional Context for AI */}
-      <section>
-        <h3 className="text-lg font-semibold text-slate-800 mb-4">💡 Konteks Tambahan untuk AI (Opsional)</h3>
         <textarea
-          value={additionalContext}
-          onChange={(e) => onAdditionalContextChange(e.target.value)}
-          placeholder="Berikan konteks tambahan untuk membantu AI menggenerate konten yang lebih spesifik...
-Contoh:
-- Fokus pada robotika mobile
-- Menggunakan Arduino dan sensor ultrasonik
-- Proyek akhir berupa line follower robot"
+          value={data.deskripsiSingkat}
+          onChange={(e) => onUpdate({ deskripsiSingkat: e.target.value })}
+          placeholder="Deskripsi singkat mata kuliah (2-4 kalimat)..."
           rows={4}
           className="w-full"
         />
