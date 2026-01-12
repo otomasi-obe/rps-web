@@ -21,66 +21,70 @@ def _set_cell_text_preserve_format(cell, text: str) -> None:
         cell.text = text
         return
     
-    # Get the first paragraph
-    first_paragraph = cell.paragraphs[0]
-    runs = list(first_paragraph.runs)
+    # Find the first paragraph with runs to preserve formatting from
+    target_paragraph = None
+    target_run = None
     
-    if not runs:
-        # No runs exist, add new run with text
-        run = first_paragraph.add_run(text)
-        # Default to 9pt if no format exists
-        run.font.size = Pt(9)
+    for para in cell.paragraphs:
+        if para.runs:
+            target_paragraph = para
+            target_run = para.runs[0]
+            break
+    
+    # If no run found anywhere, use first paragraph
+    if not target_paragraph:
+        target_paragraph = cell.paragraphs[0]
+    
+    # Save formatting from target run
+    if target_run:
+        saved_font_size = target_run.font.size or Pt(9)  # Default to 9pt
+        saved_font_name = target_run.font.name
+        saved_bold = target_run.font.bold
+        saved_italic = target_run.font.italic
+        saved_underline = target_run.font.underline
     else:
-        # Save formatting from first run
-        first_run = runs[0]
-        saved_font_size = first_run.font.size or Pt(9)  # Default to 9pt
-        saved_font_name = first_run.font.name
-        saved_bold = first_run.font.bold
-        saved_italic = first_run.font.italic
-        saved_underline = first_run.font.underline
-        
-        # Handle multiline text - split and create runs for each line
-        lines = text.split('\n')
-        
-        # Set first line in first run
-        first_run.text = lines[0] if lines else ""
-        
-        # Restore formatting to first run
-        first_run.font.size = saved_font_size
-        if saved_font_name:
-            first_run.font.name = saved_font_name
-        if saved_bold is not None:
-            first_run.font.bold = saved_bold
-        if saved_italic is not None:
-            first_run.font.italic = saved_italic
-        if saved_underline is not None:
-            first_run.font.underline = saved_underline
-        
-        # Clear other existing runs
-        for run in runs[1:]:
-            run.text = ""
-        
-        # Add additional lines if needed
-        if len(lines) > 1:
-            for line in lines[1:]:
-                # Add line break and new run
-                first_paragraph.add_run('\n')
-                new_run = first_paragraph.add_run(line)
-                # Apply same formatting
-                new_run.font.size = saved_font_size
-                if saved_font_name:
-                    new_run.font.name = saved_font_name
-                if saved_bold is not None:
-                    new_run.font.bold = saved_bold
-                if saved_italic is not None:
-                    new_run.font.italic = saved_italic
-                if saved_underline is not None:
-                    new_run.font.underline = saved_underline
+        saved_font_size = Pt(9)  # Default to 9pt
+        saved_font_name = None
+        saved_bold = None
+        saved_italic = None
+        saved_underline = None
     
-    # Clear additional paragraphs
-    for paragraph in cell.paragraphs[1:]:
-        for run in paragraph.runs:
-            run.text = ""
+    # Clear all paragraphs except target
+    for para in cell.paragraphs:
+        if para != target_paragraph:
+            for run in para.runs:
+                run.text = ""
+    
+    # Clear all runs in target paragraph
+    for run in target_paragraph.runs:
+        run.text = ""
+    
+    # Handle multiline text - split and create runs for each line
+    lines = text.split('\n')
+    
+    for line_idx, line in enumerate(lines):
+        if line_idx == 0:
+            # Use existing run for first line
+            if not target_paragraph.runs:
+                run = target_paragraph.add_run(line)
+            else:
+                run = target_paragraph.runs[0]
+                run.text = line
+        else:
+            # Add line break and new run for subsequent lines
+            target_paragraph.add_run('\n')
+            run = target_paragraph.add_run(line)
+        
+        # Apply formatting to this run
+        run.font.size = saved_font_size
+        if saved_font_name:
+            run.font.name = saved_font_name
+        if saved_bold is not None:
+            run.font.bold = saved_bold
+        if saved_italic is not None:
+            run.font.italic = saved_italic
+        if saved_underline is not None:
+            run.font.underline = saved_underline
 
 
 class JSONToDocx:
@@ -142,19 +146,7 @@ class JSONToDocx:
             # Use the formatting-preserving function
             set_cell = _set_cell_text_preserve_format
             
-            # TABLE 0: Authority/Otoritas (Koordinator MK, Koordinator GPM, Ketua Prodi, Dekan)
-            # Assuming authority table is at index 0 with signature rows
-            if len(doc.tables) > 0:
-                t0 = doc.tables[0]
-                # Try to fill authority data if the table exists
-                # Usually structure is: row with names and NIP
-                # Check if meta has authority fields
-                if 'koordinatorMK' in meta and len(t0.rows) > 0:
-                    # This assumes the template has the authority table
-                    # You may need to adjust row/column indices based on your template structure
-                    pass  # Will be filled if template structure is known
-            
-            # TABLE 1: course identity (index 1)
+            # TABLE 1: course identity (index 1) + Authority row
             t1 = doc.tables[1]
             set_cell(t1.cell(1, 0), meta["kode"])
             set_cell(t1.cell(1, 1), meta["nama"])
@@ -163,6 +155,41 @@ class JSONToDocx:
             set_cell(t1.cell(1, 4), str(meta["semester"]))
             set_cell(t1.cell(1, 5), meta["status"])
             set_cell(t1.cell(1, 6), meta["prasyarat"])
+            
+            # Row 2: Authority/Otoritas (Koordinator MK, Koordinator GPM, Ketua Prodi, Dekan)
+            if len(t1.rows) > 2:
+                auth_row = t1.rows[2]
+                
+                # Column structure: 0=Otoritas, 1-2=KoordinatorMK, 3-4=KoordinatorGPM, 5=KetuaProdi, 6=Dekan
+                if 'koordinatorMK' in meta and len(auth_row.cells) > 2:
+                    mk = meta['koordinatorMK']
+                    mk_nama = mk.get('nama', '') if isinstance(mk, dict) else ''
+                    mk_nip = mk.get('nip', '') if isinstance(mk, dict) else ''
+                    # Fill columns 1 and 2 for Koordinator MK
+                    set_cell(auth_row.cells[1], f"Koordinator Mata Kuliah\n\n\n\n\n{mk_nama}\nNIPP. {mk_nip}")
+                    set_cell(auth_row.cells[2], f"Koordinator Mata Kuliah\n\n\n\n\n{mk_nama}\nNIPP. {mk_nip}")
+                
+                if 'koordinatorGPM' in meta and len(auth_row.cells) > 4:
+                    gpm = meta['koordinatorGPM']
+                    gpm_nama = gpm.get('nama', '') if isinstance(gpm, dict) else ''
+                    gpm_nip = gpm.get('nip', '') if isinstance(gpm, dict) else ''
+                    # Fill columns 3 and 4 for Koordinator GPM
+                    set_cell(auth_row.cells[3], f"Koordinator GPM\n\n\n\n\n{gpm_nama}\nNIPP. {gpm_nip}")
+                    set_cell(auth_row.cells[4], f"Koordinator GPM\n\n\n\n\n{gpm_nama}\nNIPP. {gpm_nip}")
+                
+                if 'ketuaProdi' in meta and len(auth_row.cells) > 5:
+                    prodi = meta['ketuaProdi']
+                    prodi_nama = prodi.get('nama', '') if isinstance(prodi, dict) else ''
+                    prodi_nip = prodi.get('nip', '') if isinstance(prodi, dict) else ''
+                    # Fill column 5 for Ketua Prodi
+                    set_cell(auth_row.cells[5], f"Ketua Prodi\n\n\n\n\n{prodi_nama}\nNIP. {prodi_nip}")
+                
+                if 'dekan' in meta and len(auth_row.cells) > 6:
+                    dekan = meta['dekan']
+                    dekan_nama = dekan.get('nama', '') if isinstance(dekan, dict) else ''
+                    dekan_nip = dekan.get('nip', '') if isinstance(dekan, dict) else ''
+                    # Fill column 6 for Dekan
+                    set_cell(auth_row.cells[6], f"Dekan Sekolah Vokasi\n\n\n\n\n{dekan_nama}\nNIP. {dekan_nip}")
             
             # Row 3: description
             deskripsi = rps_data.get("deskripsi", "")
@@ -299,23 +326,6 @@ class JSONToDocx:
                         set_cell(t5.cell(row_idx, 9), mapping.get("pro", ""))
                         set_cell(t5.cell(row_idx, 10), mapping.get("uts", ""))
                         set_cell(t5.cell(row_idx, 11), mapping.get("uas", ""))
-            
-            # TABLE 6 or later: Authority/Otoritas (if exists)
-            # Fill in authority information (Koordinator MK, GPM, Ketua Prodi, Dekan)
-            if len(doc.tables) > 6:
-                t_auth = doc.tables[6]  # Authority table
-                # Common structure: rows with Name and NIP columns
-                # Adjust indices based on actual template structure
-                try:
-                    # Assuming 4 rows for 4 authorities, adjust as needed
-                    # Row 0 or 1: Koordinator MK
-                    if 'koordinatorMK' in meta:
-                        mk = meta['koordinatorMK']
-                        # You'll need to adjust cell indices based on your template
-                        # Example: set_cell(t_auth.cell(row, col), mk['nama'])
-                    # Similar for koordinatorGPM, ketuaProdi, dekan
-                except Exception as e:
-                    print(f"⚠️  Warning: Could not fill authority data: {e}")
             
             doc.save(output_path)
             print(f"✅ DOCX saved successfully!")
