@@ -52,8 +52,8 @@ check_status() {
     fi
     
     # Check Python API
-    if systemctl is-active --quiet rps-python-api 2>/dev/null; then
-        PYTHON_PID=$(pgrep -f "api_server.py" 2>/dev/null)
+    PYTHON_PID=$(pgrep -f "api_server.py" 2>/dev/null)
+    if [ -n "$PYTHON_PID" ]; then
         echo -e "   ${GREEN}✓${NC} Python API:     ${GREEN}RUNNING${NC} (PID: $PYTHON_PID)"
     else
         echo -e "   ${RED}✗${NC} Python API:     ${RED}STOPPED${NC}"
@@ -172,7 +172,7 @@ start_services() {
         echo -e "   ${GREEN}✓${NC} Next.js restarted via PM2"
     fi
     
-    # Start Python API via systemd
+    # Start Python API via systemctl
     if ! systemctl is-active --quiet rps-python-api 2>/dev/null; then
         sudo systemctl start rps-python-api
         sleep 2

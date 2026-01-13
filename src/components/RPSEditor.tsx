@@ -95,7 +95,22 @@ Target lulusan mampu:
 
       setProgress(100);
 
-      const result = await response.json();
+      // Debug: Log the response
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      
+      // Get raw response text first 
+      const responseText = await response.text();
+      console.log('Raw response:', responseText.substring(0, 500));
+      
+      // Try to parse JSON
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('JSON Parse Error:', parseError);
+        throw new Error(`Invalid response format: ${responseText.substring(0, 100)}`);
+      }
 
       if (!response.ok) {
         throw new Error(result.error || 'Gagal generate konten');
@@ -103,6 +118,17 @@ Target lulusan mampu:
 
       // Merge generated data
       const generatedData = result.data;
+      
+      // Debug log
+      console.log('=== Generate Response Debug ===');
+      console.log('Type:', type);
+      console.log('Generated data keys:', Object.keys(generatedData || {}));
+      console.log('Generated data:', generatedData);
+      
+      // Validate data exists
+      if (!generatedData) {
+        throw new Error('No data received from server');
+      }
       
       if (type === 'full') {
         setRpsData(prev => ({
@@ -115,14 +141,31 @@ Target lulusan mampu:
           references: generatedData.references || prev.references,
         }));
       } else if (type === 'description') {
+        if (!generatedData.deskripsiSingkat) {
+          throw new Error('No description data received');
+        }
         updateRPS({ deskripsiSingkat: generatedData.deskripsiSingkat });
       } else if (type === 'cpl') {
+        if (!generatedData.cplList || !Array.isArray(generatedData.cplList)) {
+          console.error('Invalid CPL data:', generatedData);
+          throw new Error('Invalid CPL data structure received');
+        }
+        console.log('Updating CPL with', generatedData.cplList.length, 'items');
         updateRPS({ cplList: generatedData.cplList });
       } else if (type === 'cpmk') {
+        if (!generatedData.cpmkList || !Array.isArray(generatedData.cpmkList)) {
+          throw new Error('Invalid CPMK data structure received');
+        }
         updateRPS({ cpmkList: generatedData.cpmkList });
       } else if (type === 'weeklyPlan') {
+        if (!generatedData.weeklyPlan || !Array.isArray(generatedData.weeklyPlan)) {
+          throw new Error('Invalid weeklyPlan data structure received');
+        }
         updateRPS({ weeklyPlan: generatedData.weeklyPlan });
       } else if (type === 'references') {
+        if (!generatedData.references || !Array.isArray(generatedData.references)) {
+          throw new Error('Invalid references data structure received');
+        }
         updateRPS({ references: generatedData.references });
       }
 
@@ -131,7 +174,22 @@ Target lulusan mampu:
 
     } catch (err) {
       setProgress(0);
-      setError(err instanceof Error ? err.message : 'Terjadi kesalahan');
+      
+      // Handle specific error cases
+      let errorMessage = 'Terjadi kesalahan';
+      
+      if (err instanceof Error) {
+        if (err.message.includes('<html>') || err.message.includes('Unexpected token')) {
+          errorMessage = '❌ Server mengembalikan HTML error. Python API server mungkin bermasalah.\\n\\n🔧 Solusi:\\n1. Restart Python server\\n2. Cek OPENAI_API_KEY di .env.local\\n3. Pastikan dependencies terinstall';
+        } else if (err.message.includes('fetch')) {
+          errorMessage = '❌ Tidak dapat terhubung ke Python server. Pastikan server berjalan di http://localhost:5000';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
+      setError(errorMessage);
+      console.error('Generate error details:', err);
     } finally {
       setIsGenerating(false);
       setGeneratingType(null);

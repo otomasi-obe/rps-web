@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { RPSData } from '@/types/rps';
 
-// Python API URL
-const PYTHON_API_URL = process.env.PYTHON_API_URL || 'http://localhost:5000';
+// Python API URL - direct connection to avoid proxy issues
+const PYTHON_API_URL = process.env.PYTHON_API_URL || 'http://127.0.0.1:5000';
+
+// Set maxDuration untuk API route (dalam detik)
+export const maxDuration = 60; // 1 minute
 
 export async function POST(request: NextRequest) {
   try {

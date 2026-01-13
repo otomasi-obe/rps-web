@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { CourseIdentity, Institution } from '@/types/rps';
 
-// Python API URL
-const PYTHON_API_URL = process.env.PYTHON_API_URL || 'http://localhost:5000';
+// Python API URL - direct connection to avoid proxy issues
+const PYTHON_API_URL = process.env.PYTHON_API_URL || 'http://127.0.0.1:5000';
+
+// Set maxDuration untuk API route (dalam detik)
+export const maxDuration = 300; // 5 minutes
 
 interface GenerateRequest {
   type: 'full' | 'description' | 'cpl' | 'cpmk' | 'weeklyPlan' | 'references';
@@ -71,14 +74,23 @@ export async function POST(request: NextRequest) {
       // Convert Python format to our TypeScript format
       const data = result.data;
       
+      // Debug log
+      console.log('Python API response data:', JSON.stringify(data).substring(0, 200));
+      console.log('Type:', type);
+      
       // Handle partial generation
       if (type === 'cpl') {
+        if (!data.cpl || !Array.isArray(data.cpl)) {
+          console.error('Invalid CPL data structure:', data);
+          throw new Error('Invalid CPL data from Python API');
+        }
         const convertedData = {
           cplList: data.cpl.map((c: { kode: string; pernyataan: string }) => ({
             kode: c.kode,
             pernyataan: c.pernyataan,
           })),
         };
+        console.log('Converted CPL data:', convertedData);
         return NextResponse.json({ success: true, data: convertedData });
       }
       

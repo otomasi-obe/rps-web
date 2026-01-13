@@ -76,7 +76,12 @@ export default function CPLTab({ data, onUpdate, onGenerate, isGenerating, conte
       </div>
 
       <div className="space-y-4">
-        {data.cplList.map((cpl, index) => (
+        {(!data.cplList || data.cplList.length === 0) ? (
+          <div className="text-center py-8 text-slate-500">
+            <p>Belum ada CPL. Klik "Generate CPL dengan AI" atau "Tambah CPL" untuk memulai.</p>
+          </div>
+        ) : (
+          data.cplList.map((cpl, index) => (
           <div key={index} className="bg-slate-50 p-4 rounded-lg border border-slate-200">
             <div className="flex gap-4">
               <div className="w-28">
@@ -102,7 +107,7 @@ export default function CPLTab({ data, onUpdate, onGenerate, isGenerating, conte
               <div className="flex items-end">
                 <button
                   onClick={() => removeCPL(index)}
-                  disabled={data.cplList.length <= 1}
+                  disabled={!data.cplList || data.cplList.length <= 1}
                   className="btn btn-danger text-sm px-3"
                   title="Hapus CPL"
                 >
@@ -111,7 +116,7 @@ export default function CPLTab({ data, onUpdate, onGenerate, isGenerating, conte
               </div>
             </div>
           </div>
-        ))}
+        )))}
       </div>
 
       <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">

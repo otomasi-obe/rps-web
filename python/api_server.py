@@ -41,9 +41,15 @@ _generator = None
 def get_generator():
     global _generator
     if _generator is None:
-        _generator = AIToJSON()
-        if not _generator.client:
-            raise Exception("Failed to initialize AI generator")
+        try:
+            _generator = AIToJSON()
+            if not _generator.client:
+                print("❌ AI generator failed to initialize - no OpenAI client")
+                raise Exception("Failed to initialize AI generator: No OpenAI client available")
+            print("✅ AI generator initialized successfully")
+        except Exception as e:
+            print(f"❌ Error initializing AI generator: {e}")
+            raise Exception(f"Failed to initialize AI generator: {e}")
     return _generator
 
 
@@ -63,38 +69,58 @@ class RPSAPIHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         
         if parsed.path == '/health':
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json')
-            self._set_cors_headers()
-            self.end_headers()
-            self.wfile.write(json.dumps({
+            response_data = {
                 'status': 'ok',
                 'model': 'gpt-5-mini-2025-08-07'
-            }).encode())
+            }
+            response_json = json.dumps(response_data, ensure_ascii=False)
+            response_bytes = response_json.encode('utf-8')
+            
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Content-Length', str(len(response_bytes)))
+            self._set_cors_headers()
+            self.end_headers()
+            self.wfile.write(response_bytes)
         else:
             self.send_response(404)
             self.end_headers()
     
     def do_POST(self):
-        parsed = urlparse(self.path)
-        content_length = int(self.headers.get('Content-Length', 0))
-        body = self.rfile.read(content_length).decode('utf-8')
-        
         try:
-            data = json.loads(body) if body else {}
-        except json.JSONDecodeError:
-            self._send_error(400, 'Invalid JSON')
-            return
-        
-        try:
-            if parsed.path == '/generate':
-                self._handle_generate(data)
-            elif parsed.path == '/export':
-                self._handle_export(data)
-            else:
-                self._send_error(404, 'Not found')
+            parsed = urlparse(self.path)
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            
+            try:
+                data = json.loads(body) if body else {}
+            except json.JSONDecodeError:
+                self._send_error(400, 'Invalid JSON')
+                return
+            
+            try:
+                if parsed.path == '/generate':
+                    self._handle_generate(data)
+                elif parsed.path == '/export':
+                    self._handle_export(data)
+                else:
+                    self._send_error(404, 'Not found')
+            except Exception as e:
+                print(f"❌ Error in {parsed.path}: {e}")
+                import traceback
+                traceback.print_exc()
+                self._send_error(500, str(e))
         except Exception as e:
-            self._send_error(500, str(e))
+            print(f"❌ Critical error in do_POST: {e}")
+            try:
+                self._send_error(500, f"Server error: {e}")
+            except:
+                # Last resort - send basic error response
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self._set_cors_headers()
+                self.end_headers()
+                self.wfile.write(json.dumps({'error': 'Server error'}).encode())
     
     def _send_error(self, code, message):
         self.send_response(code)
