@@ -1,0 +1,355 @@
+{
+  "deskripsi": "Mata kuliah Robotika memperkenalkan konsep dasar, komponen, pemrograman, dan integrasi sistem robot. Mahasiswa belajar merancang, mengendalikan, dan menguji prototipe robot serta menganalisis kinerja sistem robotik.",
+  "cpl": [
+    {
+      "kode": "CPL3",
+      "pernyataan": "Mampu menguasai pengetahuan bidang keilmuan teknik terkait robotika dan sistem kontrol dasar",
+      "ik_kode": "IK 3-1",
+      "ik_pernyataan": "Menjelaskan konsep dasar robotika, komponen, dan prinsip kerja sensor serta aktuator"
+    },
+    {
+      "kode": "CPL4",
+      "pernyataan": "Mampu menerapkan pengetahuan keilmuan untuk memecahkan masalah teknik di bidang robotika",
+      "ik_kode": "IK 4-1",
+      "ik_pernyataan": "Merancang algoritme kontrol dan menerapkan pemrograman mikrokontroler untuk solusi robotika sederhana"
+    },
+    {
+      "kode": "CPL10",
+      "pernyataan": "Mampu bekerjasama, berkomunikasi, dan menyampaikan hasil teknis secara profesional",
+      "ik_kode": "IK 10-1",
+      "ik_pernyataan": "Mempresentasikan hasil proyek robotika, menulis laporan teknis, dan bekerja efektif dalam tim multidisiplin"
+    }
+  ],
+  "cpmk": [
+    {
+      "kode": "CPMK 1",
+      "pernyataan": "Mahasiswa mampu menjelaskan konsep dasar robotika, komponen sistem, dan prinsip kerja sensor serta aktuator",
+      "mapping_cpl": "CPL3"
+    },
+    {
+      "kode": "CPMK 2",
+      "pernyataan": "Mahasiswa mampu merancang dan mengimplementasikan program pada mikrokontroler serta interfacing sensor dan aktuator",
+      "mapping_cpl": "CPL3"
+    },
+    {
+      "kode": "CPMK 3",
+      "pernyataan": "Mahasiswa mampu menganalisis kinematika, dinamika, dan desain kontrol gerak robot",
+      "mapping_cpl": "CPL4"
+    },
+    {
+      "kode": "CPMK 4",
+      "pernyataan": "Mahasiswa mampu merancang, mengintegrasikan, dan mempresentasikan proyek robotika fungsional secara tim",
+      "mapping_cpl": "CPL10"
+    }
+  ],
+  "weeklyPlan": [
+    {
+      "mingguKe": 1,
+      "kemampuanAkhir": "CPMK 1",
+      "bahanKajian": "Pengantar Robotika: ruang lingkup, sejarah, dan komponennya",
+      "metodePembelajaran": {
+        "metode": "Ceramah",
+        "aktivitas": "Mendengarkan pengantar mata kuliah robotika memahami tujuan cakupan silabus evaluasi praktikum tugas kelompok ujian"
+      },
+      "waktu": "3x50'",
+      "pengalamanBelajar": "Mahasiswa aktif mencatat bertanya merencanakan jadwal praktikum membentuk kelompok mempersiapkan bahan awal studi kasus",
+      "penilaian": {
+        "kriteria": "Kehadiran minimal 75% kontribusi diskusi kesiapan praktikum penugasan awal refleksi pembelajaran sesuai indikator pengajar",
+        "bobot": 5
+      }
+    },
+    {
+      "mingguKe": 2,
+      "kemampuanAkhir": "CPMK 1",
+      "bahanKajian": "Dasar Elektronika untuk Robotika: sinyal, interfacing, dan mikrokontroler",
+      "metodePembelajaran": {
+        "metode": "Praktikum",
+        "aktivitas": "Melaksanakan rangkaian sensor sederhana mengukur sinyal menghubungkan komponen ke mikrokontroler membuat dokumentasi"
+      },
+      "waktu": "3x50'",
+      "pengalamanBelajar": "Mahasiswa merakit rangkaian mencatat hasil pengukuran berdiskusi solusi menyusun laporan praktikum terstruktur bukti pembelajaran",
+      "penilaian": {
+        "kriteria": "Keberhasilan perakitan akurasi pengukuran analisis data dokumentasi lengkap kerjasama kelompok sesuai standar penilaian",
+        "bobot": 5
+      }
+    },
+    {
+      "mingguKe": 3,
+      "kemampuanAkhir": "CPMK 3",
+      "bahanKajian": "Kinematika dasar robot: koordinat, transformasi, dan persamaan gerak",
+      "metodePembelajaran": {
+        "metode": "Ceramah",
+        "aktivitas": "Mempelajari konsep kinematika langsung koordinat transformasi persamaan gerak dengan contoh aplikasi robot beroda"
+      },
+      "waktu": "3x50'",
+      "pengalamanBelajar": "Mahasiswa menyelesaikan soal kinematika berdiskusi kelompok memvisualisasi gerak robot melaporkan solusi matematis sistematis",
+      "penilaian": {
+        "kriteria": "Ketepatan perhitungan kinematika kemampuan menjelaskan langkah solusi kejelasan grafik kebenaran interpretasi hasil numerik",
+        "bobot": 5
+      }
+    },
+    {
+      "mingguKe": 4,
+      "kemampuanAkhir": "CPMK 2",
+      "bahanKajian": "Pemrograman mikrokontroler dan kontrol dasar",
+      "metodePembelajaran": {
+        "metode": "Praktikum",
+        "aktivitas": "Mengembangkan program kendali sederhana pada mikrokontroler menguji input sensor output aktuator mengoptimasi logika"
+      },
+      "waktu": "3x50'",
+      "pengalamanBelajar": "Mahasiswa menulis kode mengunggah program menguji fungsi perangkat merevisi algoritme mendokumentasikan hasil pengujian",
+      "penilaian": {
+        "kriteria": "Fungsi program sesuai spesifikasi stabilitas kontrol dokumentasi kode efisiensi algoritme kemampuan debugging berukur",
+        "bobot": 5
+      }
+    },
+    {
+      "mingguKe": 5,
+      "kemampuanAkhir": "CPMK 1",
+      "bahanKajian": "Sensor dan perangkat persepsi: karakteristik dan kalibrasi",
+      "metodePembelajaran": {
+        "metode": "Diskusi",
+        "aktivitas": "Menganalisis karakteristik sensor jarak gyroscope kamera teknik kalibrasi filtrasi sinyal meningkatkan akurasi persepsi"
+      },
+      "waktu": "3x50'",
+      "pengalamanBelajar": "Mahasiswa membaca referensi membandingkan teknologi sensor berdiskusi aplikasi nyata merencanakan eksperimen kalibrasi",
+      "penilaian": {
+        "kriteria": "Pemahaman prinsip kerja sensor kemampuan memilih sensor sesuai kebutuhan kualitas rencana eksperimen kelayakan metode",
+        "bobot": 5
+      }
+    },
+    {
+      "mingguKe": 6,
+      "kemampuanAkhir": "CPMK 2",
+      "bahanKajian": "Aktuator dan penggerak: motor DC, servo, stepper dan drivernya",
+      "metodePembelajaran": {
+        "metode": "Praktikum",
+        "aktivitas": "Menguji aktuator DC servo motor stepper mengimplementasikan driver pengontrol torsi mengukur respons sistem eksperimental"
+      },
+      "waktu": "3x50'",
+      "pengalamanBelajar": "Mahasiswa merancang sirkuit driver melakukan pengukuran torsi kecepatan menganalisis respons menulis laporan teknis",
+      "penilaian": {
+        "kriteria": "Keberhasilan implementasi driver ketepatan pengukuran respons analisis kestabilan kualitas laporan kemampuan troubleshooting",
+        "bobot": 5
+      }
+    },
+    {
+      "mingguKe": 7,
+      "kemampuanAkhir": "CPMK 2",
+      "bahanKajian": "Pemrograman robot bergerak: kontrol kecepatan dan arah (PID)",
+      "metodePembelajaran": {
+        "metode": "Praktikum",
+        "aktivitas": "Mengembangkan algoritme kendali gerak beroda menguji navigasi sederhana pemrograman PID steering integrasi sensor"
+      },
+      "waktu": "3x50'",
+      "pengalamanBelajar": "Mahasiswa melakukan coding uji lintasan eksperimentasi parameter PID memperbaiki algoritme mendokumentasikan hasil navigasi",
+      "penilaian": {
+        "kriteria": "Keberhasilan navigasi jalur uji stabilitas kontrol PID kualitas kode dokumentasi pengujian kerja tim praktikum",
+        "bobot": 5
+      }
+    },
+    {
+      "mingguKe": 8,
+      "kemampuanAkhir": "UTS",
+      "bahanKajian": "UTS - Ujian Tengah Semester",
+      "metodePembelajaran": {
+        "metode": "Ujian",
+        "aktivitas": "Pelaksanaan ujian tulis atau praktik sesuai jadwal akademik universitas pada minggu ke delapan"
+      },
+      "waktu": "3x50'",
+      "pengalamanBelajar": "UTS - Ujian Tengah Semester",
+      "penilaian": {
+        "kriteria": "UTS - Ujian Tengah Semester",
+        "bobot": 15
+      }
+    },
+    {
+      "mingguKe": 9,
+      "kemampuanAkhir": "CPMK 3",
+      "bahanKajian": "Kinematika lengan robot dan perencanaan trajektori",
+      "metodePembelajaran": {
+        "metode": "Ceramah",
+        "aktivitas": "Mempelajari transformasi homogen matriks Denavit-Hartenberg solusi langsung invers merancang lintasan lengan robot"
+      },
+      "waktu": "3x50'",
+      "pengalamanBelajar": "Mahasiswa menghitung transformasi memecahkan masalah invers berdiskusi langkah solusi memvisualisasikan lintasan simulasi",
+      "penilaian": {
+        "kriteria": "Ketepatan perhitungan kinematika lengan kemampuan menjelaskan solusi invers kesesuaian lintasan simulasi dokumentasi",
+        "bobot": 5
+      }
+    },
+    {
+      "mingguKe": 10,
+      "kemampuanAkhir": "CPMK 2",
+      "bahanKajian": "Pengenalan Robot Operating System (ROS) dan simulasi",
+      "metodePembelajaran": {
+        "metode": "Praktikum",
+        "aktivitas": "Menginstal mengkonfigurasi ROS menjalankan node sederhana berkomunikasi antar node menguji simulasi Gazebo membuat package"
+      },
+      "waktu": "3x50'",
+      "pengalamanBelajar": "Mahasiswa membuat package ROS menjalankan publisher-subscriber mengintegrasikan sensor simulasi merekam hasil percobaan",
+      "penilaian": {
+        "kriteria": "Keberhasilan instalasi fungsionalitas node komunikasi antar node integrasi simulasi dokumentasi pengoperasian package ROS",
+        "bobot": 5
+      }
+    },
+    {
+      "mingguKe": 11,
+      "kemampuanAkhir": "CPMK 2",
+      "bahanKajian": "Visi robotik: pengolahan citra untuk deteksi dan navigasi",
+      "metodePembelajaran": {
+        "metode": "Praktikum",
+        "aktivitas": "Mengimplementasikan pengolahan citra sederhana thresholding deteksi tepi segmentasi objek ekstraksi fitur navigasi robot"
+      },
+      "waktu": "3x50'",
+      "pengalamanBelajar": "Mahasiswa menulis skrip pengolahan citra menguji dataset mengevaluasi akurasi deteksi berdiskusi perbaikan algoritme",
+      "penilaian": {
+        "kriteria": "Akurasi deteksi kecepatan pemrosesan kualitas kode eksperimen terkontrol dokumentasi pengolahan citra aplikasi robotik",
+        "bobot": 5
+      }
+    },
+    {
+      "mingguKe": 12,
+      "kemampuanAkhir": "CPMK 3",
+      "bahanKajian": "Perencanaan jalur (path planning) dan algoritme navigasi",
+      "metodePembelajaran": {
+        "metode": "Tugas",
+        "aktivitas": "Menyelesaikan tugas implementasi algoritme path planning seperti A* RRT mengevaluasi kompleksitas kelayakan peta simulasi"
+      },
+      "waktu": "3x50'",
+      "pengalamanBelajar": "Mahasiswa mengembangkan kode perencanaan jalur menguji berbagai peta menganalisis hasil menyajikan rekomendasi peningkatan",
+      "penilaian": {
+        "kriteria": "Kebenaran implementasi algoritme efisiensi jalur analisis kompleksitas validasi simulasi kualitas laporan tugas kelompok",
+        "bobot": 5
+      }
+    },
+    {
+      "mingguKe": 13,
+      "kemampuanAkhir": "CPMK 3",
+      "bahanKajian": "SLAM: konsep dan metode untuk localisasi dan pemetaan",
+      "metodePembelajaran": {
+        "metode": "Ceramah",
+        "aktivitas": "Memahami prinsip SLAM algoritme EKF Graph-SLAM particle filter aplikasi pemetaan localisasi robot lingkungan"
+      },
+      "waktu": "3x50'",
+      "pengalamanBelajar": "Mahasiswa menganalisis studi kasus menjalankan simulasi SLAM membandingkan hasil metode menyusun ringkasan teknis",
+      "penilaian": {
+        "kriteria": "Pemahaman konsep SLAM kemampuan menjelaskan algoritme keberhasilan simulasi analisis perbandingan kualitas ringkasan",
+        "bobot": 5
+      }
+    },
+    {
+      "mingguKe": 14,
+      "kemampuanAkhir": "CPMK 4",
+      "bahanKajian": "Integrasi sistem robotik dan strategi debugging",
+      "metodePembelajaran": {
+        "metode": "Diskusi",
+        "aktivitas": "Mendiskusikan teknik integrasi perangkat keras perangkat lunak strategi debugging manajemen interkoneksi praktik terbaik"
+      },
+      "waktu": "3x50'",
+      "pengalamanBelajar": "Mahasiswa mempresentasikan kendala integrasi menyusun rencana perbaikan berdiskusi solusi teknis menerapkan saran prototipe",
+      "penilaian": {
+        "kriteria": "Kualitas solusi integrasi kemampuan debugging kejelasan rencana perbaikan implementasi prototipe kontribusi anggota tim",
+        "bobot": 5
+      }
+    },
+    {
+      "mingguKe": 15,
+      "kemampuanAkhir": "CPMK 4",
+      "bahanKajian": "Presentasi proyek akhir dan praktik demonstrasi",
+      "metodePembelajaran": {
+        "metode": "Presentasi",
+        "aktivitas": "Melakukan presentasi hasil proyek kelompok mendemonstrasikan robot berfungsi menjawab pertanyaan penguji menerima umpan balik"
+      },
+      "waktu": "3x50'",
+      "pengalamanBelajar": "Mahasiswa mempresentasikan produk mendemonstrasikan fungsi robot merefleksi proses pengembangan menerima kritik menyusun revisi",
+      "penilaian": {
+        "kriteria": "Kualitas demonstrasi robot kejelasan presentasi jawaban pertanyaan kualitas laporan akhir kontribusi tim pengembangan",
+        "bobot": 5
+      }
+    },
+    {
+      "mingguKe": 16,
+      "kemampuanAkhir": "UAS",
+      "bahanKajian": "UAS - Ujian Akhir Semester",
+      "metodePembelajaran": {
+        "metode": "Ujian",
+        "aktivitas": "Pelaksanaan ujian tulis atau praktik sesuai jadwal akademik universitas pada minggu ke enam belas"
+      },
+      "waktu": "3x50'",
+      "pengalamanBelajar": "UAS - Ujian Akhir Semester",
+      "penilaian": {
+        "kriteria": "UAS - Ujian Akhir Semester",
+        "bobot": 20
+      }
+    }
+  ],
+  "penilaian": [
+    {
+      "komponen": "Aktivitas Partisipatif",
+      "bobot": "20%",
+      "kriteria": "Kehadiran, partisipasi aktif, disiplin, dan kontribusi dalam diskusi",
+      "cpmk1": "5%",
+      "cpmk2": "5%",
+      "cpmk3": "5%",
+      "cpmk4": "5%"
+    },
+    {
+      "komponen": "Project/ Problem/ Case Based Learning",
+      "bobot": "30%",
+      "kriteria": "Analisis kasus, kualitas laporan, dan presentasi",
+      "cpmk1": "",
+      "cpmk2": "10%",
+      "cpmk3": "10%",
+      "cpmk4": "10%"
+    },
+    {
+      "komponen": "Kuis",
+      "bobot": "10%",
+      "kriteria": "Pemahaman materi dan pengembangan konsep",
+      "cpmk1": "5%",
+      "cpmk2": "",
+      "cpmk3": "",
+      "cpmk4": "5%"
+    },
+    {
+      "komponen": "UTS",
+      "bobot": "20%",
+      "kriteria": "Ujian Tengah Semester",
+      "cpmk1": "10%",
+      "cpmk2": "10%",
+      "cpmk3": "",
+      "cpmk4": ""
+    },
+    {
+      "komponen": "UAS",
+      "bobot": "20%",
+      "kriteria": "Ujian Akhir Semester",
+      "cpmk1": "",
+      "cpmk2": "",
+      "cpmk3": "10%",
+      "cpmk4": "10%"
+    }
+  ],
+  "assessment_summary": {
+    "total_bobot": "100%",
+    "cpmk1_total": "20%",
+    "cpmk2_total": "25%",
+    "cpmk3_total": "25%",
+    "cpmk4_total": "30%"
+  },
+  "media_assessment": {
+    "qui": "10%",
+    "prs": "20%",
+    "pro": "30%",
+    "uts": "20%",
+    "uas": "20%"
+  },
+  "referensi": [
+    "Siciliano, B., Sciavicco, L., Villani, L., Oriolo, G. - Robotics: Modelling, Planning and Control, Springer",
+    "Craig, J. J. - Introduction to Robotics: Mechanics and Control, Pearson",
+    "Thrun, S., Burgard, W., Fox, D. - Probabilistic Robotics, MIT Press",
+    "Quigley, M., Conley, K., Gerkey, B., Faust, J., Foote, T., Leibs, J., Wheeler, R., Ng, A. - Programming Robots with ROS, O'Reilly Media",
+    "Documentation ROS dan Gazebo serta artikel jurnal IEEE Robotics and Automation terkait"
+  ]
+}

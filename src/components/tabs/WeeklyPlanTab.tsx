@@ -32,7 +32,7 @@ export default function WeeklyPlanTab({ data, onUpdate, onGenerate, isGenerating
     updateWeek(weekIndex, {
       kemampuanAkhir: type,
       bahanKajian: type === 'UTS' ? 'Ujian Tengah Semester' : 'Ujian Akhir Semester',
-      metodePembelajaran: { tmScl: 'Ujian', pbl: '', cbl: '', pjbl: '' },
+      metodePembelajaran: { metode: 'Ujian', deskripsi: 'Penilaian tertulis atau praktik komprehensif mencakup seluruh materi semester untuk mengukur kompetensi akhir mahasiswa.', aktivitas: 'Pelaksanaan ujian tulis atau praktik sesuai jadwal akademik institusi pendidikan tinggi' },
       pengalamanBelajar: `Mengerjakan soal ${type}`,
       penilaian: { kriteria: `Nilai ${type}`, bobot: type === 'UTS' ? 15 : 20 },
     });
@@ -181,19 +181,63 @@ export default function WeeklyPlanTab({ data, onUpdate, onGenerate, isGenerating
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <label className="block text-xs font-medium text-slate-600 mb-1">
-                            Metode Pembelajaran (TM SCL)
+                            Metode Pembelajaran
                           </label>
-                          <textarea
-                            value={week.metodePembelajaran.tmScl}
+                          <select
+                            value={week.metodePembelajaran.metode}
                             onChange={(e) =>
                               updateWeek(index, {
-                                metodePembelajaran: { ...week.metodePembelajaran, tmScl: e.target.value },
+                                metodePembelajaran: { ...week.metodePembelajaran, metode: e.target.value },
+                              })
+                            }
+                            className="w-full text-sm border rounded px-2 py-1"
+                          >
+                            <option value="">Pilih metode...</option>
+                            <option value="Ceramah">Ceramah</option>
+                            <option value="Diskusi">Diskusi</option>
+                            <option value="Kuis">Kuis</option>
+                            <option value="Praktikum">Praktikum</option>
+                            <option value="Project">Project</option>
+                            <option value="Presentasi">Presentasi</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-600 mb-1">
+                            Deskripsi Metode <span className="text-red-500">*20 kata</span>
+                          </label>
+                          <textarea
+                            value={week.metodePembelajaran.deskripsi}
+                            onChange={(e) =>
+                              updateWeek(index, {
+                                metodePembelajaran: { ...week.metodePembelajaran, deskripsi: e.target.value },
                               })
                             }
                             rows={2}
                             className="w-full text-sm"
-                            placeholder="Ceramah, diskusi, hands-on, dll."
+                            placeholder="Penjelasan metode pembelajaran (WAJIB 20 kata)..."
                           />
+                          <span className="text-xs text-slate-500">
+                            {(week.metodePembelajaran.deskripsi || '').split(/\s+/).filter(w => w).length} kata
+                          </span>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-600 mb-1">
+                            Aktivitas
+                          </label>
+                          <textarea
+                            value={week.metodePembelajaran.aktivitas}
+                            onChange={(e) =>
+                              updateWeek(index, {
+                                metodePembelajaran: { ...week.metodePembelajaran, aktivitas: e.target.value },
+                              })
+                            }
+                            rows={2}
+                            className="w-full text-sm"
+                            placeholder="Penjelasan aktivitas pembelajaran..."
+                          />
+                          <span className="text-xs text-slate-500">
+                            {(week.metodePembelajaran.aktivitas || '').split(/\s+/).filter(w => w).length} kata
+                          </span>
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-slate-600 mb-1">Waktu</label>
@@ -234,54 +278,6 @@ export default function WeeklyPlanTab({ data, onUpdate, onGenerate, isGenerating
                           />
                         </div>
                       </div>
-
-                      {/* Additional Methods */}
-                      <details className="mt-4">
-                        <summary className="text-sm text-slate-600 cursor-pointer">
-                          Metode Pembelajaran Lainnya (PBL, CBL, PjBL)
-                        </summary>
-                        <div className="grid grid-cols-3 gap-4 mt-2">
-                          <div>
-                            <label className="block text-xs font-medium text-slate-600 mb-1">PBL</label>
-                            <input
-                              type="text"
-                              value={week.metodePembelajaran.pbl}
-                              onChange={(e) =>
-                                updateWeek(index, {
-                                  metodePembelajaran: { ...week.metodePembelajaran, pbl: e.target.value },
-                                })
-                              }
-                              className="w-full text-sm"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-slate-600 mb-1">CBL</label>
-                            <input
-                              type="text"
-                              value={week.metodePembelajaran.cbl}
-                              onChange={(e) =>
-                                updateWeek(index, {
-                                  metodePembelajaran: { ...week.metodePembelajaran, cbl: e.target.value },
-                                })
-                              }
-                              className="w-full text-sm"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-slate-600 mb-1">PjBL</label>
-                            <input
-                              type="text"
-                              value={week.metodePembelajaran.pjbl}
-                              onChange={(e) =>
-                                updateWeek(index, {
-                                  metodePembelajaran: { ...week.metodePembelajaran, pjbl: e.target.value },
-                                })
-                              }
-                              className="w-full text-sm"
-                            />
-                          </div>
-                        </div>
-                      </details>
                     </td>
                   </tr>
                 )}

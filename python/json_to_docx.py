@@ -173,37 +173,41 @@ class JSONToDocx:
                 print(f"   - ketuaProdi: {meta.get('ketuaProdi')}")
                 print(f"   - dekan: {meta.get('dekan')}")
                 
-                # Column structure: 0=Otoritas, 1=KoordinatorMK, 2=KoordinatorGPM, 3=KetuaProdi, 4=Dekan
+                # Column structure based on template analysis: 0=Otoritas, 1=KoordinatorMK, 3=KoordinatorGPM, 5=KetuaProdi, 6=Dekan
                 if 'koordinatorMK' in meta and len(auth_row.cells) > 1:
                     mk = meta['koordinatorMK']
                     mk_nama = mk.get('nama', '') if isinstance(mk, dict) else ''
                     mk_nip = mk.get('nip', '') if isinstance(mk, dict) else ''
-                    # Fill column 1 for Koordinator MK - simple format
-                    set_cell(auth_row.cells[1], f"{mk_nama}\nNIP. {mk_nip}")
+                    mk_jabatan = mk.get('jabatan', 'Koordinator Mata Kuliah') if isinstance(mk, dict) else 'Koordinator Mata Kuliah'
+                    # Fill column 1 for Koordinator MK - match template format with line breaks
+                    set_cell(auth_row.cells[1], f"{mk_jabatan}\n\n\n\n\n{mk_nama}\nNIP. {mk_nip}")
                     print(f"   ✅ Koordinator MK filled: {mk_nama}")
                 
-                if 'koordinatorGPM' in meta and len(auth_row.cells) > 2:
+                if 'koordinatorGPM' in meta and len(auth_row.cells) > 3:
                     gpm = meta['koordinatorGPM']
                     gpm_nama = gpm.get('nama', '') if isinstance(gpm, dict) else ''
                     gpm_nip = gpm.get('nip', '') if isinstance(gpm, dict) else ''
-                    # Fill column 2 for Koordinator GPM - simple format
-                    set_cell(auth_row.cells[2], f"{gpm_nama}\nNIP. {gpm_nip}")
+                    gpm_jabatan = gpm.get('jabatan', 'Koordinator GPM') if isinstance(gpm, dict) else 'Koordinator GPM'
+                    # Fill column 3 for Koordinator GPM - match template format with line breaks
+                    set_cell(auth_row.cells[3], f"{gpm_jabatan}\n\n\n\n\n{gpm_nama}\nNIP. {gpm_nip}")
                     print(f"   ✅ Koordinator GPM filled: {gpm_nama}")
                 
-                if 'ketuaProdi' in meta and len(auth_row.cells) > 3:
+                if 'ketuaProdi' in meta and len(auth_row.cells) > 5:
                     prodi = meta['ketuaProdi']
                     prodi_nama = prodi.get('nama', '') if isinstance(prodi, dict) else ''
                     prodi_nip = prodi.get('nip', '') if isinstance(prodi, dict) else ''
-                    # Fill column 3 for Ketua Prodi - simple format
-                    set_cell(auth_row.cells[3], f"{prodi_nama}\nNIP. {prodi_nip}")
+                    prodi_jabatan = prodi.get('jabatan', 'Ketua Prodi') if isinstance(prodi, dict) else 'Ketua Prodi'
+                    # Fill column 5 for Ketua Prodi - match template format with line breaks
+                    set_cell(auth_row.cells[5], f"{prodi_jabatan}\n\n\n\n\n{prodi_nama}\nNIP. {prodi_nip}")
                     print(f"   ✅ Ketua Prodi filled: {prodi_nama}")
                 
-                if 'dekan' in meta and len(auth_row.cells) > 4:
+                if 'dekan' in meta and len(auth_row.cells) > 6:
                     dekan = meta['dekan']
                     dekan_nama = dekan.get('nama', '') if isinstance(dekan, dict) else ''
                     dekan_nip = dekan.get('nip', '') if isinstance(dekan, dict) else ''
-                    # Fill column 4 for Dekan - simple format
-                    set_cell(auth_row.cells[4], f"{dekan_nama}\nNIP. {dekan_nip}")
+                    dekan_jabatan = dekan.get('jabatan', 'Dekan Sekolah Vokasi') if isinstance(dekan, dict) else 'Dekan Sekolah Vokasi'
+                    # Fill column 6 for Dekan - match template format with line breaks
+                    set_cell(auth_row.cells[6], f"{dekan_jabatan}\n\n\n\n\n{dekan_nama}\nNIP. {dekan_nip}")
                     print(f"   ✅ Dekan filled: {dekan_nama}")
             
             # Row 3: description
@@ -269,10 +273,31 @@ class JSONToDocx:
                     set_cell(t3.cell(row_idx, 9), indikator)
                     set_cell(t3.cell(row_idx, 10), bobot)
             
-            # Row 20: references - only fill column 1 with reference list
-            referensi_list = rps_data.get("referensi", [])
-            referensi_text = "\n".join(referensi_list)
-            set_cell(t3.cell(20, 1), referensi_text)
+            # Row 20: references - fix field name and format references properly with numbering
+            references_list = rps_data.get("references", [])
+            if references_list:
+                # Convert array of objects to formatted strings with numbering
+                formatted_refs = []
+                for i, ref in enumerate(references_list, 1):
+                    if isinstance(ref, dict):
+                        # Use judul field from reference object
+                        judul = ref.get("judul", "")
+                        if judul:
+                            formatted_refs.append(f"[{i}] {judul}")
+                    elif isinstance(ref, str):
+                        # Handle if it's already a string
+                        formatted_refs.append(f"[{i}] {ref}")
+                referensi_text = "\n".join(formatted_refs)
+            else:
+                # Fallback: try old field name for compatibility
+                referensi_list = rps_data.get("referensi", [])
+                if referensi_list:
+                    numbered_refs = [f"[{i}] {ref}" for i, ref in enumerate(referensi_list, 1)]
+                    referensi_text = "\n".join(numbered_refs)
+                else:
+                    referensi_text = "referensinya"
+            
+            set_cell(t3.cell(20, 5), referensi_text)
             
             # TABLE 4: assessment (index 4)
             t4 = doc.tables[4]
@@ -389,6 +414,11 @@ if __name__ == "__main__":
         "semester": args.semester,
         "status": args.status,
         "prasyarat": args.prasyarat,
+        # Extract authority from JSON data
+        "koordinatorMK": rps_data.get('authority', {}).get('koordinatorMK', {}),
+        "koordinatorGPM": rps_data.get('authority', {}).get('koordinatorGPM', {}),
+        "ketuaProdi": rps_data.get('authority', {}).get('ketuaProdi', {}),
+        "dekan": rps_data.get('authority', {}).get('dekan', {}),
     }
     
     # Convert

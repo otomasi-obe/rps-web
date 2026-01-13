@@ -61,10 +61,9 @@ export interface WeeklyPlan {
   kemampuanAkhir: string;         // CPMK yang dicapai
   bahanKajian: string;            // Pokok Bahasan
   metodePembelajaran: {
-    tmScl: string;                // Tatap Muka SCL
-    pbl: string;                  // Problem Based Learning
-    cbl: string;                  // Case Based Learning
-    pjbl: string;                 // Project Based Learning
+    metode: string;               // Metode pembelajaran: Ceramah/Diskusi/Kuis/Praktikum/Project/Presentasi
+    deskripsi: string;            // Deskripsi metode (WAJIB 20 kata)
+    aktivitas: string;            // Penjelasan aktivitas pembelajaran
   };
   waktu: string;                  // e.g., "3x50""
   pengalamanBelajar: string;
@@ -172,7 +171,7 @@ export const createEmptyRPS = (): RPSData => ({
     mingguKe: i + 1,
     kemampuanAkhir: '',
     bahanKajian: '',
-    metodePembelajaran: { tmScl: '', pbl: '', cbl: '', pjbl: '' },
+    metodePembelajaran: { metode: '', deskripsi: '', aktivitas: '' },
     waktu: '3x50"',
     pengalamanBelajar: '',
     penilaian: { kriteria: '', bobot: 0 },
@@ -226,24 +225,7 @@ export const samplePraktikumMekatronika: RPSData = {
     { kode: 'IK 4-1', kodeCPL: 'CPL4', pernyataan: 'Menerapkan konsep kendali untuk meningkatkan performa sistem.' },
     { kode: 'IK 10-1', kodeCPL: 'CPL10', pernyataan: 'Menunjukkan etika, K3, dan tanggung jawab kerja laboratorium.' },
   ],
-  weeklyPlan: [
-    { mingguKe: 1, kemampuanAkhir: 'CPMK 4', bahanKajian: 'Kontrak & keselamatan lab; pengenalan toolkit; pengantar sistem mekatronika/robotika.', metodePembelajaran: { tmScl: 'Briefing + demo + latihan keselamatan', pbl: '', cbl: '', pjbl: '' }, waktu: '3x50"', pengalamanBelajar: 'Mengikuti briefing; menyusun aturan kerja; cek alat dan komponen.', penilaian: { kriteria: 'Mematuhi SOP; mampu menjelaskan alur praktikum', bobot: 5 } },
-    { mingguKe: 2, kemampuanAkhir: 'CPMK 1', bahanKajian: 'Sensor dasar (digital/analog): pembacaan ADC, kalibrasi, dan noise.', metodePembelajaran: { tmScl: 'Demo + hands-on + kuis', pbl: '', cbl: '', pjbl: '' }, waktu: '3x50"', pengalamanBelajar: 'Merangkai sensor; kalibrasi; mencatat data.', penilaian: { kriteria: 'Pembacaan sensor benar; grafik data', bobot: 5 } },
-    { mingguKe: 3, kemampuanAkhir: 'CPMK 2', bahanKajian: 'Mikrokontroler: GPIO, interrupt, debouncing; serial logging.', metodePembelajaran: { tmScl: 'Hands-on + tugas', pbl: '', cbl: '', pjbl: '' }, waktu: '3x50"', pengalamanBelajar: 'Implementasi input/output; logging via serial.', penilaian: { kriteria: 'Program berjalan stabil; log terbaca', bobot: 5 } },
-    { mingguKe: 4, kemampuanAkhir: 'CPMK 2', bahanKajian: 'Aktuator: driver motor DC, PWM, proteksi; karakterisasi motor.', metodePembelajaran: { tmScl: 'Hands-on + diskusi', pbl: '', cbl: '', pjbl: '' }, waktu: '3x50"', pengalamanBelajar: 'Mengendalikan motor; mengukur respon terhadap PWM.', penilaian: { kriteria: 'Kontrol PWM benar; data karakterisasi', bobot: 5 } },
-    { mingguKe: 5, kemampuanAkhir: 'CPMK 3', bahanKajian: 'Umpan balik: encoder; estimasi kecepatan; kendali PID dasar.', metodePembelajaran: { tmScl: 'Hands-on + latihan', pbl: '', cbl: '', pjbl: '' }, waktu: '3x50"', pengalamanBelajar: 'Membaca encoder; tuning PID sederhana.', penilaian: { kriteria: 'Kecepatan stabil; error berkurang', bobot: 10 } },
-    { mingguKe: 6, kemampuanAkhir: 'CPMK 2', bahanKajian: 'Servo & stepper: prinsip kerja, pembangkitan sinyal, pembatasan arus.', metodePembelajaran: { tmScl: 'Hands-on', pbl: '', cbl: '', pjbl: '' }, waktu: '3x50"', pengalamanBelajar: 'Menggerakkan servo/stepper sesuai skenario.', penilaian: { kriteria: 'Gerak sesuai setpoint; aman', bobot: 5 } },
-    { mingguKe: 7, kemampuanAkhir: 'CPMK 3', bahanKajian: 'Mobile robot: kinematika diferensial; odometri sederhana.', metodePembelajaran: { tmScl: 'Hands-on + studi kasus', pbl: '', cbl: '', pjbl: '' }, waktu: '3x50"', pengalamanBelajar: 'Mengimplementasi drive; menguji lintasan.', penilaian: { kriteria: 'Lintasan tercapai; odometri masuk akal', bobot: 10 } },
-    { mingguKe: 8, kemampuanAkhir: 'UTS', bahanKajian: 'UTS (uji praktik): perakitan & pemrograman modul sensor–aktuator.', metodePembelajaran: { tmScl: 'Uji praktik', pbl: '', cbl: '', pjbl: '' }, waktu: '3x50"', pengalamanBelajar: 'Mengerjakan soal praktik individual/kelompok kecil.', penilaian: { kriteria: 'Fungsi sesuai spesifikasi; dokumentasi singkat', bobot: 15 } },
-    { mingguKe: 9, kemampuanAkhir: 'CPMK 2', bahanKajian: 'Sensor jarak (ultrasonic/IR/LiDAR sederhana): filtering dan pengambilan keputusan.', metodePembelajaran: { tmScl: 'Hands-on + kuis', pbl: '', cbl: '', pjbl: '' }, waktu: '3x50"', pengalamanBelajar: 'Integrasi sensor jarak; obstacle detection.', penilaian: { kriteria: 'Deteksi akurat; false positive minim', bobot: 5 } },
-    { mingguKe: 10, kemampuanAkhir: 'CPMK 3', bahanKajian: 'Line following / wall following: PID untuk tracking.', metodePembelajaran: { tmScl: 'Hands-on', pbl: '', cbl: '', pjbl: '' }, waktu: '3x50"', pengalamanBelajar: 'Membangun algoritma tracking; tuning parameter.', penilaian: { kriteria: 'Robot mengikuti jalur stabil', bobot: 10 } },
-    { mingguKe: 11, kemampuanAkhir: 'CPMK 2', bahanKajian: 'Komunikasi & integrasi: I2C/SPI/UART; modularisasi kode; manajemen versi.', metodePembelajaran: { tmScl: 'Hands-on + tugas', pbl: '', cbl: '', pjbl: '' }, waktu: '3x50"', pengalamanBelajar: 'Mengintegrasi modul; refactor kode; commit repo.', penilaian: { kriteria: 'Integrasi berhasil; struktur kode rapi', bobot: 5 } },
-    { mingguKe: 12, kemampuanAkhir: 'CPMK 1', bahanKajian: 'Robot lengan sederhana: servo arm; konsep FK/IK dasar (konseptual) dan kalibrasi.', metodePembelajaran: { tmScl: 'Demo + hands-on', pbl: '', cbl: '', pjbl: '' }, waktu: '3x50"', pengalamanBelajar: 'Kalibrasi lengan; gerak ke posisi target.', penilaian: { kriteria: 'Posisi tercapai; kalibrasi terdokumentasi', bobot: 5 } },
-    { mingguKe: 13, kemampuanAkhir: 'CPMK 4', bahanKajian: 'Proyek mini (PjBL): perencanaan sistem, pembagian tugas, desain & BOM.', metodePembelajaran: { tmScl: '', pbl: '', cbl: '', pjbl: 'PjBL: perencanaan + review' }, waktu: '3x50"', pengalamanBelajar: 'Menyusun proposal mini; sketsa wiring & flowchart.', penilaian: { kriteria: 'Proposal feasible; risiko & mitigasi', bobot: 5 } },
-    { mingguKe: 14, kemampuanAkhir: 'CPMK 4', bahanKajian: 'Proyek mini: implementasi hardware–software; integrasi sensor, aktuator, kendali.', metodePembelajaran: { tmScl: '', pbl: '', cbl: '', pjbl: 'PjBL: implementasi' }, waktu: '3x50"', pengalamanBelajar: 'Build & integrate; uji fungsi; debugging.', penilaian: { kriteria: 'Integrasi berjalan; milestone tercapai', bobot: 5 } },
-    { mingguKe: 15, kemampuanAkhir: 'CPMK 4', bahanKajian: 'Proyek mini: pengujian, validasi, dan penyusunan laporan akhir.', metodePembelajaran: { tmScl: '', pbl: '', cbl: '', pjbl: 'PjBL: test + report' }, waktu: '3x50"', pengalamanBelajar: 'Menyusun laporan; menyiapkan demo.', penilaian: { kriteria: 'Laporan lengkap; hasil uji valid', bobot: 5 } },
-    { mingguKe: 16, kemampuanAkhir: 'UAS', bahanKajian: 'UAS (demo proyek + laporan): presentasi, uji performa, dan evaluasi.', metodePembelajaran: { tmScl: 'Demo + penilaian', pbl: '', cbl: '', pjbl: '' }, waktu: '3x50"', pengalamanBelajar: 'Demo proyek; Q&A; submit laporan.', penilaian: { kriteria: 'Sistem bekerja; argumentasi teknis baik', bobot: 15 } },
-  ],
+  weeklyPlan: [],
   assessmentMethods: [
     { teknik: 'Aktivitas Partisipatif', persentase: 10, kriteria: 'Disiplin K3; aktif saat praktikum; logbook rapi', distribusiCPMK: { cpmk1: 2, cpmk2: 2, cpmk3: 3, cpmk4: 3 } },
     { teknik: 'Laporan Praktikum & Tugas', persentase: 30, kriteria: 'Laporan sesuai format; hasil uji benar; analisis data', distribusiCPMK: { cpmk1: 10, cpmk2: 10, cpmk3: 10, cpmk4: 0 } },

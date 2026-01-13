@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { RPSData, createEmptyRPS, samplePraktikumMekatronika } from '@/types/rps';
 
 // Section Components
@@ -11,8 +11,11 @@ import WeeklyPlanTab from '@/components/tabs/WeeklyPlanTab';
 import AssessmentTab from '@/components/tabs/AssessmentTab';
 import ReferencesTab from '@/components/tabs/ReferencesTab';
 
+const STORAGE_KEY = 'rps-editor-data';
+
 export default function RPSEditor() {
   const [rpsData, setRpsData] = useState<RPSData>(createEmptyRPS());
+  const [isLoaded, setIsLoaded] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [jenisMK, setJenisMK] = useState<'teori' | 'praktikum' | 'campuran'>('campuran');
@@ -25,6 +28,46 @@ export default function RPSEditor() {
   const [success, setSuccess] = useState<string | null>(null);
   const [generatingType, setGeneratingType] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
+
+  // Load data from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedState = localStorage.getItem(STORAGE_KEY);
+      if (savedState) {
+        const parsedState = JSON.parse(savedState);
+        setRpsData(parsedState.rpsData || createEmptyRPS());
+        setJenisMK(parsedState.jenisMK || 'campuran');
+        setPromptRpsMantap(parsedState.promptRpsMantap || '');
+        setCplContext(parsedState.cplContext || '');
+        setCpmkContext(parsedState.cpmkContext || '');
+        setWeeklyPlanContext(parsedState.weeklyPlanContext || '');
+        setReferencesContext(parsedState.referencesContext || '');
+      }
+    } catch (err) {
+      console.error('Failed to load from localStorage:', err);
+    }
+    setIsLoaded(true);
+  }, []);
+
+  // Save all data to localStorage whenever any state changes (but only after initial load)
+  useEffect(() => {
+    if (isLoaded) {
+      try {
+        const stateToSave = {
+          rpsData,
+          jenisMK,
+          promptRpsMantap,
+          cplContext,
+          cpmkContext,
+          weeklyPlanContext,
+          referencesContext,
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
+      } catch (err) {
+        console.error('Failed to save to localStorage:', err);
+      }
+    }
+  }, [rpsData, jenisMK, promptRpsMantap, cplContext, cpmkContext, weeklyPlanContext, referencesContext, isLoaded]);
 
   // Update RPS data
   const updateRPS = (updates: Partial<RPSData>) => {
@@ -50,9 +93,16 @@ Target lulusan mampu:
 
   // Reset form
   const resetForm = () => {
-    if (confirm('Yakin ingin mereset semua data?')) {
+    if (confirm('Yakin ingin mereset semua data? Ini tidak bisa dibatalkan!')) {
       setRpsData(createEmptyRPS());
-      setSuccess('Form berhasil direset');
+      setJenisMK('campuran');
+      setPromptRpsMantap('');
+      setCplContext('');
+      setCpmkContext('');
+      setWeeklyPlanContext('');
+      setReferencesContext('');
+      localStorage.removeItem(STORAGE_KEY);
+      setSuccess('Form berhasil direset dan cache dihapus');
       setTimeout(() => setSuccess(null), 3000);
     }
   };
@@ -235,6 +285,11 @@ Target lulusan mampu:
             semester: rpsData.identity.semester,
             status: rpsData.identity.status || 'Mata Kuliah Wajib',
             prasyarat: rpsData.identity.prasyarat || '-',
+            // Include authority data for DOCX export
+            koordinatorMK: rpsData.authority.koordinatorMK,
+            koordinatorGPM: rpsData.authority.koordinatorGPM,
+            ketuaProdi: rpsData.authority.ketuaProdi,
+            dekan: rpsData.authority.dekan,
           },
         }),
       });
