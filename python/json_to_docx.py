@@ -160,6 +160,11 @@ class JSONToDocx:
             if len(t1.rows) > 2:
                 auth_row = t1.rows[2]
                 
+                # Debug: Log table structure
+                print(f"📊 Table 1 structure:")
+                print(f"   - Total rows: {len(t1.rows)}")
+                print(f"   - Auth row (row 2) cells: {len(auth_row.cells)}")
+                
                 # Debug: Log received authority data
                 print(f"📝 Authority data received:")
                 print(f"   - Meta keys: {list(meta.keys())}")
@@ -173,32 +178,32 @@ class JSONToDocx:
                     mk = meta['koordinatorMK']
                     mk_nama = mk.get('nama', '') if isinstance(mk, dict) else ''
                     mk_nip = mk.get('nip', '') if isinstance(mk, dict) else ''
-                    # Fill column 1 for Koordinator MK
-                    set_cell(auth_row.cells[1], f"Koordinator Mata Kuliah\n\n\n\n\n{mk_nama}\nNIPP. {mk_nip}")
+                    # Fill column 1 for Koordinator MK - simple format
+                    set_cell(auth_row.cells[1], f"{mk_nama}\nNIP. {mk_nip}")
                     print(f"   ✅ Koordinator MK filled: {mk_nama}")
                 
                 if 'koordinatorGPM' in meta and len(auth_row.cells) > 2:
                     gpm = meta['koordinatorGPM']
                     gpm_nama = gpm.get('nama', '') if isinstance(gpm, dict) else ''
                     gpm_nip = gpm.get('nip', '') if isinstance(gpm, dict) else ''
-                    # Fill column 2 for Koordinator GPM
-                    set_cell(auth_row.cells[2], f"Koordinator GPM\n\n\n\n\n{gpm_nama}\nNIPP. {gpm_nip}")
+                    # Fill column 2 for Koordinator GPM - simple format
+                    set_cell(auth_row.cells[2], f"{gpm_nama}\nNIP. {gpm_nip}")
                     print(f"   ✅ Koordinator GPM filled: {gpm_nama}")
                 
                 if 'ketuaProdi' in meta and len(auth_row.cells) > 3:
                     prodi = meta['ketuaProdi']
                     prodi_nama = prodi.get('nama', '') if isinstance(prodi, dict) else ''
                     prodi_nip = prodi.get('nip', '') if isinstance(prodi, dict) else ''
-                    # Fill column 3 for Ketua Prodi
-                    set_cell(auth_row.cells[3], f"Ketua Prodi\n\n\n\n\n{prodi_nama}\nNIP. {prodi_nip}")
+                    # Fill column 3 for Ketua Prodi - simple format
+                    set_cell(auth_row.cells[3], f"{prodi_nama}\nNIP. {prodi_nip}")
                     print(f"   ✅ Ketua Prodi filled: {prodi_nama}")
                 
                 if 'dekan' in meta and len(auth_row.cells) > 4:
                     dekan = meta['dekan']
                     dekan_nama = dekan.get('nama', '') if isinstance(dekan, dict) else ''
                     dekan_nip = dekan.get('nip', '') if isinstance(dekan, dict) else ''
-                    # Fill column 4 for Dekan
-                    set_cell(auth_row.cells[4], f"Dekan Sekolah Vokasi\n\n\n\n\n{dekan_nama}\nNIP. {dekan_nip}")
+                    # Fill column 4 for Dekan - simple format
+                    set_cell(auth_row.cells[4], f"{dekan_nama}\nNIP. {dekan_nip}")
                     print(f"   ✅ Dekan filled: {dekan_nama}")
             
             # Row 3: description
