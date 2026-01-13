@@ -255,6 +255,13 @@ class RPSAPIHandler(BaseHTTPRequestHandler):
         rps_data = data.get('rpsData', {})
         meta = data.get('meta', {})
         
+        # Debug: Log received meta
+        print(f"📋 Received meta keys: {list(meta.keys())}")
+        print(f"   - koordinatorMK: {meta.get('koordinatorMK')}")
+        print(f"   - koordinatorGPM: {meta.get('koordinatorGPM')}")
+        print(f"   - ketuaProdi: {meta.get('ketuaProdi')}")
+        print(f"   - dekan: {meta.get('dekan')}")
+        
         # Ensure required fields
         if not meta.get('nama'):
             meta['nama'] = 'Mata Kuliah'

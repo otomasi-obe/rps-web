@@ -160,6 +160,14 @@ class JSONToDocx:
             if len(t1.rows) > 2:
                 auth_row = t1.rows[2]
                 
+                # Debug: Log received authority data
+                print(f"📝 Authority data received:")
+                print(f"   - Meta keys: {list(meta.keys())}")
+                print(f"   - koordinatorMK: {meta.get('koordinatorMK')}")
+                print(f"   - koordinatorGPM: {meta.get('koordinatorGPM')}")
+                print(f"   - ketuaProdi: {meta.get('ketuaProdi')}")
+                print(f"   - dekan: {meta.get('dekan')}")
+                
                 # Column structure: 0=Otoritas, 1=KoordinatorMK, 2=KoordinatorGPM, 3=KetuaProdi, 4=Dekan
                 if 'koordinatorMK' in meta and len(auth_row.cells) > 1:
                     mk = meta['koordinatorMK']
@@ -167,6 +175,7 @@ class JSONToDocx:
                     mk_nip = mk.get('nip', '') if isinstance(mk, dict) else ''
                     # Fill column 1 for Koordinator MK
                     set_cell(auth_row.cells[1], f"Koordinator Mata Kuliah\n\n\n\n\n{mk_nama}\nNIPP. {mk_nip}")
+                    print(f"   ✅ Koordinator MK filled: {mk_nama}")
                 
                 if 'koordinatorGPM' in meta and len(auth_row.cells) > 2:
                     gpm = meta['koordinatorGPM']
@@ -174,6 +183,7 @@ class JSONToDocx:
                     gpm_nip = gpm.get('nip', '') if isinstance(gpm, dict) else ''
                     # Fill column 2 for Koordinator GPM
                     set_cell(auth_row.cells[2], f"Koordinator GPM\n\n\n\n\n{gpm_nama}\nNIPP. {gpm_nip}")
+                    print(f"   ✅ Koordinator GPM filled: {gpm_nama}")
                 
                 if 'ketuaProdi' in meta and len(auth_row.cells) > 3:
                     prodi = meta['ketuaProdi']
@@ -181,6 +191,7 @@ class JSONToDocx:
                     prodi_nip = prodi.get('nip', '') if isinstance(prodi, dict) else ''
                     # Fill column 3 for Ketua Prodi
                     set_cell(auth_row.cells[3], f"Ketua Prodi\n\n\n\n\n{prodi_nama}\nNIP. {prodi_nip}")
+                    print(f"   ✅ Ketua Prodi filled: {prodi_nama}")
                 
                 if 'dekan' in meta and len(auth_row.cells) > 4:
                     dekan = meta['dekan']
@@ -188,6 +199,7 @@ class JSONToDocx:
                     dekan_nip = dekan.get('nip', '') if isinstance(dekan, dict) else ''
                     # Fill column 4 for Dekan
                     set_cell(auth_row.cells[4], f"Dekan Sekolah Vokasi\n\n\n\n\n{dekan_nama}\nNIP. {dekan_nip}")
+                    print(f"   ✅ Dekan filled: {dekan_nama}")
             
             # Row 3: description
             deskripsi = rps_data.get("deskripsi", "")
