@@ -160,36 +160,34 @@ class JSONToDocx:
             if len(t1.rows) > 2:
                 auth_row = t1.rows[2]
                 
-                # Column structure: 0=Otoritas, 1-2=KoordinatorMK, 3-4=KoordinatorGPM, 5=KetuaProdi, 6=Dekan
-                if 'koordinatorMK' in meta and len(auth_row.cells) > 2:
+                # Column structure: 0=Otoritas, 1=KoordinatorMK, 2=KoordinatorGPM, 3=KetuaProdi, 4=Dekan
+                if 'koordinatorMK' in meta and len(auth_row.cells) > 1:
                     mk = meta['koordinatorMK']
                     mk_nama = mk.get('nama', '') if isinstance(mk, dict) else ''
                     mk_nip = mk.get('nip', '') if isinstance(mk, dict) else ''
-                    # Fill columns 1 and 2 for Koordinator MK
+                    # Fill column 1 for Koordinator MK
                     set_cell(auth_row.cells[1], f"Koordinator Mata Kuliah\n\n\n\n\n{mk_nama}\nNIPP. {mk_nip}")
-                    set_cell(auth_row.cells[2], f"Koordinator Mata Kuliah\n\n\n\n\n{mk_nama}\nNIPP. {mk_nip}")
                 
-                if 'koordinatorGPM' in meta and len(auth_row.cells) > 4:
+                if 'koordinatorGPM' in meta and len(auth_row.cells) > 2:
                     gpm = meta['koordinatorGPM']
                     gpm_nama = gpm.get('nama', '') if isinstance(gpm, dict) else ''
                     gpm_nip = gpm.get('nip', '') if isinstance(gpm, dict) else ''
-                    # Fill columns 3 and 4 for Koordinator GPM
-                    set_cell(auth_row.cells[3], f"Koordinator GPM\n\n\n\n\n{gpm_nama}\nNIPP. {gpm_nip}")
-                    set_cell(auth_row.cells[4], f"Koordinator GPM\n\n\n\n\n{gpm_nama}\nNIPP. {gpm_nip}")
+                    # Fill column 2 for Koordinator GPM
+                    set_cell(auth_row.cells[2], f"Koordinator GPM\n\n\n\n\n{gpm_nama}\nNIPP. {gpm_nip}")
                 
-                if 'ketuaProdi' in meta and len(auth_row.cells) > 5:
+                if 'ketuaProdi' in meta and len(auth_row.cells) > 3:
                     prodi = meta['ketuaProdi']
                     prodi_nama = prodi.get('nama', '') if isinstance(prodi, dict) else ''
                     prodi_nip = prodi.get('nip', '') if isinstance(prodi, dict) else ''
-                    # Fill column 5 for Ketua Prodi
-                    set_cell(auth_row.cells[5], f"Ketua Prodi\n\n\n\n\n{prodi_nama}\nNIP. {prodi_nip}")
+                    # Fill column 3 for Ketua Prodi
+                    set_cell(auth_row.cells[3], f"Ketua Prodi\n\n\n\n\n{prodi_nama}\nNIP. {prodi_nip}")
                 
-                if 'dekan' in meta and len(auth_row.cells) > 6:
+                if 'dekan' in meta and len(auth_row.cells) > 4:
                     dekan = meta['dekan']
                     dekan_nama = dekan.get('nama', '') if isinstance(dekan, dict) else ''
                     dekan_nip = dekan.get('nip', '') if isinstance(dekan, dict) else ''
-                    # Fill column 6 for Dekan
-                    set_cell(auth_row.cells[6], f"Dekan Sekolah Vokasi\n\n\n\n\n{dekan_nama}\nNIP. {dekan_nip}")
+                    # Fill column 4 for Dekan
+                    set_cell(auth_row.cells[4], f"Dekan Sekolah Vokasi\n\n\n\n\n{dekan_nama}\nNIP. {dekan_nip}")
             
             # Row 3: description
             deskripsi = rps_data.get("deskripsi", "")
@@ -254,11 +252,10 @@ class JSONToDocx:
                     set_cell(t3.cell(row_idx, 9), indikator)
                     set_cell(t3.cell(row_idx, 10), bobot)
             
-            # Row 20: references
+            # Row 20: references - only fill column 1 with reference list
             referensi_list = rps_data.get("referensi", [])
             referensi_text = "\n".join(referensi_list)
-            for c in range(0, 11):
-                set_cell(t3.cell(20, c), referensi_text)
+            set_cell(t3.cell(20, 1), referensi_text)
             
             # TABLE 4: assessment (index 4)
             t4 = doc.tables[4]
