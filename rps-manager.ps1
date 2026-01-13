@@ -7,7 +7,7 @@ param([string]$Command = "")
 $AppDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $PythonDir = Join-Path $AppDir "python"
 $VenvDir = Join-Path $AppDir "venv"
-$PythonExe = Join-Path $VenvDir "Scripts\python.exe"
+$PythonExe = "python.exe"
 
 function Write-Header {
     Write-Host ""
@@ -74,11 +74,11 @@ function Check-Status {
         Write-Host "   NO - Node.js: Not installed" -ForegroundColor Red
     }
     
-    if (Test-Path $PythonExe) {
-        $pythonVersion = & $PythonExe --version 2>&1
-        Write-Host "   OK - Python (venv): $pythonVersion" -ForegroundColor Green
+    if (Get-Command python -ErrorAction SilentlyContinue) {
+        $pythonVersion = & python --version 2>&1
+        Write-Host "   OK - Python: $pythonVersion" -ForegroundColor Green
     } else {
-        Write-Host "   NO - Python venv: Not found" -ForegroundColor Red
+        Write-Host "   NO - Python: Not installed" -ForegroundColor Red
     }
     
     # Access URLs
@@ -114,7 +114,7 @@ function Start-Services {
     # Start Python API
     if (!(Get-ProcessByPort 5000)) {
         Write-Host "   Starting Python API..." -ForegroundColor Gray
-        $pythonCmd = "Set-Location '$PythonDir'; & '$PythonExe' api_server.py"
+        $pythonCmd = "Set-Location '$PythonDir'; & python api_server.py"
         Start-Process powershell -ArgumentList "-NoExit", "-Command", $pythonCmd
         $pythonStarted = $true
     } else {
