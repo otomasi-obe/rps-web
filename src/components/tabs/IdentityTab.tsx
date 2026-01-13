@@ -152,7 +152,7 @@ export default function IdentityTab({
                   onUpdate({
                     authority: {
                       ...data.authority,
-                      koordinatorMK: { ...data.authority.koordinatorMK, nama: e.target.value },
+                      koordinatorMK: { ...data.authority.koordinatorMK, nama: e.target.value, jabatan: 'Koordinator Mata Kuliah' },
                     },
                   })
                 }
@@ -166,7 +166,7 @@ export default function IdentityTab({
                   onUpdate({
                     authority: {
                       ...data.authority,
-                      koordinatorMK: { ...data.authority.koordinatorMK, nip: e.target.value },
+                      koordinatorMK: { ...data.authority.koordinatorMK, nip: e.target.value, jabatan: 'Koordinator Mata Kuliah' },
                     },
                   })
                 }
@@ -187,7 +187,7 @@ export default function IdentityTab({
                   onUpdate({
                     authority: {
                       ...data.authority,
-                      koordinatorGPM: { ...data.authority.koordinatorGPM, nama: e.target.value },
+                      koordinatorGPM: { ...data.authority.koordinatorGPM, nama: e.target.value, jabatan: 'Koordinator GPM' },
                     },
                   })
                 }
@@ -201,7 +201,7 @@ export default function IdentityTab({
                   onUpdate({
                     authority: {
                       ...data.authority,
-                      koordinatorGPM: { ...data.authority.koordinatorGPM, nip: e.target.value },
+                      koordinatorGPM: { ...data.authority.koordinatorGPM, nip: e.target.value, jabatan: 'Koordinator GPM' },
                     },
                   })
                 }
@@ -222,7 +222,7 @@ export default function IdentityTab({
                   onUpdate({
                     authority: {
                       ...data.authority,
-                      ketuaProdi: { ...data.authority.ketuaProdi, nama: e.target.value },
+                      ketuaProdi: { ...data.authority.ketuaProdi, nama: e.target.value, jabatan: 'Ketua Prodi' },
                     },
                   })
                 }
@@ -236,7 +236,7 @@ export default function IdentityTab({
                   onUpdate({
                     authority: {
                       ...data.authority,
-                      ketuaProdi: { ...data.authority.ketuaProdi, nip: e.target.value },
+                      ketuaProdi: { ...data.authority.ketuaProdi, nip: e.target.value, jabatan: 'Ketua Prodi' },
                     },
                   })
                 }
@@ -257,7 +257,7 @@ export default function IdentityTab({
                   onUpdate({
                     authority: {
                       ...data.authority,
-                      dekan: { ...data.authority.dekan, nama: e.target.value },
+                      dekan: { ...data.authority.dekan, nama: e.target.value, jabatan: 'Dekan' },
                     },
                   })
                 }
@@ -271,7 +271,7 @@ export default function IdentityTab({
                   onUpdate({
                     authority: {
                       ...data.authority,
-                      dekan: { ...data.authority.dekan, nip: e.target.value },
+                      dekan: { ...data.authority.dekan, nip: e.target.value, jabatan: 'Dekan' },
                     },
                   })
                 }

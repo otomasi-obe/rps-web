@@ -60,7 +60,22 @@ Target lulusan mampu:
   // Generate with AI
   const generateWithAI = async (type: 'full' | 'description' | 'cpl' | 'cpmk' | 'weeklyPlan' | 'references', customContext?: string) => {
     if (!rpsData.identity.nama) {
-      setError('Nama mata kuliah harus diisi terlebih dahulu');
+      setError('⚠️ Nama mata kuliah harus diisi terlebih dahulu!');
+      // Scroll to Identity tab and flash the input
+      setTimeout(() => {
+        const identitySection = document.querySelector('[data-section="identity"]');
+        if (identitySection) {
+          identitySection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Flash effect
+          const namaInput = identitySection.querySelector('input[placeholder*="Praktikum"]') as HTMLInputElement;
+          if (namaInput) {
+            namaInput.classList.add('ring-4', 'ring-red-500', 'bg-red-50');
+            setTimeout(() => {
+              namaInput.classList.remove('ring-4', 'ring-red-500', 'bg-red-50');
+            }, 2000);
+          }
+        }
+      }, 100);
       return;
     }
 
@@ -304,11 +319,26 @@ Target lulusan mampu:
             <button
               onClick={() => generateWithAI('full')}
               disabled={isGenerating || !rpsData.identity.nama}
-              className="btn btn-primary flex items-center gap-2"
+              className="btn btn-primary flex items-center gap-2 relative"
             >
-              {isGenerating && generatingType === 'full' ? <span className="spinner" /> : '🤖'}
-              Generate RPS Lengkap
+              {isGenerating && generatingType === 'full' ? (
+                <>
+                  <span className="spinner" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-30 animate-pulse rounded"></div>
+                  <span>Generating...</span>
+                </>
+              ) : (
+                <>
+                  🤖
+                  <span>Generate RPS Lengkap</span>
+                </>
+              )}
             </button>
+            {isGenerating && generatingType === 'full' && (
+              <div className="w-full bg-slate-200 rounded h-2 mt-2">
+                <div className="bg-blue-500 h-full rounded animate-pulse" style={{ width: `${progress}%` }}></div>
+              </div>
+            )}
             <button onClick={loadSample} className="btn btn-secondary">
               📥 Muat Contoh
             </button>
@@ -381,7 +411,7 @@ Target lulusan mampu:
       </div>
 
       {/* Section: Identitas MK */}
-      <div className="card">
+      <div className="card" data-section="identity">
         <h2 className="text-2xl font-bold text-slate-800 mb-4 flex items-center gap-2">
           <span>📋</span>
           Identitas Mata Kuliah
