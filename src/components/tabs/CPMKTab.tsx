@@ -27,6 +27,10 @@ export default function CPMKTab({ data, onUpdate, onGenerate, isGenerating, cont
         ...data.cpmkList,
         { kode: `CPMK ${nextNum}`, pernyataan: '' },
       ],
+      indikatorKinerjaList: [
+        ...data.indikatorKinerjaList,
+        { kode: `IK ${nextNum}`, kodeCPL: '', pernyataan: '' },
+      ],
     });
   };
 
@@ -34,6 +38,7 @@ export default function CPMKTab({ data, onUpdate, onGenerate, isGenerating, cont
     if (data.cpmkList.length <= 1) return;
     onUpdate({
       cpmkList: data.cpmkList.filter((_, i) => i !== index),
+      indikatorKinerjaList: data.indikatorKinerjaList.filter((_, i) => i !== index),
     });
   };
 

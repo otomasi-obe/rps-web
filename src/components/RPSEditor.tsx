@@ -111,21 +111,10 @@ Target lulusan mampu:
   const generateWithAI = async (type: 'full' | 'description' | 'cpl' | 'cpmk' | 'weeklyPlan' | 'references', customContext?: string) => {
     if (!rpsData.identity.nama) {
       setError('⚠️ Nama mata kuliah harus diisi terlebih dahulu!');
-      // Scroll to Identity tab and flash the input
-      setTimeout(() => {
-        const identitySection = document.querySelector('[data-section="identity"]');
-        if (identitySection) {
-          identitySection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          // Flash effect
-          const namaInput = identitySection.querySelector('input[placeholder*="Praktikum"]') as HTMLInputElement;
-          if (namaInput) {
-            namaInput.classList.add('ring-4', 'ring-red-500', 'bg-red-50');
-            setTimeout(() => {
-              namaInput.classList.remove('ring-4', 'ring-red-500', 'bg-red-50');
-            }, 2000);
-          }
-        }
-      }, 100);
+      const identitySection = document.querySelector('[data-section="identity"]');
+      if (identitySection) {
+        identitySection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
       return;
     }
 
@@ -139,8 +128,6 @@ Target lulusan mampu:
     setGeneratingType(type);
     setProgress(0);
     setError(null);
-
-    // Progress only for button spinner (no interval)
 
     try {
       const response = await fetch('/api/generate', {
@@ -160,21 +147,14 @@ Target lulusan mampu:
 
       setProgress(100);
 
-      // Debug: Log the response
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-      
-      // Get raw response text first 
       const responseText = await response.text();
-      console.log('Raw response:', responseText.substring(0, 500));
       
-      // Try to parse JSON
       let result;
       try {
         result = JSON.parse(responseText);
       } catch (parseError) {
         console.error('JSON Parse Error:', parseError);
-        throw new Error(`Invalid response format: ${responseText.substring(0, 100)}`);
+        throw new Error(`Invalid response format`);
       }
 
       if (!response.ok) {
@@ -184,27 +164,34 @@ Target lulusan mampu:
       // Merge generated data
       const generatedData = result.data;
       
-      // Debug log
-      console.log('=== Generate Response Debug ===');
-      console.log('Type:', type);
-      console.log('Generated data keys:', Object.keys(generatedData || {}));
-      console.log('Generated data:', generatedData);
-      
-      // Validate data exists
       if (!generatedData) {
         throw new Error('No data received from server');
       }
       
+      // Enhanced logging
+      console.log('=== Generate Response Debug ===');
+      console.log('Type:', type);
+      console.log('Data keys:', Object.keys(generatedData));
+      if (type === 'full' || type === 'weeklyPlan') {
+        console.log('weeklyPlan exists:', !!generatedData.weeklyPlan);
+        console.log('weeklyPlan is array:', Array.isArray(generatedData.weeklyPlan));
+        console.log('weeklyPlan length:', generatedData.weeklyPlan?.length);
+        if (generatedData.weeklyPlan?.length > 0) {
+          console.log('First week:', generatedData.weeklyPlan[0]);
+        }
+      }
+      
       if (type === 'full') {
-        setRpsData(prev => ({
-          ...prev,
-          deskripsiSingkat: generatedData.deskripsiSingkat || prev.deskripsiSingkat,
-          cplList: generatedData.cplList || prev.cplList,
-          cpmkList: generatedData.cpmkList || prev.cpmkList,
-          weeklyPlan: generatedData.weeklyPlan || prev.weeklyPlan,
-          assessmentMethods: generatedData.assessmentMethods || prev.assessmentMethods,
-          references: generatedData.references || prev.references,
-        }));
+        const updates: Partial<RPSData> = {};
+        if (generatedData.deskripsiSingkat) updates.deskripsiSingkat = generatedData.deskripsiSingkat;
+        if (generatedData.cplList) updates.cplList = generatedData.cplList;
+        if (generatedData.indikatorKinerjaList) updates.indikatorKinerjaList = generatedData.indikatorKinerjaList;
+        if (generatedData.cpmkList) updates.cpmkList = generatedData.cpmkList;
+        if (generatedData.weeklyPlan) updates.weeklyPlan = generatedData.weeklyPlan;
+        if (generatedData.assessmentMethods) updates.assessmentMethods = generatedData.assessmentMethods;
+        if (generatedData.references) updates.references = generatedData.references;
+        
+        setRpsData(prev => ({ ...prev, ...updates }));
       } else if (type === 'description') {
         if (!generatedData.deskripsiSingkat) {
           throw new Error('No description data received');
@@ -212,16 +199,38 @@ Target lulusan mampu:
         updateRPS({ deskripsiSingkat: generatedData.deskripsiSingkat });
       } else if (type === 'cpl') {
         if (!generatedData.cplList || !Array.isArray(generatedData.cplList)) {
-          console.error('Invalid CPL data:', generatedData);
           throw new Error('Invalid CPL data structure received');
         }
-        console.log('Updating CPL with', generatedData.cplList.length, 'items');
-        updateRPS({ cplList: generatedData.cplList });
+        const updates: Partial<RPSData> = { cplList: generatedData.cplList };
+        if (generatedData.indikatorKinerjaList) {
+          updates.indikatorKinerjaList = generatedData.indikatorKinerjaList;
+        }
+        updateRPS(updates);
       } else if (type === 'cpmk') {
         if (!generatedData.cpmkList || !Array.isArray(generatedData.cpmkList)) {
           throw new Error('Invalid CPMK data structure received');
         }
-        updateRPS({ cpmkList: generatedData.cpmkList });
+        
+        // Use IK from API if available, otherwise preserve existing or create new
+        let newIndikatorList = generatedData.indikatorKinerjaList || [];
+        
+        // If IK not provided by API, ensure same length as CPMK
+        if (newIndikatorList.length !== generatedData.cpmkList.length) {
+          newIndikatorList = generatedData.cpmkList.map((cpmk: any, index: number) => {
+            const existing = rpsData.indikatorKinerjaList[index];
+            const fromAPI = newIndikatorList[index];
+            return fromAPI || existing || { 
+              kode: `IK ${index + 1}`, 
+              kodeCPL: '', 
+              pernyataan: '' 
+            };
+          });
+        }
+        
+        updateRPS({ 
+          cpmkList: generatedData.cpmkList,
+          indikatorKinerjaList: newIndikatorList
+        });
       } else if (type === 'weeklyPlan') {
         if (!generatedData.weeklyPlan || !Array.isArray(generatedData.weeklyPlan)) {
           throw new Error('Invalid weeklyPlan data structure received');
@@ -239,22 +248,9 @@ Target lulusan mampu:
 
     } catch (err) {
       setProgress(0);
-      
-      // Handle specific error cases
-      let errorMessage = 'Terjadi kesalahan';
-      
-      if (err instanceof Error) {
-        if (err.message.includes('<html>') || err.message.includes('Unexpected token')) {
-          errorMessage = '❌ Server mengembalikan HTML error. Python API server mungkin bermasalah.\\n\\n🔧 Solusi:\\n1. Restart Python server\\n2. Cek OPENAI_API_KEY di .env.local\\n3. Pastikan dependencies terinstall';
-        } else if (err.message.includes('fetch')) {
-          errorMessage = '❌ Tidak dapat terhubung ke Python server. Pastikan server berjalan di http://localhost:5000';
-        } else {
-          errorMessage = err.message;
-        }
-      }
-      
+      const errorMessage = err instanceof Error ? err.message : 'Terjadi kesalahan';
       setError(errorMessage);
-      console.error('Generate error details:', err);
+      console.error('Generate error:', err);
     } finally {
       setIsGenerating(false);
       setGeneratingType(null);
@@ -374,12 +370,11 @@ Target lulusan mampu:
             <button
               onClick={() => generateWithAI('full')}
               disabled={isGenerating || !rpsData.identity.nama}
-              className="btn btn-primary flex items-center gap-2 relative"
+              className="btn btn-primary flex items-center gap-2"
             >
               {isGenerating && generatingType === 'full' ? (
                 <>
                   <span className="spinner" />
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-30 animate-pulse rounded"></div>
                   <span>Generating...</span>
                 </>
               ) : (
@@ -389,11 +384,6 @@ Target lulusan mampu:
                 </>
               )}
             </button>
-            {isGenerating && generatingType === 'full' && (
-              <div className="w-full bg-slate-200 rounded h-2 mt-2">
-                <div className="bg-blue-500 h-full rounded animate-pulse" style={{ width: `${progress}%` }}></div>
-              </div>
-            )}
             <button onClick={loadSample} className="btn btn-secondary">
               📥 Muat Contoh
             </button>
@@ -440,26 +430,9 @@ Target lulusan mampu:
           </div>
           <textarea
             value={promptRpsMantap}
-            onChange={(e) => {
-              setPromptRpsMantap(e.target.value);
-              // Auto-expand textarea
-              e.target.style.height = 'auto';
-              e.target.style.height = Math.min(e.target.scrollHeight, 500) + 'px';
-            }}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter') {
-                // Auto-expand on enter
-                setTimeout(() => {
-                  if (e.currentTarget) {
-                    e.currentTarget.style.height = 'auto';
-                    e.currentTarget.style.height = Math.min(e.currentTarget.scrollHeight, 500) + 'px';
-                  }
-                }, 0);
-              }
-            }}
+            onChange={(e) => setPromptRpsMantap(e.target.value)}
             placeholder="Contoh prompt lengkap:&#10;- Fokus pada praktik hands-on menggunakan Arduino dan sensor&#10;- Proyek akhir adalah membuat robot line follower&#10;- Gunakan metodologi PBL (Problem-Based Learning) untuk minggu 5-12&#10;- Integrasi dengan industri: undang praktisi dari perusahaan robotika&#10;- Sertifikasi Arduino sebagai pencapaian tambahan"
             rows={8}
-            style={{ overflow: 'hidden', resize: 'none' }}
             className="w-full text-sm"
           />
         </div>
@@ -511,6 +484,157 @@ Target lulusan mampu:
           onContextChange={setCpmkContext}
           progress={progress}
         />
+      </div>
+
+      {/* Section: Indikator Kinerja */}
+      <div className="card">
+        <h2 className="text-2xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <span>📐</span>
+          Pernyataan Indikator Kinerja (IK)
+        </h2>
+        <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 mb-4">
+          <p className="text-sm text-blue-800">
+            💡 <strong>Catatan:</strong> Jumlah Indikator Kinerja harus sama dengan jumlah CPMK ({rpsData.cpmkList.length} IK)
+          </p>
+        </div>
+        <div className="space-y-4">
+          {rpsData.cpmkList.map((cpmk, index) => {
+            const ik = rpsData.indikatorKinerjaList[index] || { kode: '', kodeCPL: '', pernyataan: '' };
+            return (
+              <div key={index} className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-medium text-slate-600 mb-1">CPMK</label>
+                    <input
+                      type="text"
+                      value={cpmk.kode}
+                      disabled
+                      className="w-full text-center font-semibold bg-slate-100 text-sm"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Kode IK</label>
+                    <input
+                      type="text"
+                      value={ik.kode}
+                      onChange={(e) => {
+                        const newList = [...rpsData.indikatorKinerjaList];
+                        newList[index] = { ...ik, kode: e.target.value };
+                        updateRPS({ indikatorKinerjaList: newList });
+                      }}
+                      placeholder={`IK ${index + 1}`}
+                      className="w-full text-center font-semibold text-sm"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-medium text-slate-600 mb-1">CPL</label>
+                    <select
+                      value={ik.kodeCPL}
+                      onChange={(e) => {
+                        const newList = [...rpsData.indikatorKinerjaList];
+                        newList[index] = { ...ik, kodeCPL: e.target.value };
+                        updateRPS({ indikatorKinerjaList: newList });
+                      }}
+                      className="w-full text-sm"
+                    >
+                      <option value="">Pilih CPL</option>
+                      {rpsData.cplList.map((cpl) => (
+                        <option key={cpl.kode} value={cpl.kode}>
+                          {cpl.kode}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="md:col-span-6">
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Pernyataan Indikator Kinerja</label>
+                    <textarea
+                      value={ik.pernyataan}
+                      onChange={(e) => {
+                        const newList = [...rpsData.indikatorKinerjaList];
+                        newList[index] = { ...ik, pernyataan: e.target.value };
+                        updateRPS({ indikatorKinerjaList: newList });
+                      }}
+                      rows={2}
+                      placeholder="Pernyataan indikator kinerja..."
+                      className="w-full text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Section: Media Asesmen */}
+      <div className="card">
+        <h2 className="text-2xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <span>📊</span>
+          Media Asesmen dan Kontribusinya terhadap Skor Kompetensi MK
+        </h2>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm border-collapse bg-white">
+            <thead>
+              <tr className="table-header">
+                <th className="px-3 py-2">CPMK</th>
+                <th className="px-3 py-2 text-center w-20">QUI (%)</th>
+                <th className="px-3 py-2 text-center w-20">PRS (%)</th>
+                <th className="px-3 py-2 text-center w-20">PRO (%)</th>
+                <th className="px-3 py-2 text-center w-20">UTS (%)</th>
+                <th className="px-3 py-2 text-center w-20">UAS (%)</th>
+                <th className="px-3 py-2 text-center w-20">Total (%)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rpsData.cpmkList.map((cpmk, cpmkIndex) => {
+                // Calculate totals for this CPMK from all assessment methods
+                let qui = 0, prs = 0, pro = 0, uts = 0, uas = 0;
+                
+                rpsData.assessmentMethods.forEach((method) => {
+                  const cpmkKey = `cpmk${cpmkIndex + 1}` as keyof typeof method.distribusiCPMK;
+                  const value = method.distribusiCPMK[cpmkKey] || 0;
+                  
+                  if (method.teknik.toLowerCase().includes('kuis')) {
+                    qui += value;
+                  } else if (method.teknik.toLowerCase().includes('presentasi') || method.teknik.toLowerCase().includes('partisipatif')) {
+                    prs += value;
+                  } else if (method.teknik.toLowerCase().includes('project') || method.teknik.toLowerCase().includes('tugas') || method.teknik.toLowerCase().includes('laporan')) {
+                    pro += value;
+                  } else if (method.teknik.toLowerCase().includes('uts')) {
+                    uts += value;
+                  } else if (method.teknik.toLowerCase().includes('uas')) {
+                    uas += value;
+                  }
+                });
+                
+                const total = qui + prs + pro + uts + uas;
+                
+                return (
+                  <tr key={cpmkIndex} className="border-b border-slate-200">
+                    <td className="table-cell font-medium">{cpmk.kode}</td>
+                    <td className="table-cell text-center">{qui || '-'}</td>
+                    <td className="table-cell text-center">{prs || '-'}</td>
+                    <td className="table-cell text-center">{pro || '-'}</td>
+                    <td className="table-cell text-center">{uts || '-'}</td>
+                    <td className="table-cell text-center">{uas || '-'}</td>
+                    <td className={`table-cell text-center font-bold ${total === 100 ? 'text-green-600' : total > 0 ? 'text-orange-600' : 'text-red-600'}`}>
+                      {total}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        
+        <div className="mt-3 text-xs text-slate-600 bg-blue-50 p-3 rounded">
+          <p className="font-medium mb-1">💡 Keterangan:</p>
+          <ul className="list-disc list-inside ml-2 space-y-1">
+            <li>QUI = Kuis, PRS = Presentasi/Partisipatif, PRO = Proyek/Tugas/Laporan</li>
+            <li>Total untuk setiap CPMK harus 100%</li>
+            <li>Data dihitung otomatis dari tabel Metode Penilaian</li>
+          </ul>
+        </div>
       </div>
 
       {/* Section: Rencana Mingguan */}

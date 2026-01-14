@@ -1,0 +1,501 @@
+{
+  "identity": {
+    "kode": "WEB401",
+    "nama": "Web Development Advanced",
+    "sks": 3,
+    "semester": 4,
+    "status": "Mata Kuliah Wajib",
+    "prasyarat": "WEB301"
+  },
+  "institution": {
+    "programStudi": "Sarjana Terapan Teknologi Rekayasa Otomasi",
+    "fakultas": "Sekolah Vokasi",
+    "universitas": "Universitas Diponegoro"
+  },
+  "authority": {
+    "koordinatorMK": {
+      "nama": "Dr. Ahmad Wijaya",
+      "nip": "197805122009121001",
+      "jabatan": "Koordinator Mata Kuliah"
+    },
+    "koordinatorGPM": {
+      "nama": "Prof. Siti Nurhaliza",
+      "nip": "196503251993032001",
+      "jabatan": "Koordinator GPM"
+    },
+    "ketuaProdi": {
+      "nama": "Dr. Bambang Sutrisno",
+      "nip": "196812101995031002",
+      "jabatan": "Ketua Program Studi"
+    },
+    "dekan": {
+      "nama": "Prof. Dr. Rudy Setiawan",
+      "nip": "195908141985031001",
+      "jabatan": "Dekan Sekolah Vokasi"
+    }
+  },
+  "deskripsiSingkat": "Mata kuliah ini mengajarkan pengembangan aplikasi web lanjutan dengan fokus pada arsitektur scalable, API development, testing, dan deployment. Mahasiswa akan belajar best practices dalam full-stack web development menggunakan framework modern.",
+  "cplList": [
+    {
+      "kode": "CPL1",
+      "pernyataan": "Mampu merancang dan mengimplementasikan solusi software yang complex dengan menggunakan prinsip-prinsip software engineering terbaik"
+    },
+    {
+      "kode": "CPL2",
+      "pernyataan": "Mampu berkomunikasi dan berkolaborasi secara efektif dalam tim pengembang software multidisiplin"
+    }
+  ],
+  "cpmkList": [
+    {
+      "kode": "CPMK1",
+      "pernyataan": "Mampu merancang arsitektur aplikasi web yang scalable dan maintainable"
+    },
+    {
+      "kode": "CPMK2",
+      "pernyataan": "Mampu mengimplementasikan REST API dengan security best practices"
+    },
+    {
+      "kode": "CPMK3",
+      "pernyataan": "Mampu melakukan testing komprehensif dan deployment otomatis"
+    },
+    {
+      "kode": "CPMK4",
+      "pernyataan": "Mampu mendokumentasikan solusi software dengan baik"
+    }
+  ],
+  "indikatorKinerjaList": [
+    {
+      "kode": "IK1-1",
+      "kodeCPL": "CPL1",
+      "pernyataan": "Dapat menentukan architecture pattern yang sesuai untuk aplikasi web berdasarkan requirement"
+    },
+    {
+      "kode": "IK2-1",
+      "kodeCPL": "CPL2",
+      "pernyataan": "Dapat berkomunikasi keputusan teknis kepada team members dengan jelas"
+    },
+    {
+      "kode": "IK3-1",
+      "kodeCPL": "CPL1",
+      "pernyataan": "Dapat mengidentifikasi security vulnerabilities dan implement countermeasures"
+    },
+    {
+      "kode": "IK4-1",
+      "kodeCPL": "CPL2",
+      "pernyataan": "Dapat melakukan peer review terhadap code dengan konstruktif"
+    }
+  ],
+  "weeklyPlan": [
+    {
+      "mingguKe": 1,
+      "kemampuanAkhir": "CPMK1",
+      "bahanKajian": "Web Architecture Patterns dan Scalability Principles",
+      "metodePembelajaran": {
+        "metode": "Ceramah",
+        "deskripsi": "Penjelasan tentang berbagai architecture pattern (MVC, MVVM, Layered, Microservices) dan bagaimana memilih pattern yang tepat berdasarkan use case yang berbeda",
+        "aktivitas": "Presentasi interaktif, diskusi kelompok tentang trade-offs setiap pattern"
+      },
+      "waktu": "3x50'",
+      "pengalamanBelajar": "Memahami konsep architecture dan design pattern dalam web development modern",
+      "penilaian": {
+        "kriteria": "Dapat menjelaskan karakteristik dan use case dari berbagai architecture pattern dengan akurat",
+        "bobot": 5
+      }
+    },
+    {
+      "mingguKe": 2,
+      "kemampuanAkhir": "CPMK1",
+      "bahanKajian": "Framework Selection dan Setup Project",
+      "metodePembelajaran": {
+        "metode": "Praktikum",
+        "deskripsi": "Hands-on setup project menggunakan framework populer (React/Vue/Angular) dengan best practices project structure dan configuration",
+        "aktivitas": "Setiap mahasiswa membuat starter project dengan proper folder structure, build configuration, dan development environment setup"
+      },
+      "waktu": "3x50'",
+      "pengalamanBelajar": "Dapat setup production-ready project dari awal dengan proper tooling",
+      "penilaian": {
+        "kriteria": "Project ter-setup dengan proper structure, dapat di-run dengan npm start, dan memiliki working development environment",
+        "bobot": 8
+      }
+    },
+    {
+      "mingguKe": 3,
+      "kemampuanAkhir": "CPMK1",
+      "bahanKajian": "Database Design dan ORM",
+      "metodePembelajaran": {
+        "metode": "Diskusi",
+        "deskripsi": "Diskusi tentang database normalization, relationship design, dan bagaimana menggunakan ORM untuk abstraksi database layer",
+        "aktivitas": "Kelompok kecil merancang database schema untuk use case yang diberikan, membuat ERD, dan mendiskusikan indexing strategy"
+      },
+      "waktu": "3x50'",
+      "pengalamanBelajar": "Dapat merancang database yang efficient dan optimal untuk aplikasi",
+      "penilaian": {
+        "kriteria": "ERD correct dan normalized, relationship dan constraint ter-define dengan baik, query optimized",
+        "bobot": 8
+      }
+    },
+    {
+      "mingguKe": 4,
+      "kemampuanAkhir": "CPMK2",
+      "bahanKajian": "REST API Development dan Best Practices",
+      "metodePembelajaran": {
+        "metode": "Project",
+        "deskripsi": "Development REST API dengan best practices termasuk proper error handling, versioning, pagination, filtering, dan documentation menggunakan OpenAPI/Swagger",
+        "aktivitas": "Develop API endpoints untuk CRUD operations, implement authentication dengan JWT, setup API documentation"
+      },
+      "waktu": "3x50'",
+      "pengalamanBelajar": "Dapat develop production-ready API dengan proper standards",
+      "penilaian": {
+        "kriteria": "API memiliki proper HTTP methods, status codes, authentication, error handling, dan documentation yang complete",
+        "bobot": 12
+      }
+    },
+    {
+      "mingguKe": 5,
+      "kemampuanAkhir": "CPMK2",
+      "bahanKajian": "Frontend Integration dengan Backend API",
+      "metodePembelajaran": {
+        "metode": "Presentasi",
+        "deskripsi": "Presentasi tentang strategies untuk mengintegrasikan frontend dengan backend API, handling async operations, error management, dan state management",
+        "aktivitas": "Setiap kelompok mempresentasikan architecture integrasi mereka dan mendemonstrasikan live integration antara frontend dan API"
+      },
+      "waktu": "3x50'",
+      "pengalamanBelajar": "Memahami best practices dalam integrasi frontend-backend",
+      "penilaian": {
+        "kriteria": "Presentasi jelas, demonstrasi live berjalan lancar, architecture decision ter-justify dengan baik",
+        "bobot": 8
+      }
+    },
+    {
+      "mingguKe": 6,
+      "kemampuanAkhir": "CPMK2",
+      "bahanKajian": "Deployment dan CI/CD Pipeline",
+      "metodePembelajaran": {
+        "metode": "Praktikum",
+        "deskripsi": "Praktik deployment aplikasi ke cloud platform (Heroku, AWS, GCP, atau DigitalOcean) dengan setup CI/CD pipeline menggunakan GitHub Actions atau GitLab CI",
+        "aktivitas": "Deploy aplikasi ke production, setup automated testing dalam CI pipeline, configure automatic deployment"
+      },
+      "waktu": "3x50'",
+      "pengalamanBelajar": "Dapat men-deploy aplikasi dan setup automation untuk continuous delivery",
+      "penilaian": {
+        "kriteria": "Aplikasi ter-deploy di production, CI/CD pipeline working, automated tests running setiap push",
+        "bobot": 10
+      }
+    },
+    {
+      "mingguKe": 7,
+      "kemampuanAkhir": "CPMK3",
+      "bahanKajian": "Testing Strategy dan Unit Testing",
+      "metodePembelajaran": {
+        "metode": "Ceramah",
+        "deskripsi": "Penjelasan tentang testing pyramid, jenis-jenis testing (unit, integration, end-to-end), dan tools automation testing populer",
+        "aktivitas": "Presentasi testing best practices, hands-on membuat unit tests menggunakan Jest atau Pytest dengan target coverage minimal 80%"
+      },
+      "waktu": "3x50'",
+      "pengalamanBelajar": "Memahami importance testing dan bagaimana membuat testable code",
+      "penilaian": {
+        "kriteria": "Unit tests comprehensive, coverage minimal 80%, tests meaningful dan tidak hanya checklist",
+        "bobot": 8
+      }
+    },
+    {
+      "mingguKe": 8,
+      "kemampuanAkhir": "UTS",
+      "bahanKajian": "Ujian Tengah Semester",
+      "metodePembelajaran": {
+        "metode": "Ujian",
+        "deskripsi": "Penilaian tertulis dan praktik komprehensif mencakup seluruh materi minggu 1-7 untuk mengukur kompetensi mahasiswa",
+        "aktivitas": "Pelaksanaan ujian tulis dan/atau praktik sesuai jadwal akademik institusi pendidikan tinggi"
+      },
+      "waktu": "2x50'",
+      "pengalamanBelajar": "Evaluasi pemahaman mahasiswa terhadap materi semester pertama",
+      "penilaian": {
+        "kriteria": "Mampu mengaplikasikan konsep web development dan best practices dalam situasi baru",
+        "bobot": 15
+      }
+    },
+    {
+      "mingguKe": 9,
+      "kemampuanAkhir": "CPMK3",
+      "bahanKajian": "Performance Optimization",
+      "metodePembelajaran": {
+        "metode": "Praktikum",
+        "deskripsi": "Praktik mengidentifikasi bottleneck dan mengoptimalkan performa aplikasi melalui profiling, caching, lazy loading, code splitting, dan database query optimization",
+        "aktivitas": "Analyze performance application, implement optimization techniques, measure improvement dengan Chrome DevTools"
+      },
+      "waktu": "3x50'",
+      "pengalamanBelajar": "Dapat mengidentifikasi dan fix performance issues dalam aplikasi",
+      "penilaian": {
+        "kriteria": "Performance metrics meningkat (loading time berkurang, LCP/FID/CLS improved), optimization justified",
+        "bobot": 10
+      }
+    },
+    {
+      "mingguKe": 10,
+      "kemampuanAkhir": "CPMK3",
+      "bahanKajian": "Security Best Practices dan Vulnerability Assessment",
+      "metodePembelajaran": {
+        "metode": "Diskusi",
+        "deskripsi": "Diskusi tentang OWASP Top 10, SQL Injection prevention, XSS protection, CSRF, secure headers, dan bagaimana melakukan security testing",
+        "aktivitas": "Kelompok menganalisis vulnerable code dan membuat secure implementation, perform security testing menggunakan tools"
+      },
+      "waktu": "3x50'",
+      "pengalamanBelajar": "Dapat mengidentifikasi dan mengamankan aplikasi dari common vulnerabilities",
+      "penilaian": {
+        "kriteria": "Dapat mengidentifikasi vulnerabilities, implement fixes, dan explain security implications",
+        "bobot": 9
+      }
+    },
+    {
+      "mingguKe": 11,
+      "kemampuanAkhir": "CPMK4",
+      "bahanKajian": "Technical Documentation",
+      "metodePembelajaran": {
+        "metode": "Project",
+        "deskripsi": "Membuat dokumentasi lengkap meliputi API documentation (OpenAPI/Swagger), architecture diagram, setup/deployment guide, troubleshooting guide, dan contribution guidelines",
+        "aktivitas": "Develop documentation dalam format Markdown dan OpenAPI spec, publish ke doc site atau GitHub Pages"
+      },
+      "waktu": "3x50'",
+      "pengalamanBelajar": "Dapat mendokumentasikan solusi software secara professional dan comprehensive",
+      "penilaian": {
+        "kriteria": "Dokumentasi complete, mudah dipahami, includes examples, setup guide working dari instruksi",
+        "bobot": 8
+      }
+    },
+    {
+      "mingguKe": 12,
+      "kemampuanAkhir": "CPMK4",
+      "bahanKajian": "Project Presentation dan Peer Review",
+      "metodePembelajaran": {
+        "metode": "Presentasi",
+        "deskripsi": "Presentasi final project dengan focus pada technical implementation, challenges faced, lessons learned, dan future improvements",
+        "aktivitas": "Demo aplikasi live, presentasi 20 menit, jawab pertanyaan dari panel dan peer, melakukan peer review terhadap project lain"
+      },
+      "waktu": "3x50'",
+      "pengalamanBelajar": "Dapat mengkomunikasikan technical solution dengan baik kepada audience",
+      "penilaian": {
+        "kriteria": "Presentasi clear dan engaging, demo smooth, jawaban pertanyaan technical akurat dan well-explained",
+        "bobot": 9
+      }
+    },
+    {
+      "mingguKe": 13,
+      "kemampuanAkhir": "CPMK1,CPMK2",
+      "bahanKajian": "Advanced Topics - Microservices Architecture",
+      "metodePembelajaran": {
+        "metode": "Ceramah",
+        "deskripsi": "Penjelasan tentang microservices architecture, service mesh, containerization dengan Docker, orchestration dengan Kubernetes",
+        "aktivitas": "Presentasi tentang kapan menggunakan microservices, demo simple microservices dengan Docker Compose"
+      },
+      "waktu": "3x50'",
+      "pengalamanBelajar": "Memahami trends dalam enterprise architecture dan kapan mengaplikasikannya",
+      "penilaian": {
+        "kriteria": "Dapat menjelaskan microservices benefits dan trade-offs, understand containerization basics",
+        "bobot": 6
+      }
+    },
+    {
+      "mingguKe": 14,
+      "kemampuanAkhir": "CPMK2",
+      "bahanKajian": "Advanced Topics - Real-time Communication",
+      "metodePembelajaran": {
+        "metode": "Praktikum",
+        "deskripsi": "Praktik implementasi real-time features menggunakan WebSocket, Server-Sent Events, atau GraphQL subscriptions",
+        "aktivitas": "Membuat chat application atau real-time notification system, understand pub/sub pattern"
+      },
+      "waktu": "3x50'",
+      "pengalamanBelajar": "Dapat implement real-time features dalam aplikasi",
+      "penilaian": {
+        "kriteria": "Real-time feature working, messages sent/received instantly, multiple clients synchronized",
+        "bobot": 8
+      }
+    },
+    {
+      "mingguKe": 15,
+      "kemampuanAkhir": "CPMK3,CPMK4",
+      "bahanKajian": "Final Project - Code Review dan Quality Assurance",
+      "metodePembelajaran": {
+        "metode": "Project",
+        "deskripsi": "Melakukan comprehensive code review terhadap final project dan quality assurance testing (security testing, performance testing, stress testing)",
+        "aktivitas": "Peer code review, perform security and performance testing, prepare project untuk production deployment"
+      },
+      "waktu": "3x50'",
+      "pengalamanBelajar": "Dapat melakukan professional code review dan comprehensive testing",
+      "penilaian": {
+        "kriteria": "Project memenuhi semua quality gates, security testing passed, performance acceptable, ready for production",
+        "bobot": 8
+      }
+    },
+    {
+      "mingguKe": 16,
+      "kemampuanAkhir": "UAS",
+      "bahanKajian": "Ujian Akhir Semester",
+      "metodePembelajaran": {
+        "metode": "Ujian",
+        "deskripsi": "Penilaian akhir berupa presentasi final project, demo live, dan ujian komprehensif mencakup seluruh materi semester",
+        "aktivitas": "Presentasi project final, demonstrate live aplikasi, jawab pertanyaan evaluator tentang technical decision dan implementation"
+      },
+      "waktu": "2x50'",
+      "pengalamanBelajar": "Evaluasi final terhadap pencapaian learning outcome seluruh semester",
+      "penilaian": {
+        "kriteria": "Projek complete sesuai requirement, implementasi berkualitas, mampu explain technical decisions dengan baik",
+        "bobot": 20
+      }
+    }
+  ],
+  "assessmentMethods": [
+    {
+      "teknik": "Kuis",
+      "persentase": 10,
+      "kriteria": "Pemahaman konsep dasar web development dan architecture patterns",
+      "distribusiCPMK": {
+        "cpmk1": 25,
+        "cpmk2": 25,
+        "cpmk3": 25,
+        "cpmk4": 25
+      }
+    },
+    {
+      "teknik": "Presentasi",
+      "persentase": 15,
+      "kriteria": "Kemampuan komunikasi dan presentasi hasil kerja/learning",
+      "distribusiCPMK": {
+        "cpmk1": 0,
+        "cpmk2": 30,
+        "cpmk3": 20,
+        "cpmk4": 50
+      }
+    },
+    {
+      "teknik": "Project/Tugas",
+      "persentase": 30,
+      "kriteria": "Kualitas implementasi, completeness, dan code quality",
+      "distribusiCPMK": {
+        "cpmk1": 25,
+        "cpmk2": 35,
+        "cpmk3": 25,
+        "cpmk4": 15
+      }
+    },
+    {
+      "teknik": "UTS",
+      "persentase": 15,
+      "kriteria": "Pemahaman materi minggu 1-7 dan aplikasi konsep",
+      "distribusiCPMK": {
+        "cpmk1": 30,
+        "cpmk2": 30,
+        "cpmk3": 20,
+        "cpmk4": 20
+      }
+    },
+    {
+      "teknik": "UAS",
+      "persentase": 30,
+      "kriteria": "Pemahaman menyeluruh dan kualitas final project",
+      "distribusiCPMK": {
+        "cpmk1": 20,
+        "cpmk2": 20,
+        "cpmk3": 20,
+        "cpmk4": 40
+      }
+    }
+  ],
+  "cplMappings": [
+    {
+      "kodeCPL": "CPL1",
+      "kodeIK": "IK1-1",
+      "pernyataanIK": "Dapat menentukan architecture pattern yang sesuai untuk aplikasi web berdasarkan requirement",
+      "kodeCPMK": "CPMK1",
+      "pernyataanCPMK": "Mampu merancang arsitektur aplikasi web yang scalable dan maintainable",
+      "bobotCPMK": "25%",
+      "mediaAsesmen": "Project, Presentasi",
+      "distribusi": {
+        "kuis": 25,
+        "presentasi": 20,
+        "proyek": 25,
+        "uts": 15,
+        "uas": 15
+      }
+    },
+    {
+      "kodeCPL": "CPL1",
+      "kodeIK": "IK1-1",
+      "pernyataanIK": "Dapat menentukan architecture pattern yang sesuai untuk aplikasi web berdasarkan requirement",
+      "kodeCPMK": "CPMK2",
+      "pernyataanCPMK": "Mampu mengimplementasikan REST API dengan security best practices",
+      "bobotCPMK": "25%",
+      "mediaAsesmen": "Project, Tugas",
+      "distribusi": {
+        "kuis": 25,
+        "presentasi": 30,
+        "proyek": 20,
+        "uts": 10,
+        "uas": 15
+      }
+    },
+    {
+      "kodeCPL": "CPL1",
+      "kodeIK": "IK3-1",
+      "pernyataanIK": "Dapat mengidentifikasi security vulnerabilities dan implement countermeasures",
+      "kodeCPMK": "CPMK3",
+      "pernyataanCPMK": "Mampu melakukan testing komprehensif dan deployment otomatis",
+      "bobotCPMK": "25%",
+      "mediaAsesmen": "Project, Tugas",
+      "distribusi": {
+        "kuis": 20,
+        "presentasi": 20,
+        "proyek": 35,
+        "uts": 15,
+        "uas": 10
+      }
+    },
+    {
+      "kodeCPL": "CPL2",
+      "kodeIK": "IK4-1",
+      "pernyataanIK": "Dapat melakukan peer review terhadap code dengan konstruktif",
+      "kodeCPMK": "CPMK4",
+      "pernyataanCPMK": "Mampu mendokumentasikan solusi software dengan baik",
+      "bobotCPMK": "25%",
+      "mediaAsesmen": "Presentasi, Laporan",
+      "distribusi": {
+        "kuis": 10,
+        "presentasi": 40,
+        "proyek": 20,
+        "uts": 15,
+        "uas": 15
+      }
+    }
+  ],
+  "references": [
+    {
+      "judul": "Clean Architecture: A Craftsman's Guide to Software Structure and Design",
+      "penulis": "Robert C. Martin",
+      "tahun": 2017,
+      "jenis": "buku"
+    },
+    {
+      "judul": "Building Microservices: Designing Fine-Grained Systems",
+      "penulis": "Sam Newman",
+      "tahun": 2015,
+      "jenis": "buku"
+    },
+    {
+      "judul": "The Pragmatic Programmer: Your Journey to Mastery",
+      "penulis": "David Thomas, Andrew Hunt",
+      "tahun": 2019,
+      "jenis": "buku"
+    },
+    {
+      "judul": "RESTful Web Services",
+      "penulis": "Leonard Richardson, Sam Ruby",
+      "tahun": 2007,
+      "jenis": "buku"
+    },
+    {
+      "judul": "Web Security Testing Cookbook",
+      "penulis": "Stuttard, Pinto",
+      "tahun": 2007,
+      "jenis": "buku"
+    }
+  ]
+}

@@ -203,7 +203,7 @@ export default function WeeklyPlanTab({ data, onUpdate, onGenerate, isGenerating
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-slate-600 mb-1">
-                            Deskripsi Metode <span className="text-red-500">*20 kata</span>
+                            Deskripsi Metode
                           </label>
                           <textarea
                             value={week.metodePembelajaran.deskripsi}
@@ -214,7 +214,7 @@ export default function WeeklyPlanTab({ data, onUpdate, onGenerate, isGenerating
                             }
                             rows={2}
                             className="w-full text-sm"
-                            placeholder="Penjelasan metode pembelajaran (WAJIB 20 kata)..."
+                            placeholder="Penjelasan metode pembelajaran..."
                           />
                           <span className="text-xs text-slate-500">
                             {(week.metodePembelajaran.deskripsi || '').split(/\s+/).filter(w => w).length} kata

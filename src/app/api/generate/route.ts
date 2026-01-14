@@ -74,148 +74,183 @@ export async function POST(request: NextRequest) {
       // Convert Python format to our TypeScript format
       const data = result.data;
       
-      // Debug log
-      console.log('Python API response data:', JSON.stringify(data).substring(0, 200));
-      console.log('Type:', type);
+      // DEBUG: Log raw Python response
+      console.log('=== RAW Python API Response ===');
+      console.log('Full data:', JSON.stringify(data, null, 2).substring(0, 2000));
+      if (data.minggu && data.minggu[0]) {
+        console.log('Sample minggu[0]:', JSON.stringify(data.minggu[0], null, 2));
+      }
       
       // Handle partial generation
       if (type === 'cpl') {
         if (!data.cpl || !Array.isArray(data.cpl)) {
-          console.error('Invalid CPL data structure:', data);
           throw new Error('Invalid CPL data from Python API');
         }
-        const convertedData = {
+        
+        // Extract Indikator Kinerja from CPL data if available
+        const indikatorKinerjaList = data.cpl
+          .filter((c: any) => c.ik_kode && c.ik_pernyataan)
+          .map((c: any) => ({
+            kode: c.ik_kode,
+            kodeCPL: c.kode,
+            pernyataan: c.ik_pernyataan,
+          }));
+        
+        return NextResponse.json({ 
+          success: true, 
+          data: {
+            cplList: data.cpl.map((c: { kode: string; pernyataan: string }) => ({
+              kode: c.kode,
+              pernyataan: c.pernyataan,
+            })),
+            indikatorKinerjaList,
+          }
+        });
+      }
+      
+      if (type === 'cpmk') {
+        // Extract IK from CPMK if available
+        const indikatorKinerjaList = data.cpmk.map((c: any, index: number) => ({
+          kode: c.ik_kode || `IK ${index + 1}`,
+          kodeCPL: c.mapping_cpl || '',
+          pernyataan: c.ik_pernyataan || '',
+        }));
+        
+        return NextResponse.json({ 
+          success: true, 
+          data: {
+            cpmkList: data.cpmk.map((c: { kode: string; pernyataan: string }) => ({
+              kode: c.kode,
+              pernyataan: c.pernyataan,
+            })),
+            indikatorKinerjaList,
+          }
+        });
+      }
+      
+      if (type === 'weeklyPlan') {
+        return NextResponse.json({ 
+          success: true, 
+          data: {
+            weeklyPlan: data.minggu.map((w: any) => ({
+              mingguKe: w.mingguKe || w.minggu || 0,
+              kemampuanAkhir: w.kemampuanAkhir || w.cpmk || '',
+              bahanKajian: w.bahanKajian || w.topik || '',
+              metodePembelajaran: {
+                metode: w.metodePembelajaran?.metode || w.metode || '',
+                deskripsi: w.metodePembelajaran?.deskripsi || w.deskripsi_metode || '',
+                aktivitas: w.metodePembelajaran?.aktivitas || w.aktivitas || '',
+              },
+              waktu: w.waktu || '3x50"',
+              pengalamanBelajar: w.pengalamanBelajar || w.pengalaman || '',
+              penilaian: {
+                kriteria: w.penilaian?.kriteria || w.indikator || '',
+                bobot: typeof w.penilaian?.bobot === 'number' 
+                  ? w.penilaian.bobot 
+                  : parseInt(String(w.penilaian?.bobot || w.bobot || '0').replace('%', '')) || 0,
+              },
+            })),
+          }
+        });
+      }
+      
+      if (type === 'references') {
+        return NextResponse.json({ 
+          success: true, 
+          data: {
+            references: data.referensi.map((r: string) => ({
+              judul: r,
+              penulis: '',
+              jenis: 'buku' as const,
+            })),
+          }
+        });
+      }
+      
+      // Full generation
+      // Extract Indikator Kinerja from CPL OR CPMK data
+      let indikatorKinerjaList: any[] = [];
+      
+      // Try to extract from CPL first
+      if (data.cpl) {
+        const ikFromCPL = data.cpl
+          .filter((c: any) => c.ik_kode && c.ik_pernyataan)
+          .map((c: any) => ({
+            kode: c.ik_kode,
+            kodeCPL: c.kode,
+            pernyataan: c.ik_pernyataan,
+          }));
+        if (ikFromCPL.length > 0) {
+          indikatorKinerjaList = ikFromCPL;
+        }
+      }
+      
+      // If not found in CPL, try CPMK
+      if (indikatorKinerjaList.length === 0 && data.cpmk) {
+        indikatorKinerjaList = data.cpmk.map((c: any, index: number) => ({
+          kode: c.ik_kode || `IK ${index + 1}`,
+          kodeCPL: c.mapping_cpl || '',
+          pernyataan: c.ik_pernyataan || '',
+        }));
+      }
+      
+      return NextResponse.json({
+        success: true,
+        data: {
+          deskripsiSingkat: data.deskripsi,
           cplList: data.cpl.map((c: { kode: string; pernyataan: string }) => ({
             kode: c.kode,
             pernyataan: c.pernyataan,
           })),
-        };
-        console.log('Converted CPL data:', convertedData);
-        return NextResponse.json({ success: true, data: convertedData });
-      }
-      
-      if (type === 'cpmk') {
-        const convertedData = {
-          cpmkList: data.cpmk.map((c: { kode: string; pernyataan: string; mapping_cpl?: string }) => ({
+          indikatorKinerjaList,
+          cpmkList: data.cpmk.map((c: { kode: string; pernyataan: string }) => ({
             kode: c.kode,
             pernyataan: c.pernyataan,
           })),
-        };
-        return NextResponse.json({ success: true, data: convertedData });
-      }
-      
-      if (type === 'weeklyPlan') {
-        const convertedData = {
-          weeklyPlan: data.minggu.map((w: { 
-            minggu: number; 
-            cpmk: string; 
-            topik: string; 
-            metode: string; 
-            waktu: string; 
-            pengalaman: string; 
-            indikator: string; 
-            bobot: string 
-          }) => ({
-            mingguKe: w.minggu,
-            kemampuanAkhir: w.cpmk,
-            bahanKajian: w.topik,
+          weeklyPlan: data.minggu.map((w: any) => ({
+            mingguKe: w.mingguKe || w.minggu || 0,
+            kemampuanAkhir: w.kemampuanAkhir || w.cpmk || '',
+            bahanKajian: w.bahanKajian || w.topik || '',
             metodePembelajaran: {
-              tmScl: w.metode,
-              pbl: '',
-              cbl: '',
-              pjbl: '',
+              metode: w.metodePembelajaran?.metode || w.metode || '',
+              deskripsi: w.metodePembelajaran?.deskripsi || w.deskripsi_metode || '',
+              aktivitas: w.metodePembelajaran?.aktivitas || w.aktivitas || '',
             },
-            waktu: w.waktu,
-            pengalamanBelajar: w.pengalaman,
+            waktu: w.waktu || '3x50"',
+            pengalamanBelajar: w.pengalamanBelajar || w.pengalaman || '',
             penilaian: {
-              kriteria: w.indikator,
-              bobot: parseInt(w.bobot) || 0,
+              kriteria: w.penilaian?.kriteria || w.indikator || '',
+              bobot: typeof w.penilaian?.bobot === 'number' 
+                ? w.penilaian.bobot 
+                : parseInt(String(w.penilaian?.bobot || w.bobot || '0').replace('%', '')) || 0,
             },
           })),
-        };
-        return NextResponse.json({ success: true, data: convertedData });
-      }
-      
-      if (type === 'references') {
-        const convertedData = {
+          assessmentMethods: data.penilaian.map((p: { 
+            komponen: string; 
+            bobot: string; 
+            kriteria: string;
+            cpmk1?: string;
+            cpmk2?: string;
+            cpmk3?: string;
+            cpmk4?: string;
+          }) => ({
+            teknik: p.komponen,
+            persentase: parseInt(p.bobot.replace('%', '')) || 0,
+            kriteria: p.kriteria,
+            distribusiCPMK: {
+              cpmk1: parseInt(p.cpmk1?.replace('%', '') || '0') || 0,
+              cpmk2: parseInt(p.cpmk2?.replace('%', '') || '0') || 0,
+              cpmk3: parseInt(p.cpmk3?.replace('%', '') || '0') || 0,
+              cpmk4: parseInt(p.cpmk4?.replace('%', '') || '0') || 0,
+            },
+          })),
           references: data.referensi.map((r: string) => ({
             judul: r,
             penulis: '',
-            tahun: undefined,
             jenis: 'buku' as const,
           })),
-        };
-        return NextResponse.json({ success: true, data: convertedData });
-      }
-      
-      // Full generation
-    const convertedData = {
-      deskripsiSingkat: data.deskripsi,
-      cplList: data.cpl.map((c: { kode: string; pernyataan: string }) => ({
-        kode: c.kode,
-        pernyataan: c.pernyataan,
-      })),
-      cpmkList: data.cpmk.map((c: { kode: string; pernyataan: string }) => ({
-        kode: c.kode,
-        pernyataan: c.pernyataan,
-      })),
-      weeklyPlan: data.minggu.map((w: { 
-        minggu: number; 
-        cpmk: string; 
-        topik: string; 
-        metode: string; 
-        waktu: string; 
-        pengalaman: string; 
-        indikator: string; 
-        bobot: string 
-      }) => ({
-        mingguKe: w.minggu,
-        kemampuanAkhir: w.cpmk,
-        bahanKajian: w.topik,
-        metodePembelajaran: {
-          tmScl: w.metode,
-          pbl: '',
-          cbl: '',
-          pjbl: '',
         },
-        waktu: w.waktu,
-        pengalamanBelajar: w.pengalaman,
-        penilaian: {
-          kriteria: w.indikator,
-          bobot: parseInt(w.bobot) || 0,
-        },
-      })),
-      assessmentMethods: data.penilaian.map((p: { 
-        komponen: string; 
-        bobot: string; 
-        kriteria: string;
-        cpmk1?: string;
-        cpmk2?: string;
-        cpmk3?: string;
-        cpmk4?: string;
-      }) => ({
-        teknik: p.komponen,
-        persentase: parseInt(p.bobot.replace('%', '')) || 0,
-        kriteria: p.kriteria,
-        distribusiCPMK: {
-          cpmk1: parseInt(p.cpmk1?.replace('%', '') || '0') || 0,
-          cpmk2: parseInt(p.cpmk2?.replace('%', '') || '0') || 0,
-          cpmk3: parseInt(p.cpmk3?.replace('%', '') || '0') || 0,
-          cpmk4: parseInt(p.cpmk4?.replace('%', '') || '0') || 0,
-        },
-      })),
-      references: data.referensi.map((r: string, i: number) => ({
-        judul: r,
-        penulis: '',
-        tahun: undefined,
-        jenis: 'buku' as const,
-      })),
-    };
-
-    return NextResponse.json({
-      success: true,
-      data: convertedData,
-    });
+      });
       
     } catch (error: any) {
       clearTimeout(timeoutId);

@@ -38,10 +38,18 @@ export async function POST(request: NextRequest) {
     // Convert rpsData to Python format
     const pythonRPSData = {
       deskripsi: rpsData.deskripsiSingkat,
-      cpl: rpsData.cplList.map(c => ({
-        kode: c.kode,
-        pernyataan: c.pernyataan,
-      })),
+      cpl: rpsData.cplList.map(c => {
+        // Find matching IK for this CPL
+        const matchingIK = rpsData.indikatorKinerjaList.filter(ik => ik.kodeCPL === c.kode);
+        return {
+          kode: c.kode,
+          pernyataan: c.pernyataan,
+          ik: matchingIK.map(ik => ({
+            kode: ik.kode,
+            pernyataan: ik.pernyataan,
+          })),
+        };
+      }),
       cpmk: rpsData.cpmkList.map(c => ({
         kode: c.kode,
         pernyataan: c.pernyataan,
@@ -60,26 +68,44 @@ export async function POST(request: NextRequest) {
         bobot: String(w.penilaian.bobot),
       })),
       penilaian: rpsData.assessmentMethods.map(a => ({
+        teknik: a.teknik,
         komponen: a.teknik,
+        persentase: a.persentase,
         bobot: `${a.persentase}%`,
         kriteria: a.kriteria,
+        distribusiCPMK: {
+          cpmk1: a.distribusiCPMK?.cpmk1 || 0,
+          cpmk2: a.distribusiCPMK?.cpmk2 || 0,
+          cpmk3: a.distribusiCPMK?.cpmk3 || 0,
+          cpmk4: a.distribusiCPMK?.cpmk4 || 0,
+        },
         cpmk1: a.distribusiCPMK?.cpmk1 ? `${a.distribusiCPMK.cpmk1}%` : '',
         cpmk2: a.distribusiCPMK?.cpmk2 ? `${a.distribusiCPMK.cpmk2}%` : '',
         cpmk3: a.distribusiCPMK?.cpmk3 ? `${a.distribusiCPMK.cpmk3}%` : '',
         cpmk4: a.distribusiCPMK?.cpmk4 ? `${a.distribusiCPMK.cpmk4}%` : '',
       })),
-      referensi: rpsData.references.map(r => {
-        // Format: Penulis. Judul. Tahun
+      cplMappings: rpsData.cplMappings && rpsData.cplMappings.length > 0 
+        ? rpsData.cplMappings.map(m => ({
+            cpl: m.kodeCPL,
+            ik: m.kodeIK,
+            ik_pernyataan: m.pernyataanIK,
+            cpmk: m.kodeCPMK,
+            cpmk_pernyataan: m.pernyataanCPMK,
+            bobot: m.bobotCPMK,
+            media: m.mediaAsesmen,
+            qui: m.distribusi?.kuis || 0,
+            prs: m.distribusi?.presentasi || 0,
+            pro: m.distribusi?.proyek || 0,
+            uts: m.distribusi?.uts || 0,
+            uas: m.distribusi?.uas || 0,
+          }))
+        : [],
+      references: rpsData.references.map(r => {
         const parts = [];
-        if (r.penulis && r.penulis.trim()) parts.push(r.penulis.trim());
-        if (r.judul && r.judul.trim()) parts.push(r.judul.trim());
+        if (r.penulis?.trim()) parts.push(r.penulis.trim());
+        if (r.judul?.trim()) parts.push(r.judul.trim());
         if (r.tahun) parts.push(String(r.tahun));
-        
-        // If judul only (old format compatibility), use judul directly
-        if (parts.length === 0 && r.judul) return r.judul;
-        if (parts.length === 1 && r.judul && !r.penulis) return r.judul;
-        
-        return parts.join('. ');
+        return parts.length ? parts.join('. ') : r.judul || '';
       }),
     };
 

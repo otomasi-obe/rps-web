@@ -166,7 +166,12 @@ export const createEmptyRPS = (): RPSData => ({
     { kode: 'CPMK 3', pernyataan: '' },
     { kode: 'CPMK 4', pernyataan: '' },
   ],
-  indikatorKinerjaList: [],
+  indikatorKinerjaList: [
+    { kode: 'IK 1', kodeCPL: '', pernyataan: '' },
+    { kode: 'IK 2', kodeCPL: '', pernyataan: '' },
+    { kode: 'IK 3', kodeCPL: '', pernyataan: '' },
+    { kode: 'IK 4', kodeCPL: '', pernyataan: '' },
+  ],
   weeklyPlan: Array.from({ length: 16 }, (_, i) => ({
     mingguKe: i + 1,
     kemampuanAkhir: '',

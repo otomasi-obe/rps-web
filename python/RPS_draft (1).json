@@ -1,0 +1,414 @@
+{
+  "identity": {
+    "kode": "",
+    "nama": "praktikum cad cam",
+    "sks": 2,
+    "semester": 1,
+    "status": "Mata Kuliah Wajib",
+    "prasyarat": "-"
+  },
+  "institution": {
+    "programStudi": "Sarjana Terapan Teknologi Rekayasa Otomasi",
+    "fakultas": "Sekolah Vokasi",
+    "universitas": "Universitas Diponegoro"
+  },
+  "authority": {
+    "koordinatorMK": {
+      "nama": "",
+      "nip": "",
+      "jabatan": "Koordinator Mata Kuliah"
+    },
+    "koordinatorGPM": {
+      "nama": "",
+      "nip": "",
+      "jabatan": "Koordinator GPM"
+    },
+    "ketuaProdi": {
+      "nama": "",
+      "nip": "",
+      "jabatan": "Ketua Prodi"
+    },
+    "dekan": {
+      "nama": "",
+      "nip": "",
+      "jabatan": "Dekan"
+    }
+  },
+  "deskripsiSingkat": "Mata kuliah praktikum CAD/CAM memperkenalkan mahasiswa pada perangkat lunak desain dan pemrograman pemesinan numerik. Mahasiswa belajar menggambar 2D/3D, membuat toolpath, simulasi, dan integrasi proses produksi. Praktikum meningkatkan keterampilan teknis, ketelitian, dan kemampuan kolaborasi untuk aplikasi manufaktur.",
+  "cplList": [
+    {
+      "kode": "CPL3",
+      "pernyataan": "Menguasai pengetahuan faktual, konseptual, dan prosedural terkait perancangan dan pemesinan berbasis CAD/CAM."
+    },
+    {
+      "kode": "CPL4",
+      "pernyataan": "Mampu menerapkan pengetahuan dan keterampilan teknis untuk merancang model CAD serta menghasilkan program CAM untuk pemesinan."
+    },
+    {
+      "kode": "CPL10",
+      "pernyataan": "Menunjukkan sikap profesional, tanggung jawab, dan kepatuhan terhadap keselamatan kerja dalam praktik CAD/CAM."
+    }
+  ],
+  "cpmkList": [
+    {
+      "kode": "CPMK 1",
+      "pernyataan": "Mahasiswa mampu mengoperasikan antarmuka dan perintah dasar perangkat lunak CAD untuk membuat gambar teknik 2D."
+    },
+    {
+      "kode": "CPMK 2",
+      "pernyataan": "Mahasiswa mampu menghasilkan model 3D parametrik dan membuat assembly sederhana sesuai kaidah gambar teknik."
+    },
+    {
+      "kode": "CPMK 3",
+      "pernyataan": "Mahasiswa mampu menghasilkan toolpath CAM, mensimulasikan proses pemesinan, dan memproduksi program NC untuk mesin CNC."
+    },
+    {
+      "kode": "CPMK 4",
+      "pernyataan": "Mahasiswa mampu mengintegrasikan desain CAD dan proses CAM dalam proyek akhir, serta menyusun laporan dan presentasi profesional."
+    }
+  ],
+  "indikatorKinerjaList": [],
+  "weeklyPlan": [
+    {
+      "mingguKe": 1,
+      "kemampuanAkhir": "CPMK 1",
+      "bahanKajian": "Pengenalan lingkungan CAD: antarmuka, sistem koordinat, unit, dan dasar drawing",
+      "metodePembelajaran": {
+        "metode": "Ceramah",
+        "deskripsi": "Ceramah interaktif dengan demonstrasi, tanya jawab, studi kasus, dan penugasan singkat untuk memperkuat pemahaman konsep CAD dasar serta latihan praktis",
+        "aktivitas": "Dosen menjelaskan antarmuka CAD, demonstrasi tool dasar, mahasiswa mengikuti tutorial singkat, melakukan latihan awal, dan mendiskusikan hasil."
+      },
+      "waktu": "1x50'",
+      "pengalamanBelajar": "Mahasiswa aktif mengoperasikan software, membuat model, berdiskusi, memperbaiki kesalahan, mendokumentasikan proses, dan mempresentasikan hasil praktikum kepada dosen serta kelompok praktikum",
+      "penilaian": {
+        "kriteria": "Ketepatan penggunaan perintah, kualitas gambar, kerapihan file, dokumentasi, waktu penyelesaian, serta kemampuan troubleshooting dan komunikasi teknis",
+        "bobot": 5
+      }
+    },
+    {
+      "mingguKe": 2,
+      "kemampuanAkhir": "CPMK 1",
+      "bahanKajian": "Perintah dasar menggambar 2D: line, circle, trim, offset, layer, properties, dan editing",
+      "metodePembelajaran": {
+        "metode": "Praktikum",
+        "deskripsi": "Praktikum terpimpin dengan demonstrasi perangkat lunak, latihan mandiri, troubleshooting, bimbingan dosen, dan evaluasi hasil setiap pertemuan secara kuantitatif dan kualitatif",
+        "aktivitas": "Mahasiswa melakukan latihan perintah 2D, membuat gambar teknik sederhana, pertanyaan bimbingan, dan perbaikan berdasarkan umpan balik dosen."
+      },
+      "waktu": "1x50'",
+      "pengalamanBelajar": "Mahasiswa aktif mengoperasikan software, membuat model, berdiskusi, memperbaiki kesalahan, mendokumentasikan proses, dan mempresentasikan hasil praktikum kepada dosen serta kelompok praktikum",
+      "penilaian": {
+        "kriteria": "Ketepatan penggunaan perintah, kualitas gambar, kerapihan file, dokumentasi, waktu penyelesaian, serta kemampuan troubleshooting dan komunikasi teknis",
+        "bobot": 5
+      }
+    },
+    {
+      "mingguKe": 3,
+      "kemampuanAkhir": "CPMK 1",
+      "bahanKajian": "Pembuatan objek 2D kompleks, penggunaan blok, annotasi, dimensi, dan standar gambar teknik",
+      "metodePembelajaran": {
+        "metode": "Praktikum",
+        "deskripsi": "Praktikum terpimpin dengan demonstrasi perangkat lunak, latihan mandiri, troubleshooting, bimbingan dosen, dan evaluasi hasil setiap pertemuan secara kuantitatif dan kualitatif",
+        "aktivitas": "Latihan pembuatan gambar kerja dengan anotasi dan dimensi, penerapan standar, review peer, dan revisi menurut catatan dosen."
+      },
+      "waktu": "1x50'",
+      "pengalamanBelajar": "Mahasiswa aktif mengoperasikan software, membuat model, berdiskusi, memperbaiki kesalahan, mendokumentasikan proses, dan mempresentasikan hasil praktikum kepada dosen serta kelompok praktikum",
+      "penilaian": {
+        "kriteria": "Ketepatan penggunaan perintah, kualitas gambar, kerapihan file, dokumentasi, waktu penyelesaian, serta kemampuan troubleshooting dan komunikasi teknis",
+        "bobot": 5
+      }
+    },
+    {
+      "mingguKe": 4,
+      "kemampuanAkhir": "CPMK 2",
+      "bahanKajian": "Pengenalan model 3D: extrude, revolve, loft, sweep, dan konsep solid modeling",
+      "metodePembelajaran": {
+        "metode": "Diskusi",
+        "deskripsi": "Diskusi kelompok terarah membahas studi kasus desain, alternatif solusi, evaluasi ergonomi, dan persiapan laporan praktikum implementasi lanjutan",
+        "aktivitas": "Mahasiswa mendiskusikan metode pemodelan 3D, membandingkan pendekatan, merencanakan tugas praktikum, dan menyusun sketsa solusi bersama kelompok."
+      },
+      "waktu": "1x50'",
+      "pengalamanBelajar": "Mahasiswa aktif mengoperasikan software, membuat model, berdiskusi, memperbaiki kesalahan, mendokumentasikan proses, dan mempresentasikan hasil praktikum kepada dosen serta kelompok praktikum",
+      "penilaian": {
+        "kriteria": "Ketepatan penggunaan perintah, kualitas gambar, kerapihan file, dokumentasi, waktu penyelesaian, serta kemampuan troubleshooting dan komunikasi teknis",
+        "bobot": 5
+      }
+    },
+    {
+      "mingguKe": 5,
+      "kemampuanAkhir": "CPMK 2",
+      "bahanKajian": "Pembuatan model 3D parametrik, constraints, fitur, dan pembuatan assembly sederhana",
+      "metodePembelajaran": {
+        "metode": "Praktikum",
+        "deskripsi": "Praktikum terpimpin dengan demonstrasi perangkat lunak, latihan mandiri, troubleshooting, bimbingan dosen, dan evaluasi hasil setiap pertemuan secara kuantitatif dan kualitatif",
+        "aktivitas": "Mahasiswa membuat model parametrik, menerapkan constraint, merakit komponen dalam assembly, memeriksa interferensi, dan mendokumentasikan proses."
+      },
+      "waktu": "1x50'",
+      "pengalamanBelajar": "Mahasiswa aktif mengoperasikan software, membuat model, berdiskusi, memperbaiki kesalahan, mendokumentasikan proses, dan mempresentasikan hasil praktikum kepada dosen serta kelompok praktikum",
+      "penilaian": {
+        "kriteria": "Ketepatan penggunaan perintah, kualitas gambar, kerapihan file, dokumentasi, waktu penyelesaian, serta kemampuan troubleshooting dan komunikasi teknis",
+        "bobot": 5
+      }
+    },
+    {
+      "mingguKe": 6,
+      "kemampuanAkhir": "CPMK 2",
+      "bahanKajian": "Analisis model: pengecekan toleransi, penyiapan gambar produksi, dan persiapan output untuk CAM",
+      "metodePembelajaran": {
+        "metode": "Praktikum",
+        "deskripsi": "Praktikum terpimpin dengan demonstrasi perangkat lunak, latihan mandiri, troubleshooting, bimbingan dosen, dan evaluasi hasil setiap pertemuan secara kuantitatif dan kualitatif",
+        "aktivitas": "Mahasiswa melakukan pengecekan model, menyiapkan gambar produksi, meng-export format kompatibel CAM, dan merevisi berdasarkan umpan balik."
+      },
+      "waktu": "1x50'",
+      "pengalamanBelajar": "Mahasiswa aktif mengoperasikan software, membuat model, berdiskusi, memperbaiki kesalahan, mendokumentasikan proses, dan mempresentasikan hasil praktikum kepada dosen serta kelompok praktikum",
+      "penilaian": {
+        "kriteria": "Ketepatan penggunaan perintah, kualitas gambar, kerapihan file, dokumentasi, waktu penyelesaian, serta kemampuan troubleshooting dan komunikasi teknis",
+        "bobot": 5
+      }
+    },
+    {
+      "mingguKe": 7,
+      "kemampuanAkhir": "CPMK 2",
+      "bahanKajian": "Konversi model CAD ke CAM: pemilihan machining features, pengenalan toolpath, dan strategi pemesinan dasar",
+      "metodePembelajaran": {
+        "metode": "Praktikum",
+        "deskripsi": "Praktikum terpimpin dengan demonstrasi perangkat lunak, latihan mandiri, troubleshooting, bimbingan dosen, dan evaluasi hasil setiap pertemuan secara kuantitatif dan kualitatif",
+        "aktivitas": "Mahasiswa menyiapkan model untuk CAM, memilih fitur machining, mencoba toolpath sederhana, dan mendiskusikan hasil simulasi bersama dosen."
+      },
+      "waktu": "1x50'",
+      "pengalamanBelajar": "Mahasiswa aktif mengoperasikan software, membuat model, berdiskusi, memperbaiki kesalahan, mendokumentasikan proses, dan mempresentasikan hasil praktikum kepada dosen serta kelompok praktikum",
+      "penilaian": {
+        "kriteria": "Ketepatan penggunaan perintah, kualitas gambar, kerapihan file, dokumentasi, waktu penyelesaian, serta kemampuan troubleshooting dan komunikasi teknis",
+        "bobot": 5
+      }
+    },
+    {
+      "mingguKe": 8,
+      "kemampuanAkhir": "UTS",
+      "bahanKajian": "UTS - Ujian Tengah Semester",
+      "metodePembelajaran": {
+        "metode": "Ujian",
+        "deskripsi": "Penilaian tertulis atau praktik komprehensif mencakup seluruh materi evaluasi penguasaan kompetensi",
+        "aktivitas": "Pelaksanaan ujian tulis atau praktik sesuai jadwal akademik"
+      },
+      "waktu": "3x50'",
+      "pengalamanBelajar": "UTS",
+      "penilaian": {
+        "kriteria": "UTS",
+        "bobot": 15
+      }
+    },
+    {
+      "mingguKe": 9,
+      "kemampuanAkhir": "CPMK 3",
+      "bahanKajian": "Pengenalan CAM: konsep toolpath, jenis operasi (face, pocket, contour), dan parameter pemesinan",
+      "metodePembelajaran": {
+        "metode": "Praktikum",
+        "deskripsi": "Praktikum terpimpin dengan demonstrasi perangkat lunak, latihan mandiri, troubleshooting, bimbingan dosen, dan evaluasi hasil setiap pertemuan secara kuantitatif dan kualitatif",
+        "aktivitas": "Mahasiswa membuat toolpath untuk operasi dasar, mengatur parameter cutting, menjalankan simulasi, dan memeriksa hasil simulasi."
+      },
+      "waktu": "1x50'",
+      "pengalamanBelajar": "Mahasiswa aktif mengoperasikan software, membuat model, berdiskusi, memperbaiki kesalahan, mendokumentasikan proses, dan mempresentasikan hasil praktikum kepada dosen serta kelompok praktikum",
+      "penilaian": {
+        "kriteria": "Ketepatan penggunaan perintah, kualitas gambar, kerapihan file, dokumentasi, waktu penyelesaian, serta kemampuan troubleshooting dan komunikasi teknis",
+        "bobot": 5
+      }
+    },
+    {
+      "mingguKe": 10,
+      "kemampuanAkhir": "CPMK 3",
+      "bahanKajian": "Strategi pemesinan: roughing, finishing, pemilihan pahat, kecepatan, feed, dan optimasi waktu produksi",
+      "metodePembelajaran": {
+        "metode": "Praktikum",
+        "deskripsi": "Praktikum terpimpin dengan demonstrasi perangkat lunak, latihan mandiri, troubleshooting, bimbingan dosen, dan evaluasi hasil setiap pertemuan secara kuantitatif dan kualitatif",
+        "aktivitas": "Mahasiswa menguji berbagai strategi pemesinan pada model, membandingkan hasil simulasi, mencatat parameter optimal, dan mendiskusikan efisiensi."
+      },
+      "waktu": "1x50'",
+      "pengalamanBelajar": "Mahasiswa aktif mengoperasikan software, membuat model, berdiskusi, memperbaiki kesalahan, mendokumentasikan proses, dan mempresentasikan hasil praktikum kepada dosen serta kelompok praktikum",
+      "penilaian": {
+        "kriteria": "Ketepatan penggunaan perintah, kualitas gambar, kerapihan file, dokumentasi, waktu penyelesaian, serta kemampuan troubleshooting dan komunikasi teknis",
+        "bobot": 5
+      }
+    },
+    {
+      "mingguKe": 11,
+      "kemampuanAkhir": "CPMK 3",
+      "bahanKajian": "Simulasi pemesinan, verifikasi toolpath, deteksi kolisi, dan koreksi program NC",
+      "metodePembelajaran": {
+        "metode": "Praktikum",
+        "deskripsi": "Praktikum terpimpin dengan demonstrasi perangkat lunak, latihan mandiri, troubleshooting, bimbingan dosen, dan evaluasi hasil setiap pertemuan secara kuantitatif dan kualitatif",
+        "aktivitas": "Mahasiswa menjalankan simulasi penuh, memeriksa kolisi, memperbaiki toolpath, menghasilkan program NC yang siap diuji di mesin."
+      },
+      "waktu": "1x50'",
+      "pengalamanBelajar": "Mahasiswa aktif mengoperasikan software, membuat model, berdiskusi, memperbaiki kesalahan, mendokumentasikan proses, dan mempresentasikan hasil praktikum kepada dosen serta kelompok praktikum",
+      "penilaian": {
+        "kriteria": "Ketepatan penggunaan perintah, kualitas gambar, kerapihan file, dokumentasi, waktu penyelesaian, serta kemampuan troubleshooting dan komunikasi teknis",
+        "bobot": 5
+      }
+    },
+    {
+      "mingguKe": 12,
+      "kemampuanAkhir": "CPMK 3",
+      "bahanKajian": "Post-processing, format NC, dan pengaturan parameter mesin serta verifikasi sebelum eksekusi pada mesin CNC",
+      "metodePembelajaran": {
+        "metode": "Praktikum",
+        "deskripsi": "Praktikum terpimpin dengan demonstrasi perangkat lunak, latihan mandiri, troubleshooting, bimbingan dosen, dan evaluasi hasil setiap pertemuan secara kuantitatif dan kualitatif",
+        "aktivitas": "Mahasiswa membuat post-processor, men-generate kode NC, memverifikasi parameter mesin, dan mendokumentasikan hasil uji simulasi."
+      },
+      "waktu": "1x50'",
+      "pengalamanBelajar": "Mahasiswa aktif mengoperasikan software, membuat model, berdiskusi, memperbaiki kesalahan, mendokumentasikan proses, dan mempresentasikan hasil praktikum kepada dosen serta kelompok praktikum",
+      "penilaian": {
+        "kriteria": "Ketepatan penggunaan perintah, kualitas gambar, kerapihan file, dokumentasi, waktu penyelesaian, serta kemampuan troubleshooting dan komunikasi teknis",
+        "bobot": 5
+      }
+    },
+    {
+      "mingguKe": 13,
+      "kemampuanAkhir": "CPMK 3",
+      "bahanKajian": "Setup CNC, fixture, pemilihan tooling, dan praktik pengujian program pada simulator atau mesin praktik",
+      "metodePembelajaran": {
+        "metode": "Praktikum",
+        "deskripsi": "Praktikum terpimpin dengan demonstrasi perangkat lunak, latihan mandiri, troubleshooting, bimbingan dosen, dan evaluasi hasil setiap pertemuan secara kuantitatif dan kualitatif",
+        "aktivitas": "Mahasiswa mempersiapkan setup, memilih fixture, melakukan simulasi pemesinan, mencatat hasil, dan merevisi program berdasarkan observasi."
+      },
+      "waktu": "1x50'",
+      "pengalamanBelajar": "Mahasiswa aktif mengoperasikan software, membuat model, berdiskusi, memperbaiki kesalahan, mendokumentasikan proses, dan mempresentasikan hasil praktikum kepada dosen serta kelompok praktikum",
+      "penilaian": {
+        "kriteria": "Ketepatan penggunaan perintah, kualitas gambar, kerapihan file, dokumentasi, waktu penyelesaian, serta kemampuan troubleshooting dan komunikasi teknis",
+        "bobot": 5
+      }
+    },
+    {
+      "mingguKe": 14,
+      "kemampuanAkhir": "CPMK 4",
+      "bahanKajian": "Pelaksanaan proyek integrasi CAD-CAM: produksi komponen sederhana hingga penyusunan laporan teknis",
+      "metodePembelajaran": {
+        "metode": "Tugas",
+        "deskripsi": "Tugas terstruktur untuk merancang, mensimulasikan, dan mendokumentasikan proses fabrikasi menggunakan CAD dan CAM, disertai laporan teknis lengkap beserta analisis kinerja",
+        "aktivitas": "Kelompok menyelesaikan tugas proyek, membuat model, menghasilkan toolpath, menjalankan simulasi, mencatat hasil, dan menyusun laporan teknis."
+      },
+      "waktu": "1x50'",
+      "pengalamanBelajar": "Mahasiswa aktif mengoperasikan software, membuat model, berdiskusi, memperbaiki kesalahan, mendokumentasikan proses, dan mempresentasikan hasil praktikum kepada dosen serta kelompok praktikum",
+      "penilaian": {
+        "kriteria": "Ketepatan penggunaan perintah, kualitas gambar, kerapihan file, dokumentasi, waktu penyelesaian, serta kemampuan troubleshooting dan komunikasi teknis",
+        "bobot": 10
+      }
+    },
+    {
+      "mingguKe": 15,
+      "kemampuanAkhir": "CPMK 4",
+      "bahanKajian": "Penyelesaian proyek akhir, presentasi, demonstrasi pemesinan simulasi, dan penyerahan laporan akhir",
+      "metodePembelajaran": {
+        "metode": "Presentasi",
+        "deskripsi": "Presentasi proyek akhir dengan demonstrasi, pembelaan desain, tanya jawab kritis, dan evaluasi oleh dosen serta rekan sejawat menggunakan media visual",
+        "aktivitas": "Kelompok mempresentasikan hasil, mendemonstrasikan simulasi, menjawab pertanyaan, menerima umpan balik, dan menyusun perbaikan akhir untuk laporan."
+      },
+      "waktu": "1x50'",
+      "pengalamanBelajar": "Mahasiswa aktif mengoperasikan software, membuat model, berdiskusi, memperbaiki kesalahan, mendokumentasikan proses, dan mempresentasikan hasil praktikum kepada dosen serta kelompok praktikum",
+      "penilaian": {
+        "kriteria": "Ketepatan penggunaan perintah, kualitas gambar, kerapihan file, dokumentasi, waktu penyelesaian, serta kemampuan troubleshooting dan komunikasi teknis",
+        "bobot": 10
+      }
+    },
+    {
+      "mingguKe": 16,
+      "kemampuanAkhir": "UAS",
+      "bahanKajian": "UAS - Ujian Akhir Semester",
+      "metodePembelajaran": {
+        "metode": "Ujian",
+        "deskripsi": "Penilaian akhir semester melalui demo proyek integrasi presentasi hasil pembelajaran keseluruhan",
+        "aktivitas": "Pelaksanaan ujian tulis atau praktik sesuai jadwal akademik"
+      },
+      "waktu": "3x50'",
+      "pengalamanBelajar": "UAS",
+      "penilaian": {
+        "kriteria": "UAS",
+        "bobot": 20
+      }
+    }
+  ],
+  "assessmentMethods": [
+    {
+      "teknik": "Aktivitas Partisipatif",
+      "persentase": 20,
+      "kriteria": "Kehadiran, partisipasi aktif, disiplin, dan kontribusi dalam diskusi",
+      "distribusiCPMK": {
+        "cpmk1": 5,
+        "cpmk2": 5,
+        "cpmk3": 5,
+        "cpmk4": 5
+      }
+    },
+    {
+      "teknik": "Project/ Problem/ Case Based Learning",
+      "persentase": 30,
+      "kriteria": "Analisis kasus, kualitas laporan, dan presentasi",
+      "distribusiCPMK": {
+        "cpmk1": 0,
+        "cpmk2": 10,
+        "cpmk3": 10,
+        "cpmk4": 10
+      }
+    },
+    {
+      "teknik": "Kuis",
+      "persentase": 10,
+      "kriteria": "Pemahaman materi dan pengembangan konsep",
+      "distribusiCPMK": {
+        "cpmk1": 5,
+        "cpmk2": 0,
+        "cpmk3": 0,
+        "cpmk4": 5
+      }
+    },
+    {
+      "teknik": "UTS",
+      "persentase": 20,
+      "kriteria": "Ujian Tengah Semester",
+      "distribusiCPMK": {
+        "cpmk1": 10,
+        "cpmk2": 10,
+        "cpmk3": 0,
+        "cpmk4": 0
+      }
+    },
+    {
+      "teknik": "UAS",
+      "persentase": 20,
+      "kriteria": "Ujian Akhir Semester",
+      "distribusiCPMK": {
+        "cpmk1": 0,
+        "cpmk2": 0,
+        "cpmk3": 10,
+        "cpmk4": 10
+      }
+    }
+  ],
+  "cplMappings": [],
+  "references": [
+    {
+      "judul": "Mikell P. Groover, Automation, Production Systems, and Computer-Integrated Manufacturing, Prentice Hall",
+      "penulis": "",
+      "jenis": "buku"
+    },
+    {
+      "judul": "Douglas C. Montgomery, Fundamentals of CAD/CAM and Rapid Prototyping, Pearson",
+      "penulis": "",
+      "jenis": "buku"
+    },
+    {
+      "judul": "Kunle Olukotun, Practical CNC Programming, McGraw-Hill",
+      "penulis": "",
+      "jenis": "buku"
+    },
+    {
+      "judul": "Dokumentasi manual perangkat lunak CAD/CAM (misal: Autodesk, SolidWorks, Fusion 360)",
+      "penulis": "",
+      "jenis": "buku"
+    },
+    {
+      "judul": "Jurnal International Journal of Advanced Manufacturing Technology terkait CAD/CAM",
+      "penulis": "",
+      "jenis": "buku"
+    }
+  ]
+}

@@ -107,9 +107,9 @@ class JSONToDocx:
     def validate_template(self) -> bool:
         """Check if template exists."""
         if not self.template_path.exists():
-            print(f"❌ Template not found: {self.template_path}")
+            print(f"[ERROR] Template not found: {self.template_path}")
             return False
-        print(f"✅ Template found: {self.template_path}")
+        print(f"[OK] Template found: {self.template_path}")
         return True
     
     def export_to_docx(self, rps_data: dict, meta: dict, output_path: str) -> bool:
@@ -127,13 +127,13 @@ class JSONToDocx:
         try:
             from docx import Document
         except ImportError:
-            print("❌ Missing dependency 'python-docx'. Install with: pip install python-docx")
+            print(f"[ERROR] Missing dependency 'python-docx'. Install with: pip install python-docx")
             return False
         
         if not self.validate_template():
             return False
         
-        print(f"\n📄 Converting JSON to DOCX...")
+        print(f"\n[CONVERT] Converting JSON to DOCX...")
         print(f"   Template: {self.template_path}")
         print(f"   Output: {output_path}")
         
@@ -210,13 +210,13 @@ class JSONToDocx:
                     set_cell(auth_row.cells[6], f"{dekan_jabatan}\n\n\n\n\n{dekan_nama}\nNIP. {dekan_nip}")
                     print(f"   ✅ Dekan filled: {dekan_nama}")
             
-            # Row 3: description
-            deskripsi = rps_data.get("deskripsi", "")
+            # Row 3: description (deskripsiSingkat)
+            deskripsi = rps_data.get("deskripsiSingkat") or rps_data.get("deskripsi", "")
             for c in range(1, 7):
                 set_cell(t1.cell(3, c), deskripsi)
             
             # Row 4-6: CPL
-            cpl_list = rps_data.get("cpl", [])
+            cpl_list = rps_data.get("cplList", []) or rps_data.get("cpl", [])
             for i, cpl in enumerate(cpl_list[:3]):
                 row_idx = 4 + i
                 set_cell(t1.cell(row_idx, 1), cpl.get("kode", f"CPL{i+1}"))
@@ -228,7 +228,7 @@ class JSONToDocx:
             set_cell(t2.cell(0, 1), "Setelah menyelesaikan mata kuliah ini, mahasiswa diharapkan mampu:")
             set_cell(t2.cell(0, 2), "Setelah menyelesaikan mata kuliah ini, mahasiswa diharapkan mampu:")
             
-            cpmk_list = rps_data.get("cpmk", [])
+            cpmk_list = rps_data.get("cpmkList", []) or rps_data.get("cpmk", [])
             cpmk_dict = {c.get("kode", ""): c.get("pernyataan", "") for c in cpmk_list}
             
             for i, cpmk in enumerate(cpmk_list[:4]):
@@ -236,25 +236,48 @@ class JSONToDocx:
                 set_cell(t2.cell(row_idx, 1), cpmk.get("kode", f"CPMK {i+1}"))
                 set_cell(t2.cell(row_idx, 2), cpmk.get("pernyataan", ""))
             
-            # TABLE 3: weekly plan (index 3)
+            # TABLE 3: weekly plan (index 3) - Rencana Pembelajaran Mingguan
             t3 = doc.tables[3]
-            minggu_list = rps_data.get("minggu", [])
+            minggu_list = rps_data.get("minggu", []) or rps_data.get("weeklyPlan", [])
+            
+            print(f"📊 TABLE 3 - Weekly Plan:")
+            print(f"   - Total weeks: {len(minggu_list)}")
+            print(f"   - Table rows: {len(t3.rows)}")
             
             for i, week_data in enumerate(minggu_list[:16]):
                 row_idx = 4 + i  # Rows 4-19 are weeks 1-16
-                week_no = str(week_data.get("minggu", i + 1))
-                cpmk_code = week_data.get("cpmk", "")
-                topik = week_data.get("topik", "")
-                metode_list = week_data.get("metode", [])
-                # Handle metode as array or string for backward compatibility
-                if isinstance(metode_list, list):
-                    metode = ", ".join(metode_list)
+                
+                # Handle both old flat format and new nested format
+                week_no = str(week_data.get("minggu") or week_data.get("mingguKe", i + 1))
+                cpmk_code = week_data.get("cpmk") or week_data.get("kemampuanAkhir", "")
+                topik = week_data.get("topik") or week_data.get("bahanKajian", "")
+                
+                # Extract metodePembelajaran - can be nested object or flat fields
+                metode_obj = week_data.get("metodePembelajaran", {})
+                if isinstance(metode_obj, dict) and metode_obj:  # Check if it's a non-empty dict
+                    metode = metode_obj.get("metode", "")
+                    deskripsi = metode_obj.get("deskripsi", "")
+                    aktivitas = metode_obj.get("aktivitas", "")
                 else:
-                    metode = str(metode_list)
+                    # Fallback to flat structure
+                    metode = week_data.get("metode", "")
+                    deskripsi = week_data.get("deskripsi_metode", "")
+                    aktivitas = week_data.get("aktivitas", "")
+                
                 waktu = week_data.get("waktu", "3x50'")
-                pengalaman = week_data.get("pengalaman", "")
-                indikator = week_data.get("indikator", "")
-                bobot = str(week_data.get("bobot", ""))
+                pengalaman = week_data.get("pengalaman") or week_data.get("pengalamanBelajar", "")
+                
+                # Extract penilaian - can be nested object or flat fields
+                penilaian_obj = week_data.get("penilaian", {})
+                if isinstance(penilaian_obj, dict) and penilaian_obj:  # Check if it's a non-empty dict
+                    indikator = penilaian_obj.get("kriteria", "")
+                    bobot = str(penilaian_obj.get("bobot", ""))
+                else:
+                    # Fallback to flat structure
+                    indikator = week_data.get("indikator", "")
+                    bobot = str(week_data.get("bobot", ""))
+                
+                print(f"   - Week {week_no}: {cpmk_code} | Metode:{metode} | Kriteria:{indikator[:30] if indikator else 'KOSONG'}")
                 
                 # Check if it's UTS or UAS (merged row)
                 if cpmk_code in ("UTS", "UAS"):
@@ -266,12 +289,30 @@ class JSONToDocx:
                     set_cell(t3.cell(row_idx, 0), week_no)
                     set_cell(t3.cell(row_idx, 1), kemampuan)
                     set_cell(t3.cell(row_idx, 2), topik)
-                    for c in range(3, 7):
-                        set_cell(t3.cell(row_idx, c), metode)
+                    
+                    # Fill metode pembelajaran - columns 3-6 are merged into one cell in the template
+                    # Combine all method info into this single merged cell
+                    metode_text = f"{metode}"
+                    if deskripsi:
+                        metode_text += f"\n\n{deskripsi}"
+                    if aktivitas:
+                        metode_text += f"\n\nAktivitas:\n{aktivitas}"
+                    
+                    set_cell(t3.cell(row_idx, 3), metode_text)
+                    
+                    # Column 7: Waktu (total learning time)
                     set_cell(t3.cell(row_idx, 7), waktu)
+                    # Column 8: Pengalaman Belajar
                     set_cell(t3.cell(row_idx, 8), pengalaman)
+                    # Column 9: Kriteria & Indikator (PENTING!)
                     set_cell(t3.cell(row_idx, 9), indikator)
+                    # Column 10: Bobot
                     set_cell(t3.cell(row_idx, 10), bobot)
+                    
+                    if indikator:
+                        print(f"     ✅ Kriteria filled: {indikator[:50]}")
+                    else:
+                        print(f"     ⚠️ Kriteria KOSONG untuk minggu {week_no}")
             
             # Row 20: references - fix field name and format references properly with numbering
             references_list = rps_data.get("references", [])
@@ -299,72 +340,158 @@ class JSONToDocx:
             
             set_cell(t3.cell(20, 5), referensi_text)
             
-            # TABLE 4: assessment (index 4)
+            # TABLE 4: assessment (index 4) - Metode Penilaian
             t4 = doc.tables[4]
-            penilaian_list = rps_data.get("penilaian", [])
+            penilaian_list = rps_data.get("penilaian", []) or rps_data.get("assessmentMethods", [])
+            
+            print(f"📊 TABLE 4 - Assessment Methods:")
+            print(f"   - Total methods: {len(penilaian_list)}")
+            print(f"   - Table rows: {len(t4.rows)}")
             
             for i, penilaian in enumerate(penilaian_list[:5]):
                 row_idx = 2 + i
                 if row_idx < len(t4.rows):
-                    set_cell(t4.cell(row_idx, 1), penilaian.get("komponen", ""))
-                    set_cell(t4.cell(row_idx, 2), penilaian.get("bobot", ""))
-                    set_cell(t4.cell(row_idx, 3), penilaian.get("kriteria", ""))
-                    # CPMK distribution columns
+                    # Handle both old format (komponen field) and new format (teknik field)
+                    teknik = penilaian.get("teknik") or penilaian.get("komponen", "")
+                    persentase = penilaian.get("persentase") or penilaian.get("bobot", 0)
+                    kriteria = penilaian.get("kriteria", "")
+                    
+                    print(f"   - Method {i+1}: {teknik} ({persentase}%)")
+                    
+                    set_cell(t4.cell(row_idx, 1), teknik)
+                    set_cell(t4.cell(row_idx, 2), str(persentase))
+                    set_cell(t4.cell(row_idx, 3), kriteria)
+                    
+                    # CPMK distribution columns - handle both formats
+                    distribusi = penilaian.get("distribusiCPMK", {})
+                    if isinstance(distribusi, dict):
+                        cpmk1 = str(distribusi.get("cpmk1", 0) or 0)
+                        cpmk2 = str(distribusi.get("cpmk2", 0) or 0)
+                        cpmk3 = str(distribusi.get("cpmk3", 0) or 0)
+                        cpmk4 = str(distribusi.get("cpmk4", 0) or 0)
+                    else:
+                        cpmk1 = str(penilaian.get("cpmk1", 0) or 0)
+                        cpmk2 = str(penilaian.get("cpmk2", 0) or 0)
+                        cpmk3 = str(penilaian.get("cpmk3", 0) or 0)
+                        cpmk4 = str(penilaian.get("cpmk4", 0) or 0)
+                    
                     if len(t4.rows[row_idx].cells) >= 8:
-                        set_cell(t4.cell(row_idx, 4), penilaian.get("cpmk1", ""))
-                        set_cell(t4.cell(row_idx, 5), penilaian.get("cpmk2", ""))
-                        set_cell(t4.cell(row_idx, 6), penilaian.get("cpmk3", ""))
-                        set_cell(t4.cell(row_idx, 7), penilaian.get("cpmk4", ""))
+                        set_cell(t4.cell(row_idx, 4), cpmk1)
+                        set_cell(t4.cell(row_idx, 5), cpmk2)
+                        set_cell(t4.cell(row_idx, 6), cpmk3)
+                        set_cell(t4.cell(row_idx, 7), cpmk4)
+                        print(f"     ✅ Distribution - CPMK1:{cpmk1}% CPMK2:{cpmk2}% CPMK3:{cpmk3}% CPMK4:{cpmk4}%")
             
-            # TABLE 5: CPL-CPMK mapping (index 5)
+            
+            # TABLE 5: CPL-CPMK mapping (index 5) - Media Asesmen dan Kontribusinya
             t5 = doc.tables[5]
-            mapping_list = rps_data.get("cpl_cpmk_mapping", [])
+            mapping_list = rps_data.get("cplMappings", []) or rps_data.get("cpl_cpmk_mapping", [])
             
-            # If no explicit mapping, create from cpmk list
-            if not mapping_list:
-                for i, cpmk in enumerate(cpmk_list[:4]):
-                    cpl_code = cpmk.get("mapping_cpl", "")
-                    cpl_stmt = ""
-                    ik_code = ""
-                    ik_stmt = ""
-                    # Find the corresponding CPL and get ik_pernyataan from template
-                    for cpl in cpl_list:
-                        if cpl.get("kode") == cpl_code:
-                            cpl_stmt = cpl.get("pernyataan", "")
-                            ik_code = cpl.get("ik_kode", f"IK {cpl_code.replace('CPL', '')}-1")
-                            ik_stmt = cpl.get("ik_pernyataan", "")
+            print(f"📊 TABLE 5 - CPL-CPMK Mapping:")
+            print(f"   - Total mappings from API: {len(mapping_list)}")
+            print(f"   - Table rows: {len(t5.rows)}")
+            
+            # Build mapping list if not provided
+            if not mapping_list or len(mapping_list) == 0:
+                print(f"   - No explicit mappings, building from IK and CPMK...")
+                # Create mapping from indikatorKinerjaList and cpmkList
+                for i, ik_item in enumerate(rps_data.get("indikatorKinerjaList", [])[:4]):
+                    # Find corresponding CPL
+                    cpl_code = ""
+                    cpl_item = {}
+                    for cpl in rps_data.get("cpl", []):
+                        if cpl.get("kode") == ik_item.get("kodeCPL"):
+                            cpl_code = cpl.get("kode", "")
+                            cpl_item = cpl
                             break
                     
-                    # If ik_pernyataan not found, use cpl statement
-                    if not ik_stmt:
-                        ik_stmt = cpl_stmt
+                    # Get corresponding CPMK
+                    cpmk_code = ""
+                    cpmk_pernyataan = ""
+                    if i < len(rps_data.get("cpmk", [])):
+                        cpmk_code = rps_data["cpmk"][i].get("kode", "")
+                        cpmk_pernyataan = rps_data["cpmk"][i].get("pernyataan", "")
+                    
+                    # Try to calculate distribution from penilaian
+                    qui = 0
+                    prs = 0
+                    pro = 0
+                    uts = 0
+                    uas = 0
+                    
+                    for penilaian in rps_data.get("penilaian", []):
+                        cpmk_key = f"cpmk{i+1}"
+                        distribusi = penilaian.get("distribusiCPMK", {})
+                        if isinstance(distribusi, dict):
+                            val = distribusi.get(cpmk_key, 0) or 0
+                        else:
+                            val = penilaian.get(cpmk_key, 0) or 0
+                        
+                        teknik = penilaian.get("teknik", "").lower()
+                        if "kuis" in teknik or "quiz" in teknik:
+                            qui += val
+                        elif "presentasi" in teknik or "partisipatif" in teknik or "prs" in teknik:
+                            prs += val
+                        elif "project" in teknik or "tugas" in teknik or "laporan" in teknik or "pro" in teknik:
+                            pro += val
+                        elif "uts" in teknik:
+                            uts += val
+                        elif "uas" in teknik:
+                            uas += val
                     
                     mapping_list.append({
-                        "cpl": cpl_code if i == 0 or cpmk.get("mapping_cpl") != cpmk_list[i-1].get("mapping_cpl") else "",
-                        "ik": ik_code,
-                        "ik_pernyataan": ik_stmt,
-                        "cpmk": cpmk.get("kode", ""),
-                        "cpmk_pernyataan": cpmk.get("pernyataan", ""),
+                        "cpl": cpl_code,
+                        "ik": ik_item.get("kode", ""),
+                        "ik_pernyataan": ik_item.get("pernyataan", ""),
+                        "cpmk": cpmk_code,
+                        "cpmk_pernyataan": cpmk_pernyataan,
                         "bobot": "25%",
-                        "media": "Laporan, Tugas",
+                        "media": "Laporan, Tugas, Presentasi",
+                        "qui": str(qui) if qui > 0 else "",
+                        "prs": str(prs) if prs > 0 else "",
+                        "pro": str(pro) if pro > 0 else "",
+                        "uts": str(uts) if uts > 0 else "",
+                        "uas": str(uas) if uas > 0 else "",
                     })
+            else:
+                print(f"   - Using explicit mappings from API")
             
+            # Fill table with mappings
             for i, mapping in enumerate(mapping_list[:4]):
                 row_idx = 2 + i
                 if row_idx < len(t5.rows):
-                    set_cell(t5.cell(row_idx, 0), mapping.get("cpl", ""))
-                    set_cell(t5.cell(row_idx, 1), mapping.get("ik", ""))
-                    set_cell(t5.cell(row_idx, 2), mapping.get("ik_pernyataan", ""))
-                    set_cell(t5.cell(row_idx, 3), mapping.get("cpmk", ""))
-                    set_cell(t5.cell(row_idx, 4), mapping.get("cpmk_pernyataan", ""))
+                    cpl_val = mapping.get("cpl", "")
+                    ik_val = mapping.get("ik", "")
+                    ik_pern = mapping.get("ik_pernyataan", "")
+                    cpmk_val = mapping.get("cpmk", "")
+                    cpmk_pern = mapping.get("cpmk_pernyataan", "")
+                    bobot_val = mapping.get("bobot", "")
+                    media_val = mapping.get("media", "")
+                    qui_val = mapping.get("qui", "")
+                    prs_val = mapping.get("prs", "")
+                    pro_val = mapping.get("pro", "")
+                    uts_val = mapping.get("uts", "")
+                    uas_val = mapping.get("uas", "")
+                    
+                    print(f"   - Row {row_idx}: {cpl_val} | {ik_val} | {cpmk_val} | QUI:{qui_val} PRS:{prs_val} PRO:{pro_val} UTS:{uts_val} UAS:{uas_val}")
+                    
+                    set_cell(t5.cell(row_idx, 0), cpl_val)
+                    set_cell(t5.cell(row_idx, 1), ik_val)
+                    set_cell(t5.cell(row_idx, 2), ik_pern)
+                    set_cell(t5.cell(row_idx, 3), cpmk_val)
+                    set_cell(t5.cell(row_idx, 4), cpmk_pern)
+                    
+                    # Check available cells
                     if len(t5.rows[row_idx].cells) >= 12:
-                        set_cell(t5.cell(row_idx, 5), mapping.get("bobot", ""))
-                        set_cell(t5.cell(row_idx, 6), mapping.get("media", ""))
-                        set_cell(t5.cell(row_idx, 7), mapping.get("qui", ""))
-                        set_cell(t5.cell(row_idx, 8), mapping.get("prs", ""))
-                        set_cell(t5.cell(row_idx, 9), mapping.get("pro", ""))
-                        set_cell(t5.cell(row_idx, 10), mapping.get("uts", ""))
-                        set_cell(t5.cell(row_idx, 11), mapping.get("uas", ""))
+                        set_cell(t5.cell(row_idx, 5), bobot_val)
+                        set_cell(t5.cell(row_idx, 6), media_val)
+                        set_cell(t5.cell(row_idx, 7), qui_val)
+                        set_cell(t5.cell(row_idx, 8), prs_val)
+                        set_cell(t5.cell(row_idx, 9), pro_val)
+                        set_cell(t5.cell(row_idx, 10), uts_val)
+                        set_cell(t5.cell(row_idx, 11), uas_val)
+                    else:
+                        print(f"   ⚠️ Warning: Row {row_idx} has only {len(t5.rows[row_idx].cells)} cells, expected 12+")
             
             doc.save(output_path)
             print(f"✅ DOCX saved successfully!")
@@ -394,7 +521,7 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     
-    print("🚀 JSON to DOCX Converter")
+    print("[START] JSON to DOCX Converter")
     print("=" * 60)
     
     # Load JSON
