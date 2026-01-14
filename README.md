@@ -117,10 +117,71 @@ Sistem web untuk membuat **Rencana Pembelajaran Semester (RPS)** dengan bantuan 
 
 ## Environment Variables
 
-| Variable | Description |
-|----------|-------------|
-| `OPENAI_API_KEY` | OpenAI API key untuk generate konten |
+### Required
+- `OPENAI_API_KEY` - OpenAI API key untuk generate konten
 
-## License
+### Production Only
+- `PYTHON_API_URL` - URL ke Python API server (default: `http://127.0.0.1:5000`)
+  - **⚠️ PENTING**: Jangan gunakan `127.0.0.1` di production!
+  - Set ke URL yang accessible dari mesin Next.js
+  - Contoh: `http://localhost:5000` atau `http://python-api:5000`
 
-MIT
+### Complete .env.local Example
+```env
+OPENAI_API_KEY=sk-your-actual-api-key
+PYTHON_API_URL=http://localhost:5000
+```
+
+## Running in Production
+
+### Dengan Python API di Mesin Sama
+
+```bash
+# Terminal 1: Jalankan Python API server
+cd python/
+python3 api_server.py --port 5000
+
+# Terminal 2: Jalankan Next.js application
+npm run build
+npm run start
+```
+
+### Dengan Docker Compose
+
+```yaml
+version: '3.8'
+services:
+  python-api:
+    build: ./python
+    ports:
+      - "5000:5000"
+    environment:
+      - OPENAI_API_KEY=sk-your-key
+
+  nextjs:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - PYTHON_API_URL=http://python-api:5000
+    depends_on:
+      - python-api
+```
+
+## Troubleshooting
+
+Jika mendapat error **"Invalid response format"** saat generate:
+
+1. Pastikan Python API server running
+2. Verifikasi `PYTHON_API_URL` di environment
+3. Lihat [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) untuk detail lengkap
+
+```bash
+# Test connectivity ke Python API
+curl http://localhost:5000/health
+```
+
+Expected response:
+```json
+{"status": "ok", "model": "gpt-5-mini-2025-08-07"}
+```

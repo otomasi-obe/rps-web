@@ -149,12 +149,20 @@ Target lulusan mampu:
 
       const responseText = await response.text();
       
+      // Debug: Log response untuk troubleshooting
+      console.log('=== API Response Debug ===');
+      console.log('Status:', response.status);
+      console.log('Content-Type:', response.headers.get('content-type'));
+      console.log('Response Text (first 500 chars):', responseText.substring(0, 500));
+      console.log('Response Length:', responseText.length);
+      
       let result;
       try {
         result = JSON.parse(responseText);
       } catch (parseError) {
         console.error('JSON Parse Error:', parseError);
-        throw new Error(`Invalid response format`);
+        console.error('Failed to parse response:', responseText.substring(0, 1000));
+        throw new Error(`Invalid response format: ${responseText.substring(0, 200)}`);
       }
 
       if (!response.ok) {
@@ -269,6 +277,9 @@ Target lulusan mampu:
     setError(null);
 
     try {
+      console.log('=== Export Debug ===');
+      console.log('Sending export request to /api/export');
+      
       const response = await fetch('/api/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -290,13 +301,31 @@ Target lulusan mampu:
         }),
       });
 
+      console.log('Export response status:', response.status);
+      console.log('Export response content-type:', response.headers.get('content-type'));
+
       if (!response.ok) {
-        const result = await response.json();
-        throw new Error(result.error || 'Gagal export dokumen');
+        const responseText = await response.text();
+        console.error('Export error response (first 1000 chars):', responseText.substring(0, 1000));
+        
+        let errorMessage = 'Gagal export dokumen';
+        try {
+          const errorJson = JSON.parse(responseText);
+          errorMessage = errorJson.error || errorMessage;
+        } catch (e) {
+          errorMessage = responseText.substring(0, 200) || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
 
+      // Success - response should be blob (DOCX file)
+      const contentType = response.headers.get('content-type');
+      console.log('Success response content-type:', contentType);
+      
       // Download file
       const blob = await response.blob();
+      console.log('Blob size:', blob.size, 'bytes');
+      
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -310,7 +339,9 @@ Target lulusan mampu:
       setTimeout(() => setSuccess(null), 3000);
 
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Terjadi kesalahan');
+      const errorMsg = err instanceof Error ? err.message : 'Terjadi kesalahan';
+      setError(errorMsg);
+      console.error('Export error:', err);
     } finally {
       setIsExporting(false);
     }

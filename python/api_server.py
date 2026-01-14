@@ -255,14 +255,21 @@ class RPSAPIHandler(BaseHTTPRequestHandler):
         rps_data = data.get('rpsData', {})
         meta = data.get('meta', {})
         
-        # Debug: Log received meta
-        print(f"📋 Received meta keys: {list(meta.keys())}")
+        # Debug: Log received data structure
+        print(f"📋 Received data keys: {list(data.keys())}")
+        print(f"📋 rpsData type: {type(rps_data)}, keys: {list(rps_data.keys()) if isinstance(rps_data, dict) else 'N/A'}")
+        print(f"📋 meta keys: {list(meta.keys())}")
+        print(f"📋 Authority data:")
         print(f"   - koordinatorMK: {meta.get('koordinatorMK')}")
         print(f"   - koordinatorGPM: {meta.get('koordinatorGPM')}")
         print(f"   - ketuaProdi: {meta.get('ketuaProdi')}")
         print(f"   - dekan: {meta.get('dekan')}")
         
-        # Ensure required fields
+        # Validate rpsData
+        if not rps_data or not isinstance(rps_data, dict):
+            raise Exception(f"Invalid rpsData: expected dict, got {type(rps_data)}")
+        
+        # Ensure required fields in meta
         if not meta.get('nama'):
             meta['nama'] = 'Mata Kuliah'
         if not meta.get('kode'):
@@ -280,6 +287,9 @@ class RPSAPIHandler(BaseHTTPRequestHandler):
         script_dir = Path(__file__).parent
         template_path = script_dir / 'RPS.docx'
         
+        print(f"📝 Template path: {template_path}")
+        print(f"📝 Template exists: {template_path.exists()}")
+        
         if not template_path.exists():
             raise Exception(f"Template not found: {template_path}")
         
@@ -287,17 +297,35 @@ class RPSAPIHandler(BaseHTTPRequestHandler):
         with tempfile.NamedTemporaryFile(suffix='.docx', delete=False) as tmp:
             output_path = tmp.name
         
+        print(f"📝 Output path: {output_path}")
+        
         try:
             # Use JSONToDocx converter
+            print("🔧 Initializing JSONToDocx converter...")
             converter = JSONToDocx(template_path=str(template_path))
+            
+            print(f"📊 rpsData keys being passed: {list(rps_data.keys())}")
+            print(f"📊 rpsData minggu count: {len(rps_data.get('minggu', []))}")
+            print(f"📊 rpsData penilaian count: {len(rps_data.get('penilaian', []))}")
+            
+            print("⚙️ Calling export_to_docx()...")
             success = converter.export_to_docx(
                 rps_data=rps_data,
                 meta=meta,
                 output_path=output_path
             )
             
+            print(f"export_to_docx returned: {success}")
+            
             if not success:
-                raise Exception("Failed to export DOCX")
+                raise Exception("JSONToDocx.export_to_docx() returned False - check server logs above")
+            
+            # Verify output file was created
+            if not os.path.exists(output_path):
+                raise Exception(f"Output file was not created: {output_path}")
+            
+            output_size = os.path.getsize(output_path)
+            print(f"✅ DOCX file created: {output_size} bytes")
             
             # Read file and encode as base64
             with open(output_path, 'rb') as f:
@@ -305,24 +333,41 @@ class RPSAPIHandler(BaseHTTPRequestHandler):
             
             docx_base64 = base64.b64encode(docx_bytes).decode('utf-8')
             
+            print(f"✅ Base64 encoded: {len(docx_base64)} chars")
             print(f"✅ Exported DOCX ({len(docx_bytes)} bytes)")
             
-            self._send_json({
+            response_data = {
                 'success': True,
                 'docx': docx_base64,
                 'filename': f"RPS_{meta['kode']}.docx"
-            })
+            }
+            
+            print(f"✅ Sending response with keys: {list(response_data.keys())}")
+            self._send_json(response_data)
+            
+        except Exception as e:
+            print(f"❌ Export error: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
             
         finally:
             # Cleanup temp file
             if os.path.exists(output_path):
-                os.remove(output_path)
+                try:
+                    os.remove(output_path)
+                    print(f"🧹 Cleaned up temp file: {output_path}")
+                except Exception as e:
+                    print(f"⚠️ Failed to cleanup temp file: {e}")
 
 
 def run_server(port=5000):
-    server_address = ('127.0.0.1', port)
+    # Bind to all interfaces (0.0.0.0) instead of just localhost
+    # This allows the server to be accessed from other machines
+    server_address = ('0.0.0.0', port)
     httpd = ThreadedHTTPServer(server_address, RPSAPIHandler)
-    print(f"🚀 RPS API Server running on http://127.0.0.1:{port} (localhost only)")
+    print(f"🚀 RPS API Server running on http://0.0.0.0:{port}")
+    print(f"   Accessible at: http://localhost:{port}")
     print("=" * 50)
     print("Endpoints:")
     print(f"  GET  http://localhost:{port}/health")

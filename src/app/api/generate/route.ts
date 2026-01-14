@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { CourseIdentity, Institution } from '@/types/rps';
 
-// Python API URL - direct connection to avoid proxy issues
+// Python API URL - get from environment, use localhost as fallback for dev
 const PYTHON_API_URL = process.env.PYTHON_API_URL || 'http://127.0.0.1:5000';
+
+// Function to get API URL with debugging
+function getAPIUrl() {
+  const url = PYTHON_API_URL;
+  console.log('[API Route] Using PYTHON_API_URL:', url);
+  return url;
+}
 
 // Set maxDuration untuk API route (dalam detik)
 export const maxDuration = 300; // 5 minutes
@@ -35,8 +42,10 @@ export async function POST(request: NextRequest) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 280000); // 280 seconds (4min 40s)
     
+    const pythonApiUrl = getAPIUrl();
+    
     try {
-      const response = await fetch(`${PYTHON_API_URL}/generate`, {
+      const response = await fetch(`${pythonApiUrl}/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -60,12 +69,33 @@ export async function POST(request: NextRequest) {
       
       clearTimeout(timeoutId);
 
+      // Debug logging
+      console.log('[API Route] Python API Response Status:', response.status);
+      console.log('[API Route] Content-Type:', response.headers.get('content-type'));
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        const responseText = await response.text();
+        console.error('[API Route] Error response:', responseText.substring(0, 500));
+        
+        let errorData: any = {};
+        try {
+          errorData = JSON.parse(responseText);
+        } catch (e) {
+          // Response is not JSON, might be HTML error page
+          errorData = { error: `Python API error (${response.status}): ${responseText.substring(0, 200)}` };
+        }
         throw new Error(errorData.error || `Python API error: ${response.status}`);
       }
 
-      const result = await response.json();
+      const responseText = await response.text();
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('[API Route] JSON Parse error:', parseError);
+        console.error('[API Route] Response text:', responseText.substring(0, 1000));
+        throw new Error(`Invalid JSON from Python API: ${responseText.substring(0, 200)}`);
+      }
 
       if (!result.success || !result.data) {
         throw new Error('Invalid response from Python API');
