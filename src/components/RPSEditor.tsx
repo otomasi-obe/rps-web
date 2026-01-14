@@ -622,8 +622,16 @@ Target lulusan mampu:
                 let qui = 0, prs = 0, pro = 0, uts = 0, uas = 0;
                 
                 rpsData.assessmentMethods.forEach((method) => {
-                  const cpmkKey = `cpmk${cpmkIndex + 1}` as keyof typeof method.distribusiCPMK;
-                  const value = method.distribusiCPMK[cpmkKey] || 0;
+                  // Find value for this CPMK from the array
+                  let value = 0;
+                  if (Array.isArray(method.distribusiCPMK)) {
+                    const found = method.distribusiCPMK.find(d => d.cpmkId === `CPMK ${cpmkIndex + 1}`);
+                    value = found?.nilai || 0;
+                  } else {
+                    // Legacy format support
+                    const cpmkKey = `cpmk${cpmkIndex + 1}` as keyof typeof method.distribusiCPMK;
+                    value = (method.distribusiCPMK as any)[cpmkKey] || 0;
+                  }
                   
                   if (method.teknik.toLowerCase().includes('kuis')) {
                     qui += value;

@@ -85,7 +85,12 @@ class AIToJSON:
                        prereq: str = "-", additional_context: str = "") -> str:
         """Generate prompt for OpenAI to create complete RPS content matching template structure."""
         
-        return f"""Anda adalah ahli kurikulum pendidikan tinggi Indonesia. Buatkan Rencana Pembelajaran Semester (RPS) lengkap untuk mata kuliah berikut:
+        # Use string formatting to avoid f-string issues
+        context_section = ""
+        if additional_context.strip():
+            context_section = f"## Konteks Tambahan:\n{additional_context}\n"
+        
+        prompt_template = """Anda adalah ahli kurikulum pendidikan tinggi Indonesia. Buatkan Rencana Pembelajaran Semester (RPS) lengkap untuk mata kuliah berikut:
 
 ## Informasi Mata Kuliah:
 - Nama: {course_name}
@@ -95,7 +100,7 @@ class AIToJSON:
 - Status: {status}
 - Prasyarat: {prereq}
 
-{f"## Konteks Tambahan:{chr(10)}{additional_context}{chr(10)}" if additional_context.strip() else ""}
+{context_section}
 
 ## Instruksi:
 Buatkan RPS dalam format JSON dengan struktur PERSIS seperti berikut. PENTING: Hanya output JSON murni tanpa markdown code block.
@@ -112,8 +117,7 @@ Buatkan RPS dalam format JSON dengan struktur PERSIS seperti berikut. PENTING: H
   "cpmk": [
     {{"kode": "CPMK 1", "pernyataan": "Mahasiswa mampu [capaian spesifik 1]", "mapping_cpl": "CPL3"}},
     {{"kode": "CPMK 2", "pernyataan": "Mahasiswa mampu [capaian spesifik 2]", "mapping_cpl": "CPL3"}},
-    {{"kode": "CPMK 3", "pernyataan": "Mahasiswa mampu [capaian spesifik 3]", "mapping_cpl": "CPL4"}},
-    {{"kode": "CPMK 4", "pernyataan": "Mahasiswa mampu [capaian spesifik 4]", "mapping_cpl": "CPL10"}}
+    {{"kode": "CPMK 3", "pernyataan": "Mahasiswa mampu [capaian spesifik 3]", "mapping_cpl": "CPL4"}}
   ],
   
   "minggu": [
@@ -124,14 +128,14 @@ Buatkan RPS dalam format JSON dengan struktur PERSIS seperti berikut. PENTING: H
   ],
   
   "penilaian": [
-    {{"komponen": "Aktivitas Partisipatif", "bobot": "20%", "kriteria": "Kehadiran, partisipasi aktif, disiplin, dan kontribusi dalam diskusi", "cpmk1": "5%", "cpmk2": "5%", "cpmk3": "5%", "cpmk4": "5%"}},
-    {{"komponen": "Project/ Problem/ Case Based Learning", "bobot": "30%", "kriteria": "Analisis kasus, kualitas laporan, dan presentasi", "cpmk1": "", "cpmk2": "10%", "cpmk3": "10%", "cpmk4": "10%"}},
-    {{"komponen": "Kuis", "bobot": "10%", "kriteria": "Pemahaman materi dan pengembangan konsep", "cpmk1": "5%", "cpmk2": "", "cpmk3": "", "cpmk4": "5%"}},
-    {{"komponen": "UTS", "bobot": "20%", "kriteria": "Ujian Tengah Semester", "cpmk1": "10%", "cpmk2": "10%", "cpmk3": "", "cpmk4": ""}},
-    {{"komponen": "UAS", "bobot": "20%", "kriteria": "Ujian Akhir Semester", "cpmk1": "", "cpmk2": "", "cpmk3": "10%", "cpmk4": "10%"}}
+    {{"komponen": "Aktivitas Partisipatif", "bobot": "20%", "kriteria": "Kehadiran, partisipasi aktif, disiplin, dan kontribusi dalam diskusi", "cpmk1": "5%", "cpmk2": "5%", "cpmk3": "5%"}},
+    {{"komponen": "Project/ Problem/ Case Based Learning", "bobot": "30%", "kriteria": "Analisis kasus, kualitas laporan, dan presentasi", "cpmk1": "", "cpmk2": "10%", "cpmk3": "10%"}},
+    {{"komponen": "Kuis", "bobot": "10%", "kriteria": "Pemahaman materi dan pengembangan konsep", "cpmk1": "5%", "cpmk2": "", "cpmk3": ""}},
+    {{"komponen": "UTS", "bobot": "20%", "kriteria": "Ujian Tengah Semester", "cpmk1": "10%", "cpmk2": "10%", "cpmk3": ""}},
+    {{"komponen": "UAS", "bobot": "20%", "kriteria": "Ujian Akhir Semester", "cpmk1": "", "cpmk2": "", "cpmk3": "10%"}}
   ],
   
-  "assessment_summary": {{"total_bobot": "100%", "cpmk1_total": "20%", "cpmk2_total": "25%", "cpmk3_total": "25%", "cpmk4_total": "30%"}},
+  "assessment_summary": {{"total_bobot": "100%", "cpmk1_total": "20%", "cpmk2_total": "25%", "cpmk3_total": "25%"}},
   
   "media_assessment": {{"qui": "10%", "prs": "20%", "pro": "30%", "uts": "20%", "uas": "20%"}},
   
@@ -144,7 +148,7 @@ Buatkan RPS dalam format JSON dengan struktur PERSIS seperti berikut. PENTING: H
   
   "referensi": [
     "Buku referensi utama 1 dengan penulis dan penerbit",
-    "Buku referensi utama 2 dengan penulis dan penerbit",
+    "Buku referensi utama 2 dengan penulis dan penerbit", 
     "Buku referensi pendukung 3",
     "Dokumentasi atau sumber online relevan",
     "Jurnal atau publikasi terkait"
@@ -208,6 +212,16 @@ Buatkan RPS dalam format JSON dengan struktur PERSIS seperti berikut. PENTING: H
 9. Berikan referensi buku yang nyata dan relevan
 
 Output JSON saja, tanpa markdown formatting atau penjelasan."""
+        
+        return prompt_template.format(
+            course_name=course_name,
+            course_code=course_code,
+            sks=sks,
+            semester=semester,
+            status=status,
+            prereq=prereq,
+            context_section=context_section
+        )
     
     def parse_json_response(self, response: str) -> dict:
         """Parse JSON from OpenAI response, handle markdown code blocks."""
@@ -378,15 +392,19 @@ Buatkan 3-5 CPL yang spesifik dan relevan. Output JSON saja."""
 
 Buatkan daftar CPMK (Capaian Pembelajaran Mata Kuliah) yang spesifik untuk mata kuliah ini. CPMK adalah kompetensi yang diharapkan dikuasai mahasiswa setelah menyelesaikan mata kuliah ini.
 
+PENTING: Jumlah CPMK harus FLEKSIBEL antara 1-4 items berdasarkan kompleksitas mata kuliah dan CPL yang ada:
+- Mata kuliah sederhana: 1-2 CPMK
+- Mata kuliah standar: 2-3 CPMK  
+- Mata kuliah kompleks: 3-4 CPMK
+
 Format output JSON murni tanpa markdown:
 [
     {{"kode": "CPMK 1", "pernyataan": "Mahasiswa mampu menjelaskan...", "mapping_cpl": "CPL3"}},
     {{"kode": "CPMK 2", "pernyataan": "Mahasiswa mampu menerapkan...", "mapping_cpl": "CPL4"}},
-    {{"kode": "CPMK 3", "pernyataan": "Mahasiswa mampu menganalisis...", "mapping_cpl": "CPL4"}},
-    {{"kode": "CPMK 4", "pernyataan": "Mahasiswa mampu merancang...", "mapping_cpl": "CPL10"}}
+    {{"kode": "CPMK 3", "pernyataan": "Mahasiswa mampu menganalisis...", "mapping_cpl": "CPL4"}}
 ]
 
-Buatkan 4-6 CPMK yang terukur dan spesifik. Pastikan mapping_cpl sesuai dengan CPL yang ada. Output JSON saja."""
+Buatkan CPMK yang terukur dan spesifik. Pastikan mapping_cpl sesuai dengan CPL yang ada. Output JSON saja."""
         
         response = self.send_message(prompt)
         if not response:

@@ -370,9 +370,11 @@ class JSONToDocx:
             # TABLE 3: assessment (index 3) - Metode Penilaian
             t3 = doc.tables[3]
             penilaian_list = rps_data.get("penilaian", []) or rps_data.get("assessmentMethods", [])
+            cpmk_list = rps_data.get("cpmkList", []) or rps_data.get("cpmk", [])
             
             print(f"📊 TABLE 3 - Assessment Methods:")
             print(f"   - Total methods: {len(penilaian_list)}")
+            print(f"   - Total CPMK: {len(cpmk_list)}")
             print(f"   - Table rows: {len(t3.rows)}")
             
             for i, penilaian in enumerate(penilaian_list[:5]):
@@ -389,25 +391,40 @@ class JSONToDocx:
                     set_cell(t3.cell(row_idx, 2), str(persentase))
                     set_cell(t3.cell(row_idx, 3), kriteria)
                     
-                    # CPMK distribution columns - handle both formats
-                    distribusi = penilaian.get("distribusiCPMK", {})
-                    if isinstance(distribusi, dict):
+                    # CPMK distribution columns - handle both formats (array vs object)
+                    distribusi = penilaian.get("distribusiCPMK", [])
+                    
+                    if isinstance(distribusi, list):
+                        # New format: array of {cpmkId, nilai}
+                        cpmk_values = {}
+                        for dist_item in distribusi:
+                            cpmk_id = dist_item.get("cpmkId", "")
+                            nilai = str(dist_item.get("nilai", 0) or 0)
+                            cpmk_values[cpmk_id] = nilai
+                        
+                        # Fill columns 4 onwards with CPMK values in order
+                        for j, cpmk in enumerate(cpmk_list[:10]):  # Support up to 10 CPMK
+                            col_idx = 4 + j
+                            if col_idx < len(t3.rows[row_idx].cells):
+                                cpmk_nilai = cpmk_values.get(cpmk.get("kode", ""), "0")
+                                set_cell(t3.cell(row_idx, col_idx), cpmk_nilai)
+                        
+                        # Print summary
+                        nilai_list = [f"{cpmk.get('kode', 'CPMK')}:{cpmk_values.get(cpmk.get('kode', ''), '0')}%" for cpmk in cpmk_list[:4]]
+                        print(f"     ✅ Distribution - {' '.join(nilai_list)}")
+                    else:
+                        # Old format: object with cpmk1, cpmk2, cpmk3, cpmk4 keys
                         cpmk1 = str(distribusi.get("cpmk1", 0) or 0)
                         cpmk2 = str(distribusi.get("cpmk2", 0) or 0)
                         cpmk3 = str(distribusi.get("cpmk3", 0) or 0)
                         cpmk4 = str(distribusi.get("cpmk4", 0) or 0)
-                    else:
-                        cpmk1 = str(penilaian.get("cpmk1", 0) or 0)
-                        cpmk2 = str(penilaian.get("cpmk2", 0) or 0)
-                        cpmk3 = str(penilaian.get("cpmk3", 0) or 0)
-                        cpmk4 = str(penilaian.get("cpmk4", 0) or 0)
-                    
-                    if len(t3.rows[row_idx].cells) >= 8:
-                        set_cell(t3.cell(row_idx, 4), cpmk1)
-                        set_cell(t3.cell(row_idx, 5), cpmk2)
-                        set_cell(t3.cell(row_idx, 6), cpmk3)
-                        set_cell(t3.cell(row_idx, 7), cpmk4)
-                        print(f"     ✅ Distribution - CPMK1:{cpmk1}% CPMK2:{cpmk2}% CPMK3:{cpmk3}% CPMK4:{cpmk4}%")
+                        
+                        if len(t3.rows[row_idx].cells) >= 8:
+                            set_cell(t3.cell(row_idx, 4), cpmk1)
+                            set_cell(t3.cell(row_idx, 5), cpmk2)
+                            set_cell(t3.cell(row_idx, 6), cpmk3)
+                            set_cell(t3.cell(row_idx, 7), cpmk4)
+                            print(f"     ✅ Distribution - CPMK1:{cpmk1}% CPMK2:{cpmk2}% CPMK3:{cpmk3}% CPMK4:{cpmk4}%")
             
             
             # TABLE 5: CPL-CPMK mapping (index 5) - Media Asesmen dan Kontribusinya

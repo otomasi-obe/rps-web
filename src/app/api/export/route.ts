@@ -74,23 +74,50 @@ export async function POST(request: NextRequest) {
         indikator: w.penilaian.kriteria,
         bobot: String(w.penilaian.bobot),
       })),
-      penilaian: rpsData.assessmentMethods.map(a => ({
-        teknik: a.teknik,
-        komponen: a.teknik,
-        persentase: a.persentase,
-        bobot: `${a.persentase}%`,
-        kriteria: a.kriteria,
-        distribusiCPMK: {
-          cpmk1: a.distribusiCPMK?.cpmk1 || 0,
-          cpmk2: a.distribusiCPMK?.cpmk2 || 0,
-          cpmk3: a.distribusiCPMK?.cpmk3 || 0,
-          cpmk4: a.distribusiCPMK?.cpmk4 || 0,
-        },
-        cpmk1: a.distribusiCPMK?.cpmk1 ? `${a.distribusiCPMK.cpmk1}%` : '',
-        cpmk2: a.distribusiCPMK?.cpmk2 ? `${a.distribusiCPMK.cpmk2}%` : '',
-        cpmk3: a.distribusiCPMK?.cpmk3 ? `${a.distribusiCPMK.cpmk3}%` : '',
-        cpmk4: a.distribusiCPMK?.cpmk4 ? `${a.distribusiCPMK.cpmk4}%` : '',
-      })),
+      penilaian: rpsData.assessmentMethods.map(a => {
+        // Handle both new format (array) and old format (object)
+        const distribusiObj: any = {};
+        const distribusiFormatted: any = {};
+        
+        if (Array.isArray(a.distribusiCPMK)) {
+          // New format: array of {cpmkId, nilai}
+          a.distribusiCPMK.forEach((d: any) => {
+            const cpmkNum = d.cpmkId.split(' ')[1] || '1';
+            distribusiObj[`cpmk${cpmkNum}`] = d.nilai || 0;
+            distribusiFormatted[`cpmk${cpmkNum}`] = d.nilai ? `${d.nilai}%` : '';
+          });
+          // Fill missing CPMK slots
+          for (let i = 1; i <= 4; i++) {
+            if (!distribusiObj[`cpmk${i}`]) {
+              distribusiObj[`cpmk${i}`] = 0;
+              distribusiFormatted[`cpmk${i}`] = '';
+            }
+          }
+        } else {
+          // Old format: object with cpmk1-4
+          distribusiObj.cpmk1 = (a.distribusiCPMK as any)?.cpmk1 || 0;
+          distribusiObj.cpmk2 = (a.distribusiCPMK as any)?.cpmk2 || 0;
+          distribusiObj.cpmk3 = (a.distribusiCPMK as any)?.cpmk3 || 0;
+          distribusiObj.cpmk4 = (a.distribusiCPMK as any)?.cpmk4 || 0;
+          distribusiFormatted.cpmk1 = (a.distribusiCPMK as any)?.cpmk1 ? `${(a.distribusiCPMK as any).cpmk1}%` : '';
+          distribusiFormatted.cpmk2 = (a.distribusiCPMK as any)?.cpmk2 ? `${(a.distribusiCPMK as any).cpmk2}%` : '';
+          distribusiFormatted.cpmk3 = (a.distribusiCPMK as any)?.cpmk3 ? `${(a.distribusiCPMK as any).cpmk3}%` : '';
+          distribusiFormatted.cpmk4 = (a.distribusiCPMK as any)?.cpmk4 ? `${(a.distribusiCPMK as any).cpmk4}%` : '';
+        }
+        
+        return {
+          teknik: a.teknik,
+          komponen: a.teknik,
+          persentase: a.persentase,
+          bobot: `${a.persentase}%`,
+          kriteria: a.kriteria,
+          distribusiCPMK: distribusiObj,
+          cpmk1: distribusiFormatted.cpmk1,
+          cpmk2: distribusiFormatted.cpmk2,
+          cpmk3: distribusiFormatted.cpmk3,
+          cpmk4: distribusiFormatted.cpmk4,
+        };
+      }),
       cplMappings: rpsData.cplMappings && rpsData.cplMappings.length > 0 
         ? rpsData.cplMappings.map(m => ({
             cpl: m.kodeCPL,

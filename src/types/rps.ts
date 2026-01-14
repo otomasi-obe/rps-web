@@ -78,12 +78,10 @@ export interface AssessmentMethod {
   teknik: string;                 // e.g., "Aktivitas Partisipatif"
   persentase: number;
   kriteria: string;
-  distribusiCPMK: {
-    cpmk1: number;
-    cpmk2: number;
-    cpmk3: number;
-    cpmk4: number;
-  };
+  distribusiCPMK: Array<{
+    cpmkId: string;               // e.g., "CPMK 1" or "CPMK 2"
+    nilai: number;                // Persentase untuk CPMK ini
+  }>;
 }
 
 // ============ PEMETAAN CPL-IK-CPMK ============
@@ -182,10 +180,10 @@ export const createEmptyRPS = (): RPSData => ({
     penilaian: { kriteria: '', bobot: 0 },
   })),
   assessmentMethods: [
-    { teknik: 'Aktivitas Partisipatif', persentase: 10, kriteria: '', distribusiCPMK: { cpmk1: 0, cpmk2: 0, cpmk3: 0, cpmk4: 0 } },
-    { teknik: 'Tugas/Laporan', persentase: 30, kriteria: '', distribusiCPMK: { cpmk1: 0, cpmk2: 0, cpmk3: 0, cpmk4: 0 } },
-    { teknik: 'UTS', persentase: 25, kriteria: '', distribusiCPMK: { cpmk1: 0, cpmk2: 0, cpmk3: 0, cpmk4: 0 } },
-    { teknik: 'UAS', persentase: 35, kriteria: '', distribusiCPMK: { cpmk1: 0, cpmk2: 0, cpmk3: 0, cpmk4: 0 } },
+    { teknik: 'Aktivitas Partisipatif', persentase: 10, kriteria: '', distribusiCPMK: [{ cpmkId: 'CPMK 1', nilai: 0 }, { cpmkId: 'CPMK 2', nilai: 0 }, { cpmkId: 'CPMK 3', nilai: 0 }, { cpmkId: 'CPMK 4', nilai: 0 }] },
+    { teknik: 'Tugas/Laporan', persentase: 30, kriteria: '', distribusiCPMK: [{ cpmkId: 'CPMK 1', nilai: 0 }, { cpmkId: 'CPMK 2', nilai: 0 }, { cpmkId: 'CPMK 3', nilai: 0 }, { cpmkId: 'CPMK 4', nilai: 0 }] },
+    { teknik: 'UTS', persentase: 25, kriteria: '', distribusiCPMK: [{ cpmkId: 'CPMK 1', nilai: 0 }, { cpmkId: 'CPMK 2', nilai: 0 }, { cpmkId: 'CPMK 3', nilai: 0 }, { cpmkId: 'CPMK 4', nilai: 0 }] },
+    { teknik: 'UAS', persentase: 35, kriteria: '', distribusiCPMK: [{ cpmkId: 'CPMK 1', nilai: 0 }, { cpmkId: 'CPMK 2', nilai: 0 }, { cpmkId: 'CPMK 3', nilai: 0 }, { cpmkId: 'CPMK 4', nilai: 0 }] },
   ],
   cplMappings: [],
   references: [],
@@ -232,11 +230,11 @@ export const samplePraktikumMekatronika: RPSData = {
   ],
   weeklyPlan: [],
   assessmentMethods: [
-    { teknik: 'Aktivitas Partisipatif', persentase: 10, kriteria: 'Disiplin K3; aktif saat praktikum; logbook rapi', distribusiCPMK: { cpmk1: 2, cpmk2: 2, cpmk3: 3, cpmk4: 3 } },
-    { teknik: 'Laporan Praktikum & Tugas', persentase: 30, kriteria: 'Laporan sesuai format; hasil uji benar; analisis data', distribusiCPMK: { cpmk1: 10, cpmk2: 10, cpmk3: 10, cpmk4: 0 } },
-    { teknik: 'UTS (Uji Praktik)', persentase: 15, kriteria: 'Rangkaian & program sesuai spesifikasi', distribusiCPMK: { cpmk1: 5, cpmk2: 5, cpmk3: 5, cpmk4: 0 } },
-    { teknik: 'Proyek Akhir', persentase: 30, kriteria: 'Prototipe bekerja; uji performa; dokumentasi', distribusiCPMK: { cpmk1: 0, cpmk2: 10, cpmk3: 10, cpmk4: 10 } },
-    { teknik: 'UAS (Demo Proyek)', persentase: 15, kriteria: 'Fungsi proyek; kualitas integrasi; presentasi', distribusiCPMK: { cpmk1: 0, cpmk2: 0, cpmk3: 5, cpmk4: 10 } },
+    { teknik: 'Aktivitas Partisipatif', persentase: 10, kriteria: 'Disiplin K3; aktif saat praktikum; logbook rapi', distribusiCPMK: [{ cpmkId: 'CPMK 1', nilai: 2 }, { cpmkId: 'CPMK 2', nilai: 2 }, { cpmkId: 'CPMK 3', nilai: 3 }, { cpmkId: 'CPMK 4', nilai: 3 }] },
+    { teknik: 'Laporan Praktikum & Tugas', persentase: 30, kriteria: 'Laporan sesuai format; hasil uji benar; analisis data', distribusiCPMK: [{ cpmkId: 'CPMK 1', nilai: 10 }, { cpmkId: 'CPMK 2', nilai: 10 }, { cpmkId: 'CPMK 3', nilai: 10 }, { cpmkId: 'CPMK 4', nilai: 0 }] },
+    { teknik: 'UTS (Uji Praktik)', persentase: 15, kriteria: 'Rangkaian & program sesuai spesifikasi', distribusiCPMK: [{ cpmkId: 'CPMK 1', nilai: 5 }, { cpmkId: 'CPMK 2', nilai: 5 }, { cpmkId: 'CPMK 3', nilai: 5 }, { cpmkId: 'CPMK 4', nilai: 0 }] },
+    { teknik: 'Proyek Akhir', persentase: 30, kriteria: 'Prototipe bekerja; uji performa; dokumentasi', distribusiCPMK: [{ cpmkId: 'CPMK 1', nilai: 0 }, { cpmkId: 'CPMK 2', nilai: 10 }, { cpmkId: 'CPMK 3', nilai: 10 }, { cpmkId: 'CPMK 4', nilai: 10 }] },
+    { teknik: 'UAS (Demo Proyek)', persentase: 15, kriteria: 'Fungsi proyek; kualitas integrasi; presentasi', distribusiCPMK: [{ cpmkId: 'CPMK 1', nilai: 0 }, { cpmkId: 'CPMK 2', nilai: 0 }, { cpmkId: 'CPMK 3', nilai: 5 }, { cpmkId: 'CPMK 4', nilai: 10 }] },
   ],
   cplMappings: [
     { kodeCPL: 'CPL3', kodeIK: 'IK 3-1', pernyataanIK: 'Mampu merancang dan melakukan pengujian sistem mekatronika berbasis data.', kodeCPMK: 'CPMK 1', pernyataanCPMK: 'Merakit rangkaian sensor–aktuator dan melakukan pengukuran dasar serta troubleshooting.', bobotCPMK: '20%', mediaAsesmen: 'Kuis, Laporan, UTS', distribusi: { kuis: 5, presentasi: 5, proyek: 0, uts: 10, uas: 0 } },

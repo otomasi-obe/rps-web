@@ -16,6 +16,12 @@ export default function AssessmentTab({ data, onUpdate }: AssessmentTabProps) {
   };
 
   const addMethod = () => {
+    // Create distribution array based on current CPMK list
+    const distribusiCPMK = data.cpmkList.map(cpmk => ({
+      cpmkId: cpmk.kode,
+      nilai: 0,
+    }));
+
     onUpdate({
       assessmentMethods: [
         ...data.assessmentMethods,
@@ -23,7 +29,7 @@ export default function AssessmentTab({ data, onUpdate }: AssessmentTabProps) {
           teknik: '',
           persentase: 0,
           kriteria: '',
-          distribusiCPMK: { cpmk1: 0, cpmk2: 0, cpmk3: 0, cpmk4: 0 },
+          distribusiCPMK: distribusiCPMK,
         },
       ],
     });
@@ -36,14 +42,38 @@ export default function AssessmentTab({ data, onUpdate }: AssessmentTabProps) {
     });
   };
 
+  // Helper function to get CPMK value for a method
+  const getCPMKValue = (method: AssessmentMethod, cpmkId: string): number => {
+    const dist = method.distribusiCPMK.find(d => d.cpmkId === cpmkId);
+    return dist?.nilai || 0;
+  };
+
+  // Helper function to update CPMK value
+  const updateCPMKValue = (methodIndex: number, cpmkId: string, nilai: number) => {
+    const method = data.assessmentMethods[methodIndex];
+    const newDistribusi = [...method.distribusiCPMK];
+    const distIndex = newDistribusi.findIndex(d => d.cpmkId === cpmkId);
+    
+    if (distIndex >= 0) {
+      newDistribusi[distIndex].nilai = nilai;
+    } else {
+      newDistribusi.push({ cpmkId, nilai });
+    }
+
+    updateMethod(methodIndex, { distribusiCPMK: newDistribusi });
+  };
+
   // Calculate totals
   const totalPersentase = data.assessmentMethods.reduce((sum, m) => sum + (m.persentase || 0), 0);
-  const cpmkTotals = {
-    cpmk1: data.assessmentMethods.reduce((sum, m) => sum + (m.distribusiCPMK.cpmk1 || 0), 0),
-    cpmk2: data.assessmentMethods.reduce((sum, m) => sum + (m.distribusiCPMK.cpmk2 || 0), 0),
-    cpmk3: data.assessmentMethods.reduce((sum, m) => sum + (m.distribusiCPMK.cpmk3 || 0), 0),
-    cpmk4: data.assessmentMethods.reduce((sum, m) => sum + (m.distribusiCPMK.cpmk4 || 0), 0),
-  };
+  
+  // Calculate CPMK totals dynamically
+  const cpmkTotals: { [key: string]: number } = {};
+  data.cpmkList.forEach(cpmk => {
+    cpmkTotals[cpmk.kode] = data.assessmentMethods.reduce(
+      (sum, m) => sum + getCPMKValue(m, cpmk.kode),
+      0
+    );
+  });
 
   return (
     <div className="space-y-6">
@@ -51,7 +81,7 @@ export default function AssessmentTab({ data, onUpdate }: AssessmentTabProps) {
         <div>
           <h3 className="text-lg font-semibold text-slate-800">✅ Metode Penilaian</h3>
           <p className="text-sm text-slate-500 mt-1">
-            Teknik penilaian dan distribusi ke setiap CPMK
+            Teknik penilaian dan distribusi ke setiap CPMK (Total CPMK: {data.cpmkList.length})
           </p>
         </div>
         <button onClick={addMethod} className="btn btn-primary text-sm">
@@ -67,10 +97,9 @@ export default function AssessmentTab({ data, onUpdate }: AssessmentTabProps) {
               <th className="px-3 py-2">Teknik Penilaian</th>
               <th className="px-3 py-2 w-24">Persentase</th>
               <th className="px-3 py-2">Kriteria/Indikator</th>
-              <th className="px-3 py-2 w-20 text-center">CPMK 1</th>
-              <th className="px-3 py-2 w-20 text-center">CPMK 2</th>
-              <th className="px-3 py-2 w-20 text-center">CPMK 3</th>
-              <th className="px-3 py-2 w-20 text-center">CPMK 4</th>
+              {data.cpmkList.map(cpmk => (
+                <th key={cpmk.kode} className="px-3 py-2 w-20 text-center">{cpmk.kode}</th>
+              ))}
               <th className="px-3 py-2 w-16">Aksi</th>
             </tr>
           </thead>
@@ -108,74 +137,18 @@ export default function AssessmentTab({ data, onUpdate }: AssessmentTabProps) {
                     className="w-full"
                   />
                 </td>
-                <td className="table-cell text-center">
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={method.distribusiCPMK.cpmk1}
-                    onChange={(e) =>
-                      updateMethod(index, {
-                        distribusiCPMK: {
-                          ...method.distribusiCPMK,
-                          cpmk1: parseInt(e.target.value) || 0,
-                        },
-                      })
-                    }
-                    className="w-14 text-center"
-                  />
-                </td>
-                <td className="table-cell text-center">
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={method.distribusiCPMK.cpmk2}
-                    onChange={(e) =>
-                      updateMethod(index, {
-                        distribusiCPMK: {
-                          ...method.distribusiCPMK,
-                          cpmk2: parseInt(e.target.value) || 0,
-                        },
-                      })
-                    }
-                    className="w-14 text-center"
-                  />
-                </td>
-                <td className="table-cell text-center">
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={method.distribusiCPMK.cpmk3}
-                    onChange={(e) =>
-                      updateMethod(index, {
-                        distribusiCPMK: {
-                          ...method.distribusiCPMK,
-                          cpmk3: parseInt(e.target.value) || 0,
-                        },
-                      })
-                    }
-                    className="w-14 text-center"
-                  />
-                </td>
-                <td className="table-cell text-center">
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={method.distribusiCPMK.cpmk4}
-                    onChange={(e) =>
-                      updateMethod(index, {
-                        distribusiCPMK: {
-                          ...method.distribusiCPMK,
-                          cpmk4: parseInt(e.target.value) || 0,
-                        },
-                      })
-                    }
-                    className="w-14 text-center"
-                  />
-                </td>
+                {data.cpmkList.map(cpmk => (
+                  <td key={cpmk.kode} className="table-cell text-center">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={getCPMKValue(method, cpmk.kode)}
+                      onChange={(e) => updateCPMKValue(index, cpmk.kode, parseInt(e.target.value) || 0)}
+                      className="w-14 text-center"
+                    />
+                  </td>
+                ))}
                 <td className="table-cell text-center">
                   <button
                     onClick={() => removeMethod(index)}
@@ -196,10 +169,11 @@ export default function AssessmentTab({ data, onUpdate }: AssessmentTabProps) {
                 {totalPersentase}%
               </td>
               <td className="table-cell"></td>
-              <td className="table-cell text-center">{cpmkTotals.cpmk1}%</td>
-              <td className="table-cell text-center">{cpmkTotals.cpmk2}%</td>
-              <td className="table-cell text-center">{cpmkTotals.cpmk3}%</td>
-              <td className="table-cell text-center">{cpmkTotals.cpmk4}%</td>
+              {data.cpmkList.map(cpmk => (
+                <td key={cpmk.kode} className="table-cell text-center">
+                  {cpmkTotals[cpmk.kode] || 0}%
+                </td>
+              ))}
               <td className="table-cell"></td>
             </tr>
           </tbody>
@@ -239,7 +213,11 @@ export default function AssessmentTab({ data, onUpdate }: AssessmentTabProps) {
           ].map((template) => (
             <button
               key={template.teknik}
-              onClick={() =>
+              onClick={() => {
+                const distribusiCPMK = data.cpmkList.map(cpmk => ({
+                  cpmkId: cpmk.kode,
+                  nilai: 0,
+                }));
                 onUpdate({
                   assessmentMethods: [
                     ...data.assessmentMethods,
@@ -247,11 +225,11 @@ export default function AssessmentTab({ data, onUpdate }: AssessmentTabProps) {
                       teknik: template.teknik,
                       persentase: template.persentase,
                       kriteria: '',
-                      distribusiCPMK: { cpmk1: 0, cpmk2: 0, cpmk3: 0, cpmk4: 0 },
+                      distribusiCPMK: distribusiCPMK,
                     },
                   ],
-                })
-              }
+                });
+              }}
               className="text-xs bg-white border border-slate-300 px-3 py-1 rounded hover:bg-slate-100"
             >
               + {template.teknik} ({template.persentase}%)
