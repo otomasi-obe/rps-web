@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { RPSData } from '@/types/rps';
 
-// Python API URL - direct connection to avoid proxy issues
+// Python API URL - get from environment, use localhost as fallback for dev
 const PYTHON_API_URL = process.env.PYTHON_API_URL || 'http://127.0.0.1:5000';
+
+// Function to get API URL with debugging
+function getAPIUrl() {
+  const url = PYTHON_API_URL;
+  console.log('[Export Route] Using PYTHON_API_URL:', url);
+  return url;
+}
 
 // Set maxDuration untuk API route (dalam detik)
 export const maxDuration = 60; // 1 minute
@@ -110,7 +117,8 @@ export async function POST(request: NextRequest) {
     };
 
     // Call Python API
-    const response = await fetch(`${PYTHON_API_URL}/export`, {
+    const pythonApiUrl = getAPIUrl();
+    const response = await fetch(`${pythonApiUrl}/export`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -121,12 +129,31 @@ export async function POST(request: NextRequest) {
       }),
     });
 
+    console.log('[Export Route] Python API Response Status:', response.status);
+    console.log('[Export Route] Content-Type:', response.headers.get('content-type'));
+
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+      const responseText = await response.text();
+      console.error('[Export Route] Error response:', responseText.substring(0, 500));
+      
+      let errorData: any = {};
+      try {
+        errorData = JSON.parse(responseText);
+      } catch (e) {
+        errorData = { error: `Python API error (${response.status}): ${responseText.substring(0, 200)}` };
+      }
       throw new Error(errorData.error || `Python API error: ${response.status}`);
     }
 
-    const result = await response.json();
+    const responseText = await response.text();
+    let result;
+    try {
+      result = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('[Export Route] JSON Parse error:', parseError);
+      console.error('[Export Route] Response text:', responseText.substring(0, 1000));
+      throw new Error(`Invalid JSON from Python API: ${responseText.substring(0, 200)}`);
+    }
 
     if (!result.success || !result.docx) {
       throw new Error('Invalid response from Python API');
