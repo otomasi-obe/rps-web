@@ -93,13 +93,7 @@ export interface CPLMapping {
   pernyataanCPMK: string;
   bobotCPMK: string;
   mediaAsesmen: string;
-  distribusi: {
-    kuis: number;
-    presentasi: number;
-    proyek: number;
-    uts: number;
-    uas: number;
-  };
+  distribusi: Record<string, number>;
 }
 
 // ============ REFERENSI ============
@@ -189,15 +183,15 @@ export const createEmptyRPS = (): RPSData => ({
   references: [],
 });
 
-// ============ SAMPLE RPS FOR PRAKTIKUM MEKATRONIKA ============
-export const samplePraktikumMekatronika: RPSData = {
+// ============ SAMPLE RPS FOR AGAMA ============
+export const sampleAgama: RPSData = {
   identity: {
-    kode: 'TRAO6XXX',
-    nama: 'Praktikum Mekatronika dan Robotika',
+    kode: 'UUW00011',
+    nama: 'Agama',
     sks: 2,
-    semester: 4,
+    semester: 1,
     status: 'Mata Kuliah Wajib',
-    prasyarat: 'Dasar Elektronika & Pemrograman',
+    prasyarat: '-',
   },
   institution: {
     programStudi: 'Sarjana Terapan Teknologi Rekayasa Otomasi',
@@ -205,47 +199,432 @@ export const samplePraktikumMekatronika: RPSData = {
     universitas: 'Universitas Diponegoro',
   },
   authority: {
-    koordinatorMK: { nama: '', nip: '', jabatan: 'Koordinator Mata Kuliah' },
-    koordinatorGPM: { nama: '', nip: '', jabatan: 'Koordinator GPM' },
-    ketuaProdi: { nama: '', nip: '', jabatan: 'Ketua Prodi' },
-    dekan: { nama: 'Prof. Dr. Ir. Budiyono, M.Si.', nip: '196602201991021001', jabatan: 'Dekan Sekolah Vokasi' },
+    koordinatorMK: {
+      nama: 'Dr. H. Muchamad Syaiful Bahri, M.Ag.',
+      nip: '196503051990121001',
+      jabatan: 'Koordinator Mata Kuliah Agama',
+    },
+    koordinatorGPM: {
+      nama: 'Prof. Budi Santoso',
+      nip: '197502021998121001',
+      jabatan: 'Koordinator GPM',
+    },
+    ketuaProdi: {
+      nama: 'Dr. Cecep Rahmat',
+      nip: '198601011992031001',
+      jabatan: 'Ketua Prodi',
+    },
+    dekan: {
+      nama: 'Prof. Dr. Ir. Budiyono, M.Si.',
+      nip: '196602201991021001',
+      jabatan: 'Dekan Sekolah Vokasi',
+    },
   },
-  deskripsiSingkat: 'Praktikum Mekatronika dan Robotika membekali mahasiswa dengan keterampilan merancang, merakit, memrogram, dan menguji sistem mekatronika/robotika. Kegiatan meliputi pengenalan keselamatan laboratorium, sensor–aktuator, mikrokontroler, kendali motor, akuisisi data, dan integrasi menjadi prototipe robot.',
+  deskripsiSingkat: 'Mata kuliah ini memperkenalkan nilai-nilai keagamaan dan etika yang didasarkan pada prinsip Ketuhanan Yang Maha Esa sebagai fondasi Pancasila. Mahasiswa akan mempelajari cara mengintegrasikan nilai-nilai spiritual dalam pelaksanaan rekayasa otomasi secara profesional dan berintegritas. Mata kuliah ini bertujuan untuk membangun karakter mahasiswa yang berkomitmen pada nilai-nilai kemanusiaan dan tanggung jawab sosial dalam praktik teknis.',
   cplList: [
-    { kode: 'CPL3', pernyataan: 'Mampu menganalisis dan memecahkan permasalahan rekayasa otomasi melalui pendekatan eksperimen dan data.' },
-    { kode: 'CPL4', pernyataan: 'Menguasai konsep sensor, aktuator, sistem kendali, dan robotika untuk membangun solusi mekatronika.' },
-    { kode: 'CPL10', pernyataan: 'Memiliki sikap disiplin, amanah, dan etika kerja di laboratorium, serta tanggung jawab terhadap keselamatan dan lingkungan.' },
+    {
+      kode: 'CPL1',
+      pernyataan: 'Mampu melaksanakan rekayasa otomasi baik secara mandiri maupun kerja sama tim yang profesional dan berintegritas berdasarkan nilai-nilai Pancasila',
+    },
   ],
   cpmkList: [
-    { kode: 'CPMK 1', pernyataan: 'Merakit rangkaian sensor–aktuator dan melakukan pengukuran dasar serta troubleshooting.' },
-    { kode: 'CPMK 2', pernyataan: 'Memprogram mikrokontroler/embedded system untuk membaca sensor, mengendalikan aktuator, dan melakukan logging data.' },
-    { kode: 'CPMK 3', pernyataan: 'Menerapkan konsep kendali (mis. PID dasar) untuk kendali motor/robot pada skenario praktikum.' },
-    { kode: 'CPMK 4', pernyataan: 'Mendemonstrasikan integrasi sistem mekatronika/robotika dalam proyek mini dan menyusun laporan praktikum yang baik serta etis.' },
+    {
+      kode: 'CPMK 1',
+      pernyataan: 'Mampu memahami dan menginternalisasi nilai-nilai agama yang melandasi Pancasila terutama Sila Pertama Ketuhanan Yang Maha Esa',
+    },
+    {
+      kode: 'CPMK 2',
+      pernyataan: 'Mampu menerapkan nilai-nilai keagamaan dan etika dalam konteks pekerjaan dan kolaborasi tim rekayasa otomasi',
+    },
+    {
+      kode: 'CPMK 3',
+      pernyataan: 'Mampu mengamalkan tanggung jawab sosial dan profesionalisme berdasarkan nilai-nilai agama dalam kehidupan bermasyarakat dan bernegara',
+    },
   ],
   indikatorKinerjaList: [
-    { kode: 'IK 3-1', kodeCPL: 'CPL3', pernyataan: 'Mampu merancang dan melakukan pengujian sistem mekatronika berbasis data.' },
-    { kode: 'IK 3-2', kodeCPL: 'CPL3', pernyataan: 'Mampu memprogram dan mengintegrasikan modul untuk menyelesaikan tugas robotika.' },
-    { kode: 'IK 4-1', kodeCPL: 'CPL4', pernyataan: 'Menerapkan konsep kendali untuk meningkatkan performa sistem.' },
-    { kode: 'IK 10-1', kodeCPL: 'CPL10', pernyataan: 'Menunjukkan etika, K3, dan tanggung jawab kerja laboratorium.' },
+    {
+      kode: 'IK 1-1',
+      kodeCPL: 'CPL1',
+      pernyataan: 'Mampu memahami rekayasa otomasi secara mandiri maupun kerja sama tim yang profesional dan berintegritas berdasarkan nilai-nilai Pancasila terutama sila pertama yaitu Ketuhanan yang Maha Esa',
+    },
+    {
+      kode: 'IK 1-2',
+      kodeCPL: 'CPL1',
+      pernyataan: 'Mampu menginternalisasi nilai-nilai Pancasila terutama sila pertama yaitu Ketuhanan yang Maha Esa dalam pelaksanaan rekayasa otomasi',
+    },
+    {
+      kode: 'IK 1-3',
+      kodeCPL: 'CPL1',
+      pernyataan: 'Mampu mengamalkan nilai-nilai luhur Pancasila dalam pelaksanaan rekayasa otomasi secara mandiri maupun kerja sama tim yang profesional',
+    },
   ],
-  weeklyPlan: [],
+  weeklyPlan: [
+    {
+      mingguKe: 1,
+      kemampuanAkhir: 'CPMK 1',
+      bahanKajian: 'Pengantar Agama dan Ketuhanan dalam Konteks Rekayasa Otomasi',
+      metodePembelajaran: {
+        metode: 'Ceramah',
+        deskripsi: 'Pemaparan konsep dasar agama dan peran spiritualitas dalam pelaksanaan rekayasa. Mahasiswa mendengarkan presentasi tentang nilai Ketuhanan dalam konteks profesional kerja teknis.',
+        aktivitas: 'Mendengarkan presentasi, membuat catatan penting, dan mengajukan pertanyaan mengenai relevansi nilai agama dalam teknologi',
+      },
+      waktu: "2x50'",
+      pengalamanBelajar: 'Memahami hubungan antara nilai-nilai agama dan pelaksanaan tugas profesional teknis. Mengenali pentingnya fondasi spiritual dalam kehidupan bermasyarakat.',
+      penilaian: {
+        kriteria: 'Ketepatan pemahaman konsep ketuhanan; kemampuan menghubungkan nilai agama dengan pekerjaan teknis; keaktifan dalam diskusi.',
+        bobot: 5,
+      },
+    },
+    {
+      mingguKe: 2,
+      kemampuanAkhir: 'CPMK 1',
+      bahanKajian: 'Pancasila dan Sila Pertama: Ketuhanan Yang Maha Esa',
+      metodePembelajaran: {
+        metode: 'Diskusi',
+        deskripsi: 'Diskusi kelompok untuk menganalisis makna Sila Pertama Pancasila. Mahasiswa membentuk kelompok kecil untuk mendiskusikan implementasi nilai ketuhanan dalam kehidupan sehari-hari.',
+        aktivitas: 'Bekerja dalam kelompok diskusi, mengidentifikasi nilai-nilai keagamaan, menyiapkan hasil diskusi, dan mempresentasikan temuan di kelas',
+      },
+      waktu: "2x50'",
+      pengalamanBelajar: 'Memahami esensi Sila Pertama Pancasila melalui diskusi kolaboratif. Belajar menghargai perspektif berbeda tentang nilai ketuhanan dari teman diskusi.',
+      penilaian: {
+        kriteria: 'Partisipasi aktif dalam diskusi; kedalaman analisis tentang Sila Pertama; kualitas presentasi hasil diskusi kelompok.',
+        bobot: 5,
+      },
+    },
+    {
+      mingguKe: 3,
+      kemampuanAkhir: 'CPMK 1',
+      bahanKajian: 'Etos Kerja dan Profesionalisme dari Perspektif Agama',
+      metodePembelajaran: {
+        metode: 'Studi Kasus',
+        deskripsi: 'Menganalisis studi kasus profesional yang menerapkan nilai-nilai agama. Mahasiswa mempelajari contoh nyata implementasi etika agama dalam dunia kerja dan industri teknis.',
+        aktivitas: 'Membaca dan menganalisis studi kasus, mendiskusikan bagaimana nilai agama diterapkan, mengidentifikasi pembelajaran yang dapat diterapkan dalam karir',
+      },
+      waktu: "2x50'",
+      pengalamanBelajar: 'Memahami cara praktis menerapkan nilai-nilai agama dalam lingkungan kerja profesional. Belajar dari pengalaman praktisi yang mengintegrasikan spiritualitas dalam pekerjaan.',
+      penilaian: {
+        kriteria: 'Kemampuan menganalisis studi kasus; pemahaman tentang integrasi nilai agama dalam pekerjaan; relevansi analisis dengan konteks kerja.',
+        bobot: 5,
+      },
+    },
+    {
+      mingguKe: 4,
+      kemampuanAkhir: 'CPMK 2',
+      bahanKajian: 'Etika Kolaborasi Tim Berbasis Nilai-Nilai Agama',
+      metodePembelajaran: {
+        metode: 'Praktikum',
+        deskripsi: 'Simulasi kerja tim dengan penekanan pada nilai-nilai agama dan etika. Mahasiswa bekerja dalam kelompok untuk menyelesaikan proyek sederhana dengan menerapkan prinsip kolaborasi berbasis nilai agama.',
+        aktivitas: 'Membentuk tim kerja, menjalankan proyek kolaboratif kecil, menerapkan prinsip saling menghormati dan gotong royong, refleksi tentang pengalaman kerja tim',
+      },
+      waktu: "2x50'",
+      pengalamanBelajar: 'Mengalami langsung bagaimana nilai-nilai agama meningkatkan kualitas kolaborasi tim. Belajar pentingnya saling menghormati dan kepercayaan dalam kerja profesional.',
+      penilaian: {
+        kriteria: 'Kualitas kolaborasi tim; penerapan nilai-nilai agama dalam interaksi; hasil kerja dan kontribusi individu dalam kelompok.',
+        bobot: 5,
+      },
+    },
+    {
+      mingguKe: 5,
+      kemampuanAkhir: 'CPMK 2',
+      bahanKajian: 'Tanggung Jawab Sosial dalam Perspektif Agama dan Rekayasa',
+      metodePembelajaran: {
+        metode: 'Ceramah',
+        deskripsi: 'Pemaparan tentang tanggung jawab sosial sebagai konsekuensi dari nilai-nilai agama. Dosen menjelaskan bagaimana teknologi dan rekayasa harus membawa manfaat bagi masyarakat luas.',
+        aktivitas: 'Mendengarkan presentasi tentang tanggung jawab sosial perekayasa, diskusi singkat, mengidentifikasi cara teknologi dapat memberikan manfaat sosial',
+      },
+      waktu: "2x50'",
+      pengalamanBelajar: 'Memahami bahwa profesi rekayasa memiliki dimensi sosial yang penting. Menyadari pentingnya menggunakan teknologi untuk kebaikan bersama sesuai nilai agama.',
+      penilaian: {
+        kriteria: 'Pemahaman tentang tanggung jawab sosial perekayasa; kesadaran tentang dampak teknologi pada masyarakat; kemampuan menghubungkan nilai agama dengan tanggung jawab sosial.',
+        bobot: 5,
+      },
+    },
+    {
+      mingguKe: 6,
+      kemampuanAkhir: 'CPMK 3',
+      bahanKajian: 'Integritas dan Kejujuran dalam Praktik Teknis',
+      metodePembelajaran: {
+        metode: 'Diskusi',
+        deskripsi: 'Diskusi mendalam tentang integritas dan kejujuran sebagai nilai agama. Mahasiswa berdiskusi tentang dilema etika dalam pekerjaan teknis dan bagaimana menjaga integritas.',
+        aktivitas: 'Diskusi kelompok tentang skenario etika, analisis bagaimana nilai agama memandu pengambilan keputusan, presentasi solusi etis untuk kasus-kasus teknis',
+      },
+      waktu: "2x50'",
+      pengalamanBelajar: 'Belajar mengidentifikasi dilema etika dalam pekerjaan. Memahami bahwa integritas adalah prinsip fundamental yang didukung oleh nilai-nilai agama dan profesional.',
+      penilaian: {
+        kriteria: 'Kualitas analisis dilema etika; pemahaman tentang integritas; kemampuan mengambil keputusan etis berdasarkan nilai agama dan profesionalisme.',
+        bobot: 5,
+      },
+    },
+    {
+      mingguKe: 7,
+      kemampuanAkhir: 'CPMK 3',
+      bahanKajian: 'Pengembangan Karakter dan Kepemimpinan Berbasis Nilai-Nilai Agama',
+      metodePembelajaran: {
+        metode: 'Presentasi',
+        deskripsi: 'Mahasiswa mempresentasikan refleksi personal tentang pengembangan karakter berbasis nilai agama. Setiap mahasiswa berbagi pemahaman tentang bagaimana nilai agama membentuk karakter profesional.',
+        aktivitas: 'Menyiapkan presentasi personal, mempresentasikan refleksi tentang karakter dan kepemimpinan, mendengarkan presentasi teman, memberikan umpan balik konstruktif',
+      },
+      waktu: "2x50'",
+      pengalamanBelajar: 'Melakukan refleksi diri tentang pengembangan karakter. Belajar dari pengalaman dan perspektif teman tentang integrasi nilai agama dalam kepemimpinan.',
+      penilaian: {
+        kriteria: 'Kualitas refleksi personal; kedalaman pemahaman tentang pengembangan karakter; kemampuan mengartikulasikan nilai-nilai agama dalam kepemimpinan.',
+        bobot: 5,
+      },
+    },
+    {
+      mingguKe: 8,
+      kemampuanAkhir: 'UTS',
+      bahanKajian: 'UTS - Ujian Tengah Semester',
+      metodePembelajaran: {
+        metode: 'Ujian',
+        deskripsi: 'Penilaian komprehensif tertulis dan reflektif mencakup materi minggu 1-7. Evaluasi pemahaman mahasiswa tentang nilai-nilai agama dan penerapannya dalam konteks rekayasa otomasi.',
+        aktivitas: 'Pelaksanaan ujian tulis dan esai reflektif sesuai jadwal akademik yang telah ditetapkan oleh institusi',
+      },
+      waktu: "3x50'",
+      pengalamanBelajar: 'UTS',
+      penilaian: {
+        kriteria: 'UTS',
+        bobot: 15,
+      },
+    },
+    {
+      mingguKe: 9,
+      kemampuanAkhir: 'CPMK 1',
+      bahanKajian: 'Spiritualitas dan Kesejahteraan Mental dalam Dunia Kerja Teknis',
+      metodePembelajaran: {
+        metode: 'Ceramah',
+        deskripsi: 'Pemaparan tentang peran spiritualitas dalam menjaga kesehatan mental dan kesejahteraan pekerja teknis. Dosen menjelaskan bagaimana praktik spiritual dapat mengurangi stres dan meningkatkan produktivitas.',
+        aktivitas: 'Mendengarkan presentasi tentang kesejahteraan mental dari perspektif spiritual, diskusi tentang praktik spiritual yang dapat mendukung kesehatan mental',
+      },
+      waktu: "2x50'",
+      pengalamanBelajar: 'Memahami peran spiritualitas dalam kesejahteraan mental dan produktivitas kerja. Belajar teknik-teknik spiritual untuk mengelola stres dan tantangan pekerjaan.',
+      penilaian: {
+        kriteria: 'Pemahaman tentang hubungan spiritualitas dan kesejahteraan mental; pengetahuan tentang praktik spiritual; relevansi dengan konteks kerja teknis.',
+        bobot: 5,
+      },
+    },
+    {
+      mingguKe: 10,
+      kemampuanAkhir: 'CPMK 2',
+      bahanKajian: 'Inovasi Berkelanjutan dengan Kesadaran Lingkungan dan Agama',
+      metodePembelajaran: {
+        metode: 'Studi Kasus',
+        deskripsi: 'Analisis studi kasus tentang inovasi teknologi yang mempertimbangkan kelestarian lingkungan dari perspektif tanggung jawab agama. Mahasiswa mengkaji contoh proyek rekayasa yang berkelanjutan.',
+        aktivitas: 'Membaca dan menganalisis studi kasus inovasi berkelanjutan, mendiskusikan peran tanggung jawab agama dalam kelestarian lingkungan, presentasi temuan',
+      },
+      waktu: "2x50'",
+      pengalamanBelajar: 'Memahami bahwa inovasi teknis harus memperhitungkan dampak lingkungan sebagai bentuk tanggung jawab agama. Belajar tentang konsep pembangunan berkelanjutan dari perspektif nilai agama.',
+      penilaian: {
+        kriteria: 'Analisis mendalam tentang inovasi berkelanjutan; pemahaman tentang tanggung jawab lingkungan dari perspektif agama; relevansi dengan rekayasa otomasi.',
+        bobot: 5,
+      },
+    },
+    {
+      mingguKe: 11,
+      kemampuanAkhir: 'CPMK 2',
+      bahanKajian: 'Etika Bisnis dan Wirausaha Berbasis Nilai-Nilai Agama',
+      metodePembelajaran: {
+        metode: 'Diskusi',
+        deskripsi: 'Diskusi tentang prinsip-prinsip etika bisnis yang didasarkan pada nilai-nilai agama. Mahasiswa mendiskusikan bagaimana menjalankan usaha teknis dengan integritas dan kejujuran.',
+        aktivitas: 'Diskusi kelompok tentang studi kasus etika bisnis, analisis tentang bagaimana nilai agama memandu keputusan bisnis, presentasi prinsip-prinsip etika bisnis',
+      },
+      waktu: "2x50'",
+      pengalamanBelajar: 'Memahami prinsip-prinsip etika bisnis yang sejalan dengan nilai-nilai agama. Belajar tentang tanggung jawab perusahaan kepada stakeholder dan masyarakat.',
+      penilaian: {
+        kriteria: 'Pemahaman etika bisnis dari perspektif agama; analisis tentang tanggung jawab perusahaan; kemampuan menerapkan prinsip-prinsip etika dalam konteks bisnis.',
+        bobot: 5,
+      },
+    },
+    {
+      mingguKe: 12,
+      kemampuanAkhir: 'CPMK 3',
+      bahanKajian: 'Kepemimpinan Spiritual dan Pengaruhnya pada Organisasi',
+      metodePembelajaran: {
+        metode: 'Praktikum',
+        deskripsi: 'Simulasi kepemimpinan yang menerapkan nilai-nilai spiritual. Mahasiswa bermain peran sebagai pemimpin tim yang mengintegrasikan nilai-nilai agama dalam memimpin organisasi.',
+        aktivitas: 'Simulasi kepemimpinan, refleksi tentang pengalaman memimpin dengan nilai-nilai spiritual, diskusi tentang dampak kepemimpinan berbasis nilai pada efektivitas organisasi',
+      },
+      waktu: "2x50'",
+      pengalamanBelajar: 'Mengalami langsung bagaimana kepemimpinan yang berbasis nilai-nilai spiritual dapat meningkatkan motivasi dan efektivitas organisasi. Belajar tentang pengaruh positif pemimpin yang berintegritas.',
+      penilaian: {
+        kriteria: 'Kualitas kepemimpinan dalam simulasi; penerapan nilai-nilai spiritual; dampak positif pada anggota tim; refleksi tentang pengalaman memimpin.',
+        bobot: 5,
+      },
+    },
+    {
+      mingguKe: 13,
+      kemampuanAkhir: 'CPMK 3',
+      bahanKajian: 'Kontribusi Profesional untuk Kemajuan Bangsa dan Agama',
+      metodePembelajaran: {
+        metode: 'Presentasi',
+        deskripsi: 'Mahasiswa mempresentasikan visi mereka tentang kontribusi profesional untuk kemajuan bangsa berdasarkan nilai-nilai agama. Setiap mahasiswa mengartikulasikan komitmen mereka terhadap tanggung jawab sosial.',
+        aktivitas: 'Menyiapkan presentasi tentang visi profesional, mempresentasikan komitmen terhadap tanggung jawab sosial, mendengarkan visi teman, memberikan dukungan dan masukan',
+      },
+      waktu: "2x50'",
+      pengalamanBelajar: 'Merefleksikan visi profesional dan peran mereka dalam kemajuan bangsa. Memahami bahwa pekerjaan teknis memiliki makna yang lebih besar dalam konteks kehidupan bermasyarakat.',
+      penilaian: {
+        kriteria: 'Kedalaman refleksi tentang visi profesional; keterkaitan dengan nilai-nilai agama; articulasi tentang tanggung jawab sosial; inspirasi untuk teman-teman.',
+        bobot: 5,
+      },
+    },
+    {
+      mingguKe: 14,
+      kemampuanAkhir: 'CPMK 2',
+      bahanKajian: 'Studi Lapangan: Implementasi Nilai-Nilai Agama di Industri Teknis',
+      metodePembelajaran: {
+        metode: 'Kunjungan Industri',
+        deskripsi: 'Kunjungan ke industri rekayasa otomasi untuk mengamati implementasi nilai-nilai agama dan etika profesional. Mahasiswa melihat langsung bagaimana perusahaan menerapkan prinsip-prinsip ini.',
+        aktivitas: 'Kunjungan industri, interview dengan profesional, observasi tentang budaya kerja yang menerapkan nilai agama, dokumentasi dan refleksi pengalaman',
+      },
+      waktu: "4x50'",
+      pengalamanBelajar: 'Melihat langsung bagaimana nilai-nilai agama dan etika diterapkan dalam industri nyata. Belajar dari pengalaman profesional tentang integrasi nilai dalam pekerjaan sehari-hari.',
+      penilaian: {
+        kriteria: 'Kualitas observasi di lapangan; kedalaman interview dengan profesional; refleksi tentang penerapan nilai agama di industri; relevansi dengan pembelajaran.',
+        bobot: 10,
+      },
+    },
+    {
+      mingguKe: 15,
+      kemampuanAkhir: 'CPMK 1,2,3',
+      bahanKajian: 'Integrasi dan Refleksi: Dari Teori ke Praktik Kehidupan Profesional',
+      metodePembelajaran: {
+        metode: 'Diskusi Kelompok',
+        deskripsi: 'Diskusi komprehensif untuk mengintegrasikan semua materi dan refleksi personal. Mahasiswa secara kolektif merangkum pembelajaran mereka tentang nilai agama dalam praktik profesional.',
+        aktivitas: 'Diskusi kelompok tentang seluruh pembelajaran, refleksi personal, sharing pengalaman dan insight, perumusan komitmen pribadi untuk menerapkan nilai agama',
+      },
+      waktu: "2x50'",
+      pengalamanBelajar: 'Mengintegrasikan semua pembelajaran menjadi pemahaman holistik. Merumuskan komitmen personal untuk menerapkan nilai-nilai agama dalam kehidupan profesional.',
+      penilaian: {
+        kriteria: 'Kualitas integrasi pembelajaran; kedalaman refleksi; pemahaman holistik tentang nilai agama dan profesi; komitmen untuk penerapan nilai.',
+        bobot: 5,
+      },
+    },
+    {
+      mingguKe: 16,
+      kemampuanAkhir: 'UAS',
+      bahanKajian: 'UAS - Ujian Akhir Semester',
+      metodePembelajaran: {
+        metode: 'Ujian',
+        deskripsi: 'Penilaian akhir semester melalui esai reflektif mendalam dan presentasi portfolio pembelajaran. Evaluasi komprehenif tentang pemahaman dan penerapan nilai-nilai agama dalam konteks profesi.',
+        aktivitas: 'Pelaksanaan ujian esai reflektif dan presentasi portfolio pembelajaran sesuai jadwal akademik yang telah ditetapkan',
+      },
+      waktu: "3x50'",
+      pengalamanBelajar: 'UAS',
+      penilaian: {
+        kriteria: 'UAS',
+        bobot: 20,
+      },
+    },
+  ],
   assessmentMethods: [
-    { teknik: 'Aktivitas Partisipatif', persentase: 10, kriteria: 'Disiplin K3; aktif saat praktikum; logbook rapi', distribusiCPMK: [{ cpmkId: 'CPMK 1', nilai: 2 }, { cpmkId: 'CPMK 2', nilai: 2 }, { cpmkId: 'CPMK 3', nilai: 3 }, { cpmkId: 'CPMK 4', nilai: 3 }] },
-    { teknik: 'Laporan Praktikum & Tugas', persentase: 30, kriteria: 'Laporan sesuai format; hasil uji benar; analisis data', distribusiCPMK: [{ cpmkId: 'CPMK 1', nilai: 10 }, { cpmkId: 'CPMK 2', nilai: 10 }, { cpmkId: 'CPMK 3', nilai: 10 }, { cpmkId: 'CPMK 4', nilai: 0 }] },
-    { teknik: 'UTS (Uji Praktik)', persentase: 15, kriteria: 'Rangkaian & program sesuai spesifikasi', distribusiCPMK: [{ cpmkId: 'CPMK 1', nilai: 5 }, { cpmkId: 'CPMK 2', nilai: 5 }, { cpmkId: 'CPMK 3', nilai: 5 }, { cpmkId: 'CPMK 4', nilai: 0 }] },
-    { teknik: 'Proyek Akhir', persentase: 30, kriteria: 'Prototipe bekerja; uji performa; dokumentasi', distribusiCPMK: [{ cpmkId: 'CPMK 1', nilai: 0 }, { cpmkId: 'CPMK 2', nilai: 10 }, { cpmkId: 'CPMK 3', nilai: 10 }, { cpmkId: 'CPMK 4', nilai: 10 }] },
-    { teknik: 'UAS (Demo Proyek)', persentase: 15, kriteria: 'Fungsi proyek; kualitas integrasi; presentasi', distribusiCPMK: [{ cpmkId: 'CPMK 1', nilai: 0 }, { cpmkId: 'CPMK 2', nilai: 0 }, { cpmkId: 'CPMK 3', nilai: 5 }, { cpmkId: 'CPMK 4', nilai: 10 }] },
+    {
+      teknik: 'Partisipasi dan Diskusi',
+      persentase: 20,
+      kriteria: 'Kehadiran, keaktifan dalam diskusi, kontribusi ide, serta kesadaran diri dalam pembelajaran',
+      distribusiCPMK: [
+        { cpmkId: 'CPMK 1', nilai: 7 },
+        { cpmkId: 'CPMK 2', nilai: 7 },
+        { cpmkId: 'CPMK 3', nilai: 6 },
+      ],
+    },
+    {
+      teknik: 'Tugas dan Presentasi',
+      persentase: 25,
+      kriteria: 'Kualitas analisis, presentasi, pemahaman mendalam tentang nilai-nilai agama dalam konteks profesional',
+      distribusiCPMK: [
+        { cpmkId: 'CPMK 1', nilai: 8 },
+        { cpmkId: 'CPMK 2', nilai: 9 },
+        { cpmkId: 'CPMK 3', nilai: 8 },
+      ],
+    },
+    {
+      teknik: 'UTS',
+      persentase: 15,
+      kriteria: 'Ujian Tengah Semester mencakup materi minggu 1-7',
+      distribusiCPMK: [
+        { cpmkId: 'CPMK 1', nilai: 10 },
+        { cpmkId: 'CPMK 2', nilai: 5 },
+        { cpmkId: 'CPMK 3', nilai: 0 },
+      ],
+    },
+    {
+      teknik: 'UAS',
+      persentase: 20,
+      kriteria: 'Ujian Akhir Semester dalam bentuk esai reflektif dan portfolio pembelajaran',
+      distribusiCPMK: [
+        { cpmkId: 'CPMK 1', nilai: 5 },
+        { cpmkId: 'CPMK 2', nilai: 4 },
+        { cpmkId: 'CPMK 3', nilai: 11 },
+      ],
+    },
+    {
+      teknik: 'Kunjungan Industri dan Refleksi',
+      persentase: 20,
+      kriteria: 'Observasi, dokumentasi, refleksi lapangan tentang penerapan nilai agama di industri nyata',
+      distribusiCPMK: [
+        { cpmkId: 'CPMK 1', nilai: 0 },
+        { cpmkId: 'CPMK 2', nilai: 20 },
+        { cpmkId: 'CPMK 3', nilai: 0 },
+      ],
+    },
   ],
   cplMappings: [
-    { kodeCPL: 'CPL3', kodeIK: 'IK 3-1', pernyataanIK: 'Mampu merancang dan melakukan pengujian sistem mekatronika berbasis data.', kodeCPMK: 'CPMK 1', pernyataanCPMK: 'Merakit rangkaian sensor–aktuator dan melakukan pengukuran dasar serta troubleshooting.', bobotCPMK: '20%', mediaAsesmen: 'Kuis, Laporan, UTS', distribusi: { kuis: 5, presentasi: 5, proyek: 0, uts: 10, uas: 0 } },
-    { kodeCPL: '', kodeIK: 'IK 3-2', pernyataanIK: 'Mampu memprogram dan mengintegrasikan modul untuk menyelesaikan tugas robotika.', kodeCPMK: 'CPMK 2', pernyataanCPMK: 'Memprogram mikrokontroler/embedded system untuk membaca sensor, mengendalikan aktuator, dan melakukan logging data.', bobotCPMK: '25%', mediaAsesmen: 'Tugas, Laporan, UTS', distribusi: { kuis: 0, presentasi: 5, proyek: 10, uts: 10, uas: 0 } },
-    { kodeCPL: 'CPL4', kodeIK: 'IK 4-1', pernyataanIK: 'Menerapkan konsep kendali untuk meningkatkan performa sistem.', kodeCPMK: 'CPMK 3', pernyataanCPMK: 'Menerapkan konsep kendali (mis. PID dasar) untuk kendali motor/robot pada skenario praktikum.', bobotCPMK: '25%', mediaAsesmen: 'Laporan, Proyek', distribusi: { kuis: 0, presentasi: 0, proyek: 15, uts: 0, uas: 10 } },
-    { kodeCPL: 'CPL10', kodeIK: 'IK 10-1', pernyataanIK: 'Menunjukkan etika, K3, dan tanggung jawab kerja laboratorium.', kodeCPMK: 'CPMK 4', pernyataanCPMK: 'Mendemonstrasikan integrasi sistem mekatronika/robotika dalam proyek mini dan menyusun laporan praktikum yang baik serta etis.', bobotCPMK: '30%', mediaAsesmen: 'Partisipasi, Proyek, UAS', distribusi: { kuis: 0, presentasi: 5, proyek: 0, uts: 0, uas: 15 } },
+    {
+      kodeCPL: 'CPL1',
+      kodeIK: 'IK 1-1',
+      pernyataanIK: 'Mampu memahami rekayasa otomasi secara mandiri maupun kerja sama tim yang profesional dan berintegritas berdasarkan nilai-nilai Pancasila terutama sila pertama yaitu Ketuhanan yang Maha Esa',
+      kodeCPMK: 'CPMK 1',
+      pernyataanCPMK: 'Mampu memahami dan menginternalisasi nilai-nilai agama yang melandasi Pancasila terutama Sila Pertama Ketuhanan Yang Maha Esa',
+      bobotCPMK: '33%',
+      mediaAsesmen: 'Diskusi, Presentasi, UTS, Refleksi Diri',
+      distribusi: { diskusi: 10, presentasi: 5, studi_kasus: 5, uts: 10, uas: 5 },
+    },
+    {
+      kodeCPL: 'CPL1',
+      kodeIK: 'IK 1-2',
+      pernyataanIK: 'Mampu menginternalisasi nilai-nilai Pancasila terutama sila pertama yaitu Ketuhanan yang Maha Esa dalam pelaksanaan rekayasa otomasi',
+      kodeCPMK: 'CPMK 2',
+      pernyataanCPMK: 'Mampu menerapkan nilai-nilai keagamaan dan etika dalam konteks pekerjaan dan kolaborasi tim rekayasa otomasi',
+      bobotCPMK: '33%',
+      mediaAsesmen: 'Studi Kasus, Praktikum, Kunjungan Industri, Diskusi',
+      distribusi: { studi_kasus: 5, praktikum: 10, kunjungan_industri: 20, diskusi: 10, uas: 4 },
+    },
+    {
+      kodeCPL: 'CPL1',
+      kodeIK: 'IK 1-3',
+      pernyataanIK: 'Mampu mengamalkan nilai-nilai luhur Pancasila dalam pelaksanaan rekayasa otomasi secara mandiri maupun kerja sama tim yang profesional',
+      kodeCPMK: 'CPMK 3',
+      pernyataanCPMK: 'Mampu mengamalkan tanggung jawab sosial dan profesionalisme berdasarkan nilai-nilai agama dalam kehidupan bermasyarakat dan bernegara',
+      bobotCPMK: '34%',
+      mediaAsesmen: 'Presentasi, Praktikum, Refleksi Personal, UAS',
+      distribusi: { presentasi: 5, praktikum: 5, refleksi_personal: 10, uas: 11 },
+    },
   ],
   references: [
-    { judul: 'Mechatronics', penulis: 'Bolton, W.', jenis: 'buku' },
-    { judul: 'Introduction to Robotics: Mechanics and Control', penulis: 'Craig, J.J.', jenis: 'buku' },
-    { judul: 'Modern Control Engineering', penulis: 'Ogata, K.', jenis: 'buku' },
-    { judul: 'Dokumentasi Arduino/PlatformIO/STM32', penulis: '-', jenis: 'website' },
+    {
+      judul: 'Nilai-Nilai Pancasila: Suatu Kajian Filosofis',
+      penulis: 'Kaelan',
+      jenis: 'buku',
+    },
+    {
+      judul: 'Etika Profesional untuk Insinyur',
+      penulis: 'Sonny Keraf',
+      jenis: 'buku',
+    },
+    {
+      judul: 'Spiritualitas dalam Dunia Kerja Modern',
+      penulis: 'Muhammad Syafii Antonio',
+      jenis: 'buku',
+    },
+    {
+      judul: 'Agama dan Teknologi: Perspektif Teologis',
+      penulis: 'Tim Pengembang Kurikulum Universitas Diponegoro',
+      jenis: 'buku',
+    },
+    {
+      judul: 'Standar Etika Profesional Rekayasa',
+      penulis: 'IEEE Standards Association',
+      jenis: 'website',
+    },
   ],
 };

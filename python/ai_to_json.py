@@ -71,10 +71,11 @@ class AIToJSON:
             return False
     
     def _init_client(self) -> bool:
-        """Initialize OpenAI client."""
+        """Initialize OpenAI client with extended timeout."""
         try:
-            self.client = OpenAI(api_key=self.api_key)
-            print("✅ OpenAI client initialized")
+            # Set longer timeout for large RPS generation requests (10 minutes)
+            self.client = OpenAI(api_key=self.api_key, timeout=600.0)
+            print("✅ OpenAI client initialized with 10-minute timeout")
             return True
         except Exception as e:
             print(f"❌ Error initializing OpenAI client: {e}")
@@ -121,8 +122,7 @@ Buatkan RPS dalam format JSON dengan struktur PERSIS seperti berikut. PENTING: H
   ],
   
   "minggu": [
-    {{"mingguKe": 1, "kemampuanAkhir": "CPMK 1", "bahanKajian": "Topik minggu 1", "metodePembelajaran": {{"metode": "Ceramah", "deskripsi": "TEPAT 20 kata penjelasan metode pembelajaran", "aktivitas": "Penjelasan aktivitas pembelajaran mahasiswa"}}, "waktu": "1x50'", "pengalamanBelajar": "TEPAT 20 kata pengalaman belajar mahasiswa", "penilaian": {{"kriteria": "TEPAT 20 kata kriteria indikator pencapaian", "bobot": 5}}}},
-    {{"mingguKe": 2, "kemampuanAkhir": "CPMK 1", "bahanKajian": "Topik minggu 2", "metodePembelajaran": {{"metode": "Praktikum", "deskripsi": "TEPAT 20 kata penjelasan metode pembelajaran", "aktivitas": "Penjelasan aktivitas pembelajaran mahasiswa"}}, "waktu": "1x50'", "pengalamanBelajar": "TEPAT 20 kata pengalaman belajar mahasiswa", "penilaian": {{"kriteria": "TEPAT 20 kata kriteria indikator pencapaian", "bobot": 5}}}},
+    {{"mingguKe": 1, "kemampuanAkhir": "CPMK 1", "bahanKajian": "Topik minggu 1", "metodePembelajaran": {{"metode": "Ceramah", "deskripsi": "penjelasan metode pembelajaran", "aktivitas": "Penjelasan aktivitas pembelajaran mahasiswa"}}, "waktu": "1x50'", "pengalamanBelajar": "pengalaman belajar mahasiswa", "penilaian": {{"kriteria": "kriteria indikator pencapaian", "bobot": 5}}}},
     {{"mingguKe": 8, "kemampuanAkhir": "UTS", "bahanKajian": "UTS - Ujian Tengah Semester", "metodePembelajaran": {{"metode": "Ujian", "deskripsi": "Penilaian tertulis atau praktik komprehensif mencakup seluruh materi evaluasi penguasaan kompetensi", "aktivitas": "Pelaksanaan ujian tulis atau praktik sesuai jadwal akademik"}}, "waktu": "3x50'", "pengalamanBelajar": "UTS", "penilaian": {{"kriteria": "UTS", "bobot": 15}}}},
     {{"mingguKe": 16, "kemampuanAkhir": "UAS", "bahanKajian": "UAS - Ujian Akhir Semester", "metodePembelajaran": {{"metode": "Ujian", "deskripsi": "Penilaian akhir semester melalui demo proyek integrasi presentasi hasil pembelajaran keseluruhan", "aktivitas": "Pelaksanaan ujian tulis atau praktik sesuai jadwal akademik"}}, "waktu": "3x50'", "pengalamanBelajar": "UAS", "penilaian": {{"kriteria": "UAS", "bobot": 20}}}}
   ],
@@ -162,12 +162,7 @@ Buatkan RPS dalam format JSON dengan struktur PERSIS seperti berikut. PENTING: H
     "Presentasi",
     "Praktikum"
   ],
-  
-  "cbl_detail": {{
-    "deskripsi": "WAJIB 20 kata: Kasus pemotongan/pemungutan, penyetoran, dan pelaporan pajak penghasilan karyawan perusahaan",
-    "aktivitas": "WAJIB 20 kata: Membaca kasus, menginterpretasikan, melaksanakan prosedur pemotongan/pemungutan sesuai tarif dan timeline Undang-Undang"
-  }},
-  
+
   "learning_experience_keywords": [
     "Memahami",
     "Menjelaskan",
@@ -195,19 +190,19 @@ Buatkan RPS dalam format JSON dengan struktur PERSIS seperti berikut. PENTING: H
 6. Pastikan semua 16 minggu terisi lengkap
 7. WAJIB untuk setiap minggu (selain UTS/UAS):
    - "metodePembelajaran.metode": pilih 1 dari: Ceramah, Diskusi, Kuis, Tugas, Presentasi, Praktikum
-   - "metodePembelajaran.deskripsi": TEPAT 20 kata penjelasan metode pembelajaran
-   - "metodePembelajaran.aktivitas": penjelasan aktivitas pembelajaran (bisa panjang)
-   - "pengalamanBelajar": TEPAT 20 kata pengalaman belajar mahasiswa
-   - "penilaian.kriteria": TEPAT 20 kata kriteria indikator pencapaian
+    - "metodePembelajaran.deskripsi": HARUS 20 kata penjelasan metode pembelajaran
+    - "metodePembelajaran.aktivitas": HARUS 20 kata penjelasan aktivitas pembelajaran
+    - "pengalamanBelajar": HARUS 20 kata pengalaman belajar mahasiswa
+    - "penilaian.kriteria": HARUS 20 kata kriteria indikator pencapaian
 8. Struktur minggu harus mengikuti format EXACT (gunakan mingguKe, bukan minggu):
    {{
      "mingguKe": nomor,
      "kemampuanAkhir": "CPMK X",
      "bahanKajian": "topik pembelajaran",
-     "metodePembelajaran": {{"metode": "Metode", "deskripsi": "deskripsi 20 kata", "aktivitas": "aktivitas pembelajaran"}},
+      "metodePembelajaran": {{"metode": "Metode", "deskripsi": "deskripsi 20 kata", "aktivitas": "aktivitas pembelajaran 20 kata"}},
      "waktu": "3x50'",
-     "pengalamanBelajar": "pengalaman 20 kata",
-     "penilaian": {{"kriteria": "kriteria 20 kata", "bobot": nilai}}
+      "pengalamanBelajar": "pengalaman 20 kata",
+      "penilaian": {{"kriteria": "kriteria 20 kata", "bobot": nilai}}
    }}
 9. Berikan referensi buku yang nyata dan relevan
 
@@ -256,7 +251,12 @@ Output JSON saja, tanpa markdown formatting atau penjelasan."""
         for attempt in range(max_retries):
             try:
                 print(f"🤖 Sending message to OpenAI (attempt {attempt + 1}/{max_retries})...")
+                print(f"   Prompt length: {len(prompt)} chars")
+                print(f"   Model: {self.model}")
+                print(f"   Waiting for response...")
                 
+                # Don't use temperature parameter with gpt-5-mini model - it only supports default (1)
+                # Use default parameters for maximum compatibility
                 response = self.client.chat.completions.create(
                     model=self.model,
                     messages=[
@@ -275,13 +275,23 @@ Output JSON saja, tanpa markdown formatting atau penjelasan."""
                 return None
                 
             except Exception as e:
-                print(f"❌ Error on attempt {attempt + 1}: {e}")
+                error_str = str(e)
+                print(f"❌ Error on attempt {attempt + 1}: {error_str}")
+                
+                # Check if it's a timeout or rate limit error
+                if 'timeout' in error_str.lower() or 'timed out' in error_str.lower():
+                    print(f"   ⏱️ Timeout detected, retrying with exponential backoff...")
+                elif 'rate_limit' in error_str.lower() or '429' in error_str:
+                    print(f"   🔄 Rate limit detected, waiting longer before retry...")
+                
                 if attempt < max_retries - 1:
-                    wait_time = 2 ** attempt  # Exponential backoff
+                    wait_time = (2 ** attempt) * 3  # Exponential backoff with longer base wait
                     print(f"⏳ Waiting {wait_time} seconds before retry...")
                     time.sleep(wait_time)
                 else:
                     print("❌ All retry attempts failed")
+                    import traceback
+                    traceback.print_exc()
                     return None
         
         return None
@@ -445,10 +455,10 @@ Buatkan rencana pembelajaran mingguan untuk 16 minggu. Minggu 8 adalah UTS dan M
 
 WAJIB (selain UTS/UAS):
 - "metodePembelajaran.metode": pilih 1 dari: Ceramah, Diskusi, Kuis, Tugas, Presentasi, Praktikum
-- "metodePembelajaran.deskripsi": TEPAT 20 kata penjelasan metode pembelajaran
-- "metodePembelajaran.aktivitas": penjelasan aktivitas pembelajaran (bisa panjang)
-- "pengalamanBelajar": TEPAT 20 kata pengalaman belajar mahasiswa
-- "penilaian.kriteria": TEPAT 20 kata kriteria indikator pencapaian
+- "metodePembelajaran.deskripsi": HARUS 20 kata penjelasan metode pembelajaran
+- "metodePembelajaran.aktivitas": HARUS 20 kata penjelasan aktivitas pembelajaran
+- "pengalamanBelajar": HARUS 20 kata pengalaman belajar mahasiswa
+- "penilaian.kriteria": HARUS 20 kata kriteria indikator pencapaian
 
 Format JSON murni (EXACT field names: mingguKe, kemampuanAkhir, bahanKajian):
 [{{"mingguKe": 1, "kemampuanAkhir": "CPMK 1", "bahanKajian": "Pengenalan dan konsep dasar", "metodePembelajaran": {{"metode": "Ceramah", "deskripsi": "Penyampaian konsep fundamental melalui presentasi interaktif dengan melibatkan mahasiswa dalam diskusi materi", "aktivitas": "Mendengarkan penjelasan konsep dasar dan diskusi mendalam tentang prinsip fundamental mata kuliah"}}, "waktu": "3x50'", "pengalamanBelajar": "Memahami terminologi dasar mengingat definisi konsep fundamental mengikuti presentasi diskusi kelas", "penilaian": {{"kriteria": "Pemahaman konsep dasar ketepatan definisi keterlibatan dalam diskusi kelas penerimaan nilai", "bobot": 5}}}},{{"mingguKe": 2, "kemampuanAkhir": "CPMK 1", "bahanKajian": "Praktik hands-on topik 1", "metodePembelajaran": {{"metode": "Praktikum", "deskripsi": "Kegiatan praktik langsung di laboratorium untuk mengaplikasikan teori dan mengembangkan keterampilan hands-on", "aktivitas": "Melaksanakan praktikum hands-on mengaplikasikan teori mengerjakan tugas praktis melakukan observasi mencatat hasil"}}, "waktu": "3x50'", "pengalamanBelajar": "Mengerjakan praktikum melakukan observasi mencatat data menganalisis hasil eksperimen melaporkan temuan", "penilaian": {{"kriteria": "Ketepatan praktikum kualitas data kualitas laporan kedalaman analisis ketepatan kesimpulan hasil", "bobot": 5}}}},{{"mingguKe": 8, "kemampuanAkhir": "UTS", "bahanKajian": "Ujian Tengah Semester: evaluasi materi minggu 1-7", "metodePembelajaran": {{"metode": "Ujian", "deskripsi": "Penilaian tertulis atau praktik komprehensif mencakup seluruh materi semester untuk mengukur kompetensi", "aktivitas": "Pelaksanaan ujian tulis atau praktik sesuai jadwal akademik evaluasi penguasaan materi"}}, "waktu": "3x50'", "pengalamanBelajar": "UTS", "penilaian": {{"kriteria": "UTS", "bobot": 15}}}},{{"mingguKe": 16, "kemampuanAkhir": "UAS", "bahanKajian": "Ujian Akhir Semester: demo proyek dan evaluasi keseluruhan", "metodePembelajaran": {{"metode": "Ujian", "deskripsi": "Penilaian akhir semester melalui demo proyek integrasi dan presentasi hasil pembelajaran keseluruhan", "aktivitas": "Pelaksanaan ujian akhir semester termasuk demo proyek dan presentasi hasil pembelajaran akhir"}}, "waktu": "3x50'", "pengalamanBelajar": "UAS", "penilaian": {{"kriteria": "UAS", "bobot": 20}}}}]

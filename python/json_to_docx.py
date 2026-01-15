@@ -39,23 +39,32 @@ def _set_cell_text_preserve_format(cell, text: str) -> None:
         if not source_para:
             source_para = cell.paragraphs[0]
         
-        # Save formatting
-        if source_run:
-            saved_font_size = source_run.font.size or Pt(9)
-            saved_font_name = source_run.font.name or 'Calibri'
-            saved_bold = source_run.font.bold
-            saved_italic = source_run.font.italic
-        else:
-            saved_font_size = Pt(9)
-            saved_font_name = 'Calibri'
-            saved_bold = False
-            saved_italic = False
+        # Save formatting from first run if it exists
+        saved_font_size = Pt(9)
+        saved_font_name = 'Calibri'
+        saved_bold = False
+        saved_italic = False
         
-        # Clear the source paragraph safely
-        for run in source_para.runs:
-            # Remove the run from XML
-            r = run._element
-            r.getparent().remove(r)
+        if source_run:
+            try:
+                saved_font_size = source_run.font.size or Pt(9)
+                saved_font_name = source_run.font.name or 'Calibri'
+                saved_bold = source_run.font.bold if source_run.font.bold is not None else False
+                saved_italic = source_run.font.italic if source_run.font.italic is not None else False
+            except:
+                pass  # Use defaults if error reading formatting
+        
+        # Safely clear all runs from source paragraph
+        try:
+            for run in list(source_para.runs):
+                # Remove the run from XML
+                r = run._element
+                r.getparent().remove(r)
+        except Exception as e:
+            print(f"⚠️ Could not clear runs: {e}")
+            # Fallback: just set text directly
+            cell.text = text
+            return
         
         # Add new text content with formatting preserved
         if text:
@@ -66,23 +75,34 @@ def _set_cell_text_preserve_format(cell, text: str) -> None:
                     source_para.add_run('\n')
                 
                 new_run = source_para.add_run(line)
-                new_run.font.size = saved_font_size
-                new_run.font.name = saved_font_name
-                if saved_bold is not None:
-                    new_run.font.bold = saved_bold
-                if saved_italic is not None:
-                    new_run.font.italic = saved_italic
+                try:
+                    new_run.font.size = saved_font_size
+                    new_run.font.name = saved_font_name
+                    if saved_bold:
+                        new_run.font.bold = saved_bold
+                    if saved_italic:
+                        new_run.font.italic = saved_italic
+                except:
+                    pass  # If formatting fails, continue with plain text
         
-        # Remove extra empty paragraphs from cell
-        for para in cell.paragraphs[1:]:
-            # Only keep the first paragraph
-            p = para._element
-            p.getparent().remove(p)
+        # Remove extra empty paragraphs from cell (keep only first one)
+        try:
+            extra_paras = list(cell.paragraphs[1:])
+            for para in extra_paras:
+                p = para._element
+                if p.getparent() is not None:
+                    p.getparent().remove(p)
+        except Exception as e:
+            print(f"⚠️ Could not remove extra paragraphs: {e}")
+            pass  # Not critical, continue
     
     except Exception as e:
         # Fallback: simple text replacement
-        print(f"⚠️ Warning: Fallback text replacement due to error: {e}")
-        cell.text = text
+        print(f"⚠️ Fallback text replacement due to error: {e}")
+        try:
+            cell.text = text
+        except:
+            print(f"❌ Failed to set cell text: {e}")
 
 
 class JSONToDocx:
@@ -434,9 +454,41 @@ class JSONToDocx:
             else:
                 print(f"📊 TABLE 5 - Not available in template (has {len(doc.tables)} tables)")
             
-            doc.save(output_path)
-            print(f"✅ DOCX saved successfully!")
-            return True
+            # Validate document before saving
+            print(f"\n[VALIDATE] Checking document integrity before save...")
+            try:
+                # Check all tables have valid structure
+                for table_idx, table in enumerate(doc.tables):
+                    if not table or len(table.rows) == 0:
+                        print(f"   ⚠️ Table {table_idx} is empty or invalid")
+                    else:
+                        print(f"   ✅ Table {table_idx}: {len(table.rows)} rows x {len(table.columns)} cols")
+            except Exception as e:
+                print(f"   ⚠️ Could not validate tables: {e}")
+            
+            # Save with proper error handling
+            try:
+                doc.save(str(output_path))
+                print(f"✅ DOCX saved successfully to: {output_path}")
+                
+                # Verify file was created and has content
+                from pathlib import Path as PathlibPath
+                saved_file = PathlibPath(output_path)
+                if saved_file.exists():
+                    file_size = saved_file.stat().st_size
+                    print(f"✅ File size: {file_size} bytes")
+                    if file_size < 10000:
+                        print(f"   ⚠️ Warning: File seems small (< 10KB), might be corrupted")
+                    return True
+                else:
+                    print(f"❌ File was not created at: {output_path}")
+                    return False
+                    
+            except Exception as save_error:
+                print(f"❌ Failed to save DOCX: {save_error}")
+                import traceback
+                traceback.print_exc()
+                return False
             
         except Exception as e:
             print(f"❌ Error converting to DOCX: {e}")

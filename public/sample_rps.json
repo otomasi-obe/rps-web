@@ -1,0 +1,219 @@
+{
+  "identity": {
+    "kode": "MK001",
+    "nama": "Pengantar Pemrograman Python",
+    "sks": 2,
+    "semester": 1,
+    "status": "Mata Kuliah Wajib",
+    "prasyarat": "-"
+  },
+  "institution": {
+    "programStudi": "Sarjana Terapan Teknologi Rekayasa Otomasi",
+    "fakultas": "Sekolah Vokasi",
+    "universitas": "Universitas Diponegoro"
+  },
+  "authority": {
+    "koordinatorMK": {
+      "nama": "Dr. Ahmad Wijaya",
+      "nip": "198001011990121001",
+      "jabatan": "Koordinator Mata Kuliah"
+    },
+    "koordinatorGPM": {
+      "nama": "Prof. Budi Santoso",
+      "nip": "197502021998121001",
+      "jabatan": "Koordinator GPM"
+    },
+    "ketuaProdi": {
+      "nama": "Dr. Cecep Rahmat",
+      "nip": "198601011992031001",
+      "jabatan": "Ketua Prodi"
+    },
+    "dekan": {
+      "nama": "Prof. Dr. Ir. Budiyono, M.Si.",
+      "nip": "196602201991021001",
+      "jabatan": "Dekan Sekolah Vokasi"
+    }
+  },
+  "deskripsiSingkat": "Mata kuliah ini memperkenalkan konsep dasar pemrograman menggunakan Python. Mahasiswa akan belajar syntax dasar, struktur kontrol, dan debugging program sederhana.",
+  "cplList": [
+    {
+      "kode": "CPL3",
+      "pernyataan": "Mampu menganalisis masalah sederhana dan menyelesaikannya melalui algoritma dan pemrograman"
+    },
+    {
+      "kode": "CPL4",
+      "pernyataan": "Menguasai konsep dasar pemrograman dan mampu menulis kode yang benar"
+    }
+  ],
+  "cpmkList": [
+    {
+      "kode": "CPMK 1",
+      "pernyataan": "Mampu memahami dan menulis syntax dasar Python termasuk variabel, tipe data, dan operator"
+    },
+    {
+      "kode": "CPMK 2",
+      "pernyataan": "Mampu menggunakan struktur kontrol (if, loop) untuk menyelesaikan masalah pemrograman"
+    }
+  ],
+  "indikatorKinerjaList": [
+    {
+      "kode": "IK 3-1",
+      "kodeCPL": "CPL3",
+      "pernyataan": "Mampu menulis program Python yang menggunakan variabel dan operator dengan benar"
+    },
+    {
+      "kode": "IK 4-1",
+      "kodeCPL": "CPL4",
+      "pernyataan": "Mampu menggunakan struktur kontrol untuk membuat program yang logis"
+    }
+  ],
+  "weeklyPlan": [
+    {
+      "mingguKe": 1,
+      "kemampuanAkhir": "CPMK 1",
+      "bahanKajian": "Pengenalan Python dan instalasi environment",
+      "metodePembelajaran": {
+        "metode": "Ceramah",
+        "deskripsi": "Pengenalan bahasa Python dan instalasi tools development environment yang diperlukan untuk pemrograman",
+        "aktivitas": "Mendengarkan presentasi dan melakukan instalasi Python di komputer masing-masing"
+      },
+      "waktu": "3x50'",
+      "pengalamanBelajar": "Memahami sejarah Python menginstal interpreter Python dan IDE menggunakan Python IDLE",
+      "penilaian": {
+        "kriteria": "Mampu menginstal Python dan menjalankan program sederhana hello world dengan benar",
+        "bobot": 5
+      }
+    },
+    {
+      "mingguKe": 2,
+      "kemampuanAkhir": "CPMK 1",
+      "bahanKajian": "Variabel, tipe data, dan operator",
+      "metodePembelajaran": {
+        "metode": "Praktikum",
+        "deskripsi": "Latihan praktis menulis program Python menggunakan variabel berbagai tipe data dan operator aritmatika",
+        "aktivitas": "Membuat program yang menggunakan variabel dan operator melakukan input dan output data"
+      },
+      "waktu": "3x50'",
+      "pengalamanBelajar": "Mampu menggunakan variabel dan tipe data mengoperasikan data dengan operator melakukan input output",
+      "penilaian": {
+        "kriteria": "Ketepatan pendeklarasian variabel penggunaan operator kemampuan melakukan input output data",
+        "bobot": 5
+      }
+    },
+    {
+      "mingguKe": 8,
+      "kemampuanAkhir": "UTS",
+      "bahanKajian": "Ujian Tengah Semester",
+      "metodePembelajaran": {
+        "metode": "Ujian",
+        "deskripsi": "Ujian tertulis untuk mengukur pemahaman mahasiswa terhadap materi minggu pertama sampai minggu ketujuh",
+        "aktivitas": "Mengerjakan soal ujian yang mencakup pemahaman konsep Python dan programming basics"
+      },
+      "waktu": "3x50'",
+      "pengalamanBelajar": "UTS",
+      "penilaian": {
+        "kriteria": "UTS",
+        "bobot": 30
+      }
+    },
+    {
+      "mingguKe": 16,
+      "kemampuanAkhir": "UAS",
+      "bahanKajian": "Ujian Akhir Semester: Proyek Pemrograman",
+      "metodePembelajaran": {
+        "metode": "Ujian",
+        "deskripsi": "Ujian akhir semester melalui pengerjaan proyek pemrograman dan presentasi hasil serta demo program",
+        "aktivitas": "Membuat proyek pemrograman lengkap melakukan testing dan melakukan presentasi hasil"
+      },
+      "waktu": "3x50'",
+      "pengalamanBelajar": "UAS",
+      "penilaian": {
+        "kriteria": "UAS",
+        "bobot": 30
+      }
+    }
+  ],
+  "assessmentMethods": [
+    {
+      "teknik": "Tugas Praktikum",
+      "persentase": 40,
+      "kriteria": "Kebenaran program dan ketepatan implementasi algoritma sesuai spesifikasi",
+      "distribusiCPMK": [
+        {
+          "cpmkId": "CPMK 1",
+          "nilai": 20
+        },
+        {
+          "cpmkId": "CPMK 2",
+          "nilai": 20
+        }
+      ]
+    },
+    {
+      "teknik": "UAS",
+      "persentase": 60,
+      "kriteria": "Ujian Akhir Semester melalui proyek dan presentasi hasil",
+      "distribusiCPMK": [
+        {
+          "cpmkId": "CPMK 1",
+          "nilai": 30
+        },
+        {
+          "cpmkId": "CPMK 2",
+          "nilai": 30
+        }
+      ]
+    }
+  ],
+  "cplMappings": [
+    {
+      "kodeCPL": "CPL3",
+      "kodeIK": "IK 3-1",
+      "pernyataanIK": "Mampu menulis program Python yang menggunakan variabel dan operator dengan benar",
+      "kodeCPMK": "CPMK 1",
+      "pernyataanCPMK": "Mampu memahami dan menulis syntax dasar Python termasuk variabel, tipe data, dan operator",
+      "bobotCPMK": "50%",
+      "mediaAsesmen": "Tugas Praktikum, UAS",
+      "distribusi": {
+        "kuis": 0,
+        "presentasi": 0,
+        "proyek": 20,
+        "uts": 0,
+        "uas": 30
+      }
+    },
+    {
+      "kodeCPL": "CPL4",
+      "kodeIK": "IK 4-1",
+      "pernyataanIK": "Mampu menggunakan struktur kontrol untuk membuat program yang logis",
+      "kodeCPMK": "CPMK 2",
+      "pernyataanCPMK": "Mampu menggunakan struktur kontrol (if, loop) untuk menyelesaikan masalah pemrograman",
+      "bobotCPMK": "50%",
+      "mediaAsesmen": "Tugas Praktikum, UAS",
+      "distribusi": {
+        "kuis": 0,
+        "presentasi": 0,
+        "proyek": 20,
+        "uts": 0,
+        "uas": 30
+      }
+    }
+  ],
+  "references": [
+    {
+      "judul": "Python for Everybody: Exploring Data Using Python",
+      "penulis": "Charles Severance",
+      "jenis": "buku"
+    },
+    {
+      "judul": "Introduction to Computation and Programming Using Python",
+      "penulis": "John V. Guttag",
+      "jenis": "buku"
+    },
+    {
+      "judul": "Python Official Documentation",
+      "penulis": "Python Software Foundation",
+      "jenis": "website"
+    }
+  ]
+}

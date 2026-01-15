@@ -12,7 +12,7 @@ function getAPIUrl() {
 }
 
 // Set maxDuration untuk API route (dalam detik)
-export const maxDuration = 60; // 1 minute
+export const maxDuration = 120; // 2 minutes
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,19 +27,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Prepare meta from rpsData if not provided
-    const exportMeta = meta || {
+    // Prepare meta (merge defaults even if meta is an empty object)
+    const defaults = {
       nama: rpsData.identity.nama,
       kode: rpsData.identity.kode,
       sks: rpsData.identity.sks,
       semester: rpsData.identity.semester,
       status: rpsData.identity.status || 'Mata Kuliah Wajib',
       prasyarat: rpsData.identity.prasyarat || '-',
-      // Add authority data
       koordinatorMK: rpsData.authority?.koordinatorMK || { nama: '', nip: '', jabatan: 'Koordinator Mata Kuliah' },
       koordinatorGPM: rpsData.authority?.koordinatorGPM || { nama: '', nip: '', jabatan: 'Koordinator GPM' },
       ketuaProdi: rpsData.authority?.ketuaProdi || { nama: '', nip: '', jabatan: 'Ketua Prodi' },
       dekan: rpsData.authority?.dekan || { nama: '', nip: '', jabatan: 'Dekan' },
+    };
+
+    const incomingMeta = (meta && typeof meta === 'object') ? meta : {};
+    const exportMeta = {
+      ...defaults,
+      ...incomingMeta,
+      // Ensure authority blocks don't get wiped by partial meta
+      koordinatorMK: (incomingMeta as any).koordinatorMK ?? defaults.koordinatorMK,
+      koordinatorGPM: (incomingMeta as any).koordinatorGPM ?? defaults.koordinatorGPM,
+      ketuaProdi: (incomingMeta as any).ketuaProdi ?? defaults.ketuaProdi,
+      dekan: (incomingMeta as any).dekan ?? defaults.dekan,
     };
 
     // Convert rpsData to Python format

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { RPSData, createEmptyRPS, samplePraktikumMekatronika } from '@/types/rps';
+import { RPSData, createEmptyRPS } from '@/types/rps';
 
 // Section Components
 import IdentityTab from '@/components/tabs/IdentityTab';
@@ -74,21 +74,104 @@ export default function RPSEditor() {
     setRpsData(prev => ({ ...prev, ...updates }));
   };
 
-  // Load sample data
-  const loadSample = () => {
-    setRpsData(samplePraktikumMekatronika);
-    setJenisMK('praktikum');
-    setPromptRpsMantap(`Mata kuliah ini adalah praktikum mekatronika dan robotika yang fokus pada:
-- Robotika mobile dan autonomous systems
-- Menggunakan Arduino dan sensor ultrasonik
-- Proyek akhir: line follower robot dengan obstacle avoidance
+  const normalizeRpsData = (input: unknown): RPSData => {
+    const base = createEmptyRPS();
+    const data = (input && typeof input === 'object') ? (input as any) : {};
 
-Target lulusan mampu:
-- Merancang dan membuat robot mobile
-- Program mikrokontroler dengan C/C++
-- Integrasi sensor dan aktuator`);
-    setSuccess('Data contoh berhasil dimuat');
-    setTimeout(() => setSuccess(null), 3000);
+    const authority = data.authority || {};
+    const baseAuthority = base.authority;
+
+    const merged: RPSData = {
+      ...base,
+      ...data,
+      identity: { ...base.identity, ...(data.identity || {}) },
+      institution: { ...base.institution, ...(data.institution || {}) },
+      authority: {
+        ...baseAuthority,
+        ...authority,
+        koordinatorMK: { ...baseAuthority.koordinatorMK, ...(authority.koordinatorMK || {}) },
+        koordinatorGPM: { ...baseAuthority.koordinatorGPM, ...(authority.koordinatorGPM || {}) },
+        ketuaProdi: { ...baseAuthority.ketuaProdi, ...(authority.ketuaProdi || {}) },
+        dekan: { ...baseAuthority.dekan, ...(authority.dekan || {}) },
+      },
+      cplList: Array.isArray(data.cplList) ? data.cplList : base.cplList,
+      cpmkList: Array.isArray(data.cpmkList) ? data.cpmkList : base.cpmkList,
+      indikatorKinerjaList: Array.isArray(data.indikatorKinerjaList) ? data.indikatorKinerjaList : base.indikatorKinerjaList,
+      assessmentMethods: Array.isArray(data.assessmentMethods) ? data.assessmentMethods : base.assessmentMethods,
+      cplMappings: Array.isArray(data.cplMappings) ? data.cplMappings : [],
+      references: Array.isArray(data.references) ? data.references : [],
+      weeklyPlan: base.weeklyPlan,
+    };
+
+    const weeksByNumber = new Map<number, any>();
+    if (Array.isArray(data.weeklyPlan)) {
+      for (const week of data.weeklyPlan) {
+        const n = typeof week?.mingguKe === 'number' ? week.mingguKe : parseInt(String(week?.mingguKe || ''), 10);
+        if (Number.isFinite(n) && n >= 1 && n <= 16) {
+          weeksByNumber.set(n, week);
+        }
+      }
+    }
+
+    merged.weeklyPlan = Array.from({ length: 16 }, (_, idx) => {
+      const weekNo = idx + 1;
+      const baseWeek = base.weeklyPlan[idx] || {
+        mingguKe: weekNo,
+        kemampuanAkhir: '',
+        bahanKajian: '',
+        metodePembelajaran: { metode: '', deskripsi: '', aktivitas: '' },
+        waktu: '3x50"',
+        pengalamanBelajar: '',
+        penilaian: { kriteria: '', bobot: 0 },
+      };
+
+      const existing = weeksByNumber.get(weekNo);
+      if (!existing) return { ...baseWeek, mingguKe: weekNo };
+
+      return {
+        ...baseWeek,
+        ...existing,
+        mingguKe: weekNo,
+        metodePembelajaran: { ...baseWeek.metodePembelajaran, ...(existing.metodePembelajaran || {}) },
+        penilaian: { ...baseWeek.penilaian, ...(existing.penilaian || {}) },
+      };
+    });
+
+    return merged;
+  };
+
+  // Load sample data
+  const loadSample = async () => {
+    try {
+      setError(null);
+      setIsGenerating(true);
+      setGeneratingType('sample');
+
+      // Load sample data from public/sample_rps.json (must match the file in repo)
+      const response = await fetch('/sample_rps.json', { cache: 'no-store' });
+      if (!response.ok) {
+        throw new Error(`Gagal memuat sample_rps.json (${response.status})`);
+      }
+
+      const data = await response.json();
+      const normalized = normalizeRpsData(data);
+
+      setRpsData(normalized);
+      setJenisMK('campuran');
+      setPromptRpsMantap(normalized.deskripsiSingkat || '');
+      setSuccess('✅ Data contoh berhasil dimuat dari sample_rps.json');
+      setIsGenerating(false);
+      setGeneratingType(null);
+      setTimeout(() => setSuccess(null), 4000);
+      return;
+    } catch (err) {
+      console.error('Gagal memuat sample:', err);
+      setError(err instanceof Error ? err.message : 'Gagal memuat sample');
+    }
+
+    // Keep UI responsive
+    setIsGenerating(false);
+    setGeneratingType(null);
   };
 
   // Reset form
@@ -369,7 +452,8 @@ Target lulusan mampu:
     reader.onload = (e) => {
       try {
         const data = JSON.parse(e.target?.result as string);
-        setRpsData(data);
+        const normalized = normalizeRpsData(data);
+        setRpsData(normalized);
         setSuccess('Data berhasil dimuat dari JSON');
         setTimeout(() => setSuccess(null), 3000);
       } catch {
@@ -415,8 +499,22 @@ Target lulusan mampu:
                 </>
               )}
             </button>
-            <button onClick={loadSample} className="btn btn-secondary">
-              📥 Muat Contoh
+            <button 
+              onClick={loadSample} 
+              disabled={isGenerating}
+              className="btn btn-secondary flex items-center gap-2"
+            >
+              {isGenerating && generatingType === 'sample' ? (
+                <>
+                  <span className="spinner" />
+                  <span>Loading...</span>
+                </>
+              ) : (
+                <>
+                  📥
+                  <span>Muat Contoh</span>
+                </>
+              )}
             </button>
             <button onClick={resetForm} className="btn btn-secondary">
               🔄 Reset
