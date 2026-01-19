@@ -29,16 +29,16 @@ export async function POST(request: NextRequest) {
 
     // Prepare meta (merge defaults even if meta is an empty object)
     const defaults = {
-      nama: rpsData.identity.nama,
-      kode: rpsData.identity.kode,
-      sks: rpsData.identity.sks,
-      semester: rpsData.identity.semester,
-      status: rpsData.identity.status || 'Mata Kuliah Wajib',
-      prasyarat: rpsData.identity.prasyarat || '-',
-      koordinatorMK: rpsData.authority?.koordinatorMK || { nama: '', nip: '', jabatan: 'Koordinator Mata Kuliah' },
-      koordinatorGPM: rpsData.authority?.koordinatorGPM || { nama: '', nip: '', jabatan: 'Koordinator GPM' },
-      ketuaProdi: rpsData.authority?.ketuaProdi || { nama: '', nip: '', jabatan: 'Ketua Prodi' },
-      dekan: rpsData.authority?.dekan || { nama: '', nip: '', jabatan: 'Dekan' },
+      nama: rpsData.identitas.nama,
+      kode: rpsData.identitas.kode,
+      sks: rpsData.identitas.sks,
+      semester: rpsData.identitas.semester,
+      status: rpsData.identitas.status || 'Mata Kuliah Wajib',
+      prasyarat: rpsData.identitas.prasyarat || '-',
+      koordinatorMK: rpsData.otoritas?.koordinatorMK || { nama: '', nip: '', jabatan: 'Koordinator Mata Kuliah' },
+      koordinatorGPM: rpsData.otoritas?.koordinatorGPM || { nama: '', nip: '', jabatan: 'Koordinator GPM' },
+      ketuaProdi: rpsData.otoritas?.ketuaProdi || { nama: '', nip: '', jabatan: 'Ketua Prodi' },
+      dekan: rpsData.otoritas?.dekan || { nama: '', nip: '', jabatan: 'Dekan' },
     };
 
     const incomingMeta = (meta && typeof meta === 'object') ? meta : {};
@@ -54,103 +54,59 @@ export async function POST(request: NextRequest) {
 
     // Convert rpsData to Python format
     const pythonRPSData = {
-      deskripsi: rpsData.deskripsiSingkat,
-      cpl: rpsData.cplList.map(c => {
-        // Find matching IK for this CPL
-        const matchingIK = rpsData.indikatorKinerjaList.filter(ik => ik.kodeCPL === c.kode);
-        return {
-          kode: c.kode,
-          pernyataan: c.pernyataan,
-          ik: matchingIK.map(ik => ({
-            kode: ik.kode,
-            pernyataan: ik.pernyataan,
-          })),
-        };
-      }),
-      cpmk: rpsData.cpmkList.map(c => ({
+      identitas: {
+        kode: rpsData.identitas.kode,
+        nama: rpsData.identitas.nama,
+        sks: rpsData.identitas.sks,
+        semester: rpsData.identitas.semester,
+        status: rpsData.identitas.status,
+        prasyarat: rpsData.identitas.prasyarat,
+      },
+      otoritas: {
+        koordinatorMK: rpsData.otoritas?.koordinatorMK || exportMeta.koordinatorMK,
+        koordinatorGPM: rpsData.otoritas?.koordinatorGPM || exportMeta.koordinatorGPM,
+        ketuaProdi: rpsData.otoritas?.ketuaProdi || exportMeta.ketuaProdi,
+        dekan: rpsData.otoritas?.dekan || exportMeta.dekan,
+      },
+      deskripsi: rpsData.deskripsi,
+      cpl: rpsData.cpl.map(c => ({
         kode: c.kode,
         pernyataan: c.pernyataan,
-        mapping_cpl: '',
       })),
-      minggu: rpsData.weeklyPlan.map(w => ({
-        minggu: w.mingguKe,
-        cpmk: w.kemampuanAkhir,
-        topik: w.bahanKajian,
-        metode: w.metodePembelajaran.metode,
-        deskripsi_metode: w.metodePembelajaran.deskripsi,
-        aktivitas: w.metodePembelajaran.aktivitas,
-        waktu: w.waktu,
-        pengalaman: w.pengalamanBelajar,
-        indikator: w.penilaian.kriteria,
-        bobot: String(w.penilaian.bobot),
+      cpmk: rpsData.cpmk.map(c => ({
+        kode: c.kode,
+        pernyataan: c.pernyataan,
+        mapping_cpl: c.mapping_cpl || '',
+        N1: c.N1 || 0,
+        N2: c.N2 || 0,
+        N3: c.N3 || 0,
+        N4: c.N4 || 0,
+        N5: c.N5 || 0,
+        N_cpmk: c.N_cpmk || 100,
       })),
-      penilaian: rpsData.assessmentMethods.map(a => {
-        // Handle both new format (array) and old format (object)
-        const distribusiObj: any = {};
-        const distribusiFormatted: any = {};
-        
-        if (Array.isArray(a.distribusiCPMK)) {
-          // New format: array of {cpmkId, nilai}
-          a.distribusiCPMK.forEach((d: any) => {
-            const cpmkNum = d.cpmkId.split(' ')[1] || '1';
-            distribusiObj[`cpmk${cpmkNum}`] = d.nilai || 0;
-            distribusiFormatted[`cpmk${cpmkNum}`] = d.nilai ? `${d.nilai}%` : '';
-          });
-          // Fill missing CPMK slots
-          for (let i = 1; i <= 4; i++) {
-            if (!distribusiObj[`cpmk${i}`]) {
-              distribusiObj[`cpmk${i}`] = 0;
-              distribusiFormatted[`cpmk${i}`] = '';
-            }
-          }
-        } else {
-          // Old format: object with cpmk1-4
-          distribusiObj.cpmk1 = (a.distribusiCPMK as any)?.cpmk1 || 0;
-          distribusiObj.cpmk2 = (a.distribusiCPMK as any)?.cpmk2 || 0;
-          distribusiObj.cpmk3 = (a.distribusiCPMK as any)?.cpmk3 || 0;
-          distribusiObj.cpmk4 = (a.distribusiCPMK as any)?.cpmk4 || 0;
-          distribusiFormatted.cpmk1 = (a.distribusiCPMK as any)?.cpmk1 ? `${(a.distribusiCPMK as any).cpmk1}%` : '';
-          distribusiFormatted.cpmk2 = (a.distribusiCPMK as any)?.cpmk2 ? `${(a.distribusiCPMK as any).cpmk2}%` : '';
-          distribusiFormatted.cpmk3 = (a.distribusiCPMK as any)?.cpmk3 ? `${(a.distribusiCPMK as any).cpmk3}%` : '';
-          distribusiFormatted.cpmk4 = (a.distribusiCPMK as any)?.cpmk4 ? `${(a.distribusiCPMK as any).cpmk4}%` : '';
-        }
-        
-        return {
-          teknik: a.teknik,
-          komponen: a.teknik,
-          persentase: a.persentase,
-          bobot: `${a.persentase}%`,
-          kriteria: a.kriteria,
-          distribusiCPMK: distribusiObj,
-          cpmk1: distribusiFormatted.cpmk1,
-          cpmk2: distribusiFormatted.cpmk2,
-          cpmk3: distribusiFormatted.cpmk3,
-          cpmk4: distribusiFormatted.cpmk4,
-        };
-      }),
-      cplMappings: rpsData.cplMappings && rpsData.cplMappings.length > 0 
-        ? rpsData.cplMappings.map(m => ({
-            cpl: m.kodeCPL,
-            ik: m.kodeIK,
-            ik_pernyataan: m.pernyataanIK,
-            cpmk: m.kodeCPMK,
-            cpmk_pernyataan: m.pernyataanCPMK,
-            bobot: m.bobotCPMK,
-            media: m.mediaAsesmen,
-            qui: m.distribusi?.kuis || 0,
-            prs: m.distribusi?.presentasi || 0,
-            pro: m.distribusi?.proyek || 0,
-            uts: m.distribusi?.uts || 0,
-            uas: m.distribusi?.uas || 0,
-          }))
-        : [],
-      references: rpsData.references.map(r => {
-        const parts = [];
-        if (r.penulis?.trim()) parts.push(r.penulis.trim());
-        if (r.judul?.trim()) parts.push(r.judul.trim());
-        if (r.tahun) parts.push(String(r.tahun));
-        return parts.length ? parts.join('. ') : r.judul || '';
-      }),
+      ik: rpsData.ik.map(ik => ({
+        kode: ik.kode,
+        pernyataan: ik.pernyataan || '',
+        mapping_cpl: ik.mapping_cpl || '',
+        mapping_cpmk: ik.mapping_cpmk || '',
+      })),
+      minggu: rpsData.minggu.map(w => ({
+        mingguKe: w.mingguKe,
+        kemampuanAkhir: w.kemampuanAkhir,
+        bahanKajian: w.bahanKajian || '',
+        metodePembelajaran: {
+          metode: w.metodePembelajaran?.metode || '',
+          deskripsi: w.metodePembelajaran?.deskripsi || '',
+          aktivitas: w.metodePembelajaran?.aktivitas || '',
+        },
+        waktu: w.waktu || '',
+        pengalamanBelajar: w.pengalamanBelajar || '',
+        penilaian: {
+          kriteria: w.penilaian?.kriteria || '',
+          bobotMateri: w.penilaian?.bobotMateri || 0,
+        },
+      })),
+      referensi: rpsData.referensi || [],
     };
 
     // Call Python API

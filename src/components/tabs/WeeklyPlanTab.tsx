@@ -17,15 +17,15 @@ export default function WeeklyPlanTab({ data, onUpdate, onGenerate, isGenerating
   const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
 
   const updateWeek = (index: number, updates: Partial<WeeklyPlan>) => {
-    const newPlan = [...data.weeklyPlan];
+    const newPlan = [...data.minggu];
     newPlan[index] = { ...newPlan[index], ...updates };
-    onUpdate({ weeklyPlan: newPlan });
+    onUpdate({ minggu: newPlan });
   };
 
-  const canGenerate = data.identity.nama && data.cpmkList.some(c => c.pernyataan) && data.deskripsiSingkat;
+  const canGenerate = data.identitas.nama && data.cpmk.some(c => c.pernyataan) && data.deskripsi;
 
   // Calculate total bobot
-  const totalBobot = data.weeklyPlan.reduce((sum, w) => sum + (w.penilaian.bobot || 0), 0);
+  const totalBobot = data.minggu.reduce((sum, w) => sum + (w.penilaian?.bobotMateri || 0), 0);
 
   // Quick fill for UTS/UAS
   const quickFillExam = (weekIndex: number, type: 'UTS' | 'UAS') => {
@@ -34,7 +34,7 @@ export default function WeeklyPlanTab({ data, onUpdate, onGenerate, isGenerating
       bahanKajian: type === 'UTS' ? 'Ujian Tengah Semester' : 'Ujian Akhir Semester',
       metodePembelajaran: { metode: 'Ujian', deskripsi: 'Penilaian tertulis atau praktik komprehensif mencakup seluruh materi semester untuk mengukur kompetensi akhir mahasiswa.', aktivitas: 'Pelaksanaan ujian tulis atau praktik sesuai jadwal akademik institusi pendidikan tinggi' },
       pengalamanBelajar: `Mengerjakan soal ${type}`,
-      penilaian: { kriteria: `Nilai ${type}`, bobot: type === 'UTS' ? 15 : 20 },
+      penilaian: { kriteria: `Nilai ${type}`, bobotMateri: type === 'UTS' ? 15 : 20 },
     });
   };
 
@@ -51,7 +51,13 @@ export default function WeeklyPlanTab({ data, onUpdate, onGenerate, isGenerating
             onChange={(e) => onContextChange?.(e.target.value)}
             placeholder="Contoh: Minggu 1-4 fokus teori, minggu 5-12 praktik, minggu 13-15 proyek kelompok..."
             rows={2}
-            className="w-full text-sm"
+            className="w-full text-sm resize-y"
+            style={{ minHeight: '60px' }}
+            onInput={(e) => {
+              const target = e.target as HTMLTextAreaElement;
+              target.style.height = 'auto';
+              target.style.height = Math.max(60, target.scrollHeight) + 'px';
+            }}
           />
         </div>
         <button
@@ -98,7 +104,7 @@ export default function WeeklyPlanTab({ data, onUpdate, onGenerate, isGenerating
             </tr>
           </thead>
           <tbody>
-            {data.weeklyPlan.map((week, index) => (
+            {data.minggu.map((week, index) => (
               <React.Fragment key={week.mingguKe}>
                 <tr
                   className={`border-b border-slate-200 cursor-pointer hover:bg-slate-50 ${
@@ -121,16 +127,19 @@ export default function WeeklyPlanTab({ data, onUpdate, onGenerate, isGenerating
                     />
                   </td>
                   <td className="table-cell">
-                    <input
-                      type="text"
-                      value={week.bahanKajian}
+                    <textarea
+                      value={week.bahanKajian || ""}
                       onChange={(e) => {
                         e.stopPropagation();
                         updateWeek(index, { bahanKajian: e.target.value });
                       }}
                       onClick={(e) => e.stopPropagation()}
                       placeholder="Pokok bahasan..."
-                      className="w-full text-sm"
+                      className="w-full text-sm resize-none overflow-hidden min-h-[80px]"
+                      onInput={(e) => {
+                        const target = e.target as HTMLTextAreaElement;
+                        target.style.height = Math.max(40, target.scrollHeight) + 'px';
+                      }}
                     />
                   </td>
                   <td className="table-cell text-center">
@@ -138,11 +147,11 @@ export default function WeeklyPlanTab({ data, onUpdate, onGenerate, isGenerating
                       type="number"
                       min="0"
                       max="100"
-                      value={week.penilaian.bobot}
+                      value={week.penilaian?.bobotMateri || 0}
                       onChange={(e) => {
                         e.stopPropagation();
                         updateWeek(index, {
-                          penilaian: { ...week.penilaian, bobot: parseInt(e.target.value) || 0 },
+                          penilaian: { ...(week.penilaian || { kriteria: '', bobotMateri: 0 }), bobotMateri: parseInt(e.target.value) || 0 },
                         });
                       }}
                       onClick={(e) => e.stopPropagation()}
@@ -184,69 +193,70 @@ export default function WeeklyPlanTab({ data, onUpdate, onGenerate, isGenerating
                             Metode Pembelajaran
                           </label>
                           <select
-                            value={week.metodePembelajaran.metode}
+                            value={week.metodePembelajaran?.metode}
                             onChange={(e) =>
                               updateWeek(index, {
-                                metodePembelajaran: { ...week.metodePembelajaran, metode: e.target.value },
+                                metodePembelajaran: { ...(week.metodePembelajaran || { metode: '', deskripsi: '', aktivitas: '' }), metode: e.target.value },
                               })
                             }
                             className="w-full text-sm border rounded px-2 py-1"
                           >
                             <option value="">Pilih metode...</option>
-                            <option value="Ceramah">Ceramah</option>
-                            <option value="Diskusi">Diskusi</option>
-                            <option value="Kuis">Kuis</option>
-                            <option value="Praktikum">Praktikum</option>
-                            <option value="Project">Project</option>
-                            <option value="Presentasi">Presentasi</option>
+                            <option value="TM SCL">TM SCL (Student Centered Learning)</option>
+                            <option value="CBL">CBL (Case-Based Learning)</option>
+                            <option value="PBL">PBL (Problem-Based Learning)</option>
+                            <option value="PjBL">PjBL (Project-Based Learning)</option>
                           </select>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-xs font-medium text-slate-600 mb-1">Waktu</label>
+                          <input
+                            type="text"
+                            value={week.waktu || ""}
+                            onChange={(e) => updateWeek(index, { waktu: e.target.value })}
+                            className="w-full text-sm"
+                            placeholder='(sks)x50" teori / (sks)x170" praktik'
+                          />
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-slate-600 mb-1">
                             Deskripsi Metode
                           </label>
                           <textarea
-                            value={week.metodePembelajaran.deskripsi}
+                            value={week.metodePembelajaran?.deskripsi}
                             onChange={(e) =>
                               updateWeek(index, {
-                                metodePembelajaran: { ...week.metodePembelajaran, deskripsi: e.target.value },
+                                metodePembelajaran: { ...(week.metodePembelajaran || { metode: '', deskripsi: '', aktivitas: '' }), deskripsi: e.target.value },
                               })
                             }
-                            rows={2}
-                            className="w-full text-sm"
                             placeholder="Penjelasan metode pembelajaran..."
+                            className="w-full text-sm resize-none overflow-hidden min-h-[100px]"
+                            onInput={(e) => {
+                              const target = e.target as HTMLTextAreaElement;
+                              target.style.height = 'auto';
+                              target.style.height = Math.max(100, target.scrollHeight) + 'px';
+                            }}
                           />
-                          <span className="text-xs text-slate-500">
-                            {(week.metodePembelajaran.deskripsi || '').split(/\s+/).filter(w => w).length} kata
-                          </span>
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-slate-600 mb-1">
                             Aktivitas
                           </label>
                           <textarea
-                            value={week.metodePembelajaran.aktivitas}
+                            value={week.metodePembelajaran?.aktivitas}
                             onChange={(e) =>
                               updateWeek(index, {
-                                metodePembelajaran: { ...week.metodePembelajaran, aktivitas: e.target.value },
+                                metodePembelajaran: { ...(week.metodePembelajaran || { metode: '', deskripsi: '', aktivitas: '' }), aktivitas: e.target.value },
                               })
                             }
-                            rows={2}
-                            className="w-full text-sm"
                             placeholder="Penjelasan aktivitas pembelajaran..."
-                          />
-                          <span className="text-xs text-slate-500">
-                            {(week.metodePembelajaran.aktivitas || '').split(/\s+/).filter(w => w).length} kata
-                          </span>
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-slate-600 mb-1">Waktu</label>
-                          <input
-                            type="text"
-                            value={week.waktu}
-                            onChange={(e) => updateWeek(index, { waktu: e.target.value })}
-                            className="w-full text-sm"
-                            placeholder='3x50"'
+                            className="w-full text-sm resize-none overflow-hidden min-h-[100px]"
+                            onInput={(e) => {
+                              const target = e.target as HTMLTextAreaElement;
+                              target.style.height = 'auto';
+                              target.style.height = Math.max(100, target.scrollHeight) + 'px';
+                            }}
                           />
                         </div>
                         <div>
@@ -254,11 +264,15 @@ export default function WeeklyPlanTab({ data, onUpdate, onGenerate, isGenerating
                             Pengalaman Belajar Mahasiswa
                           </label>
                           <textarea
-                            value={week.pengalamanBelajar}
+                            value={week.pengalamanBelajar || ""}
                             onChange={(e) => updateWeek(index, { pengalamanBelajar: e.target.value })}
-                            rows={2}
-                            className="w-full text-sm"
                             placeholder="Aktivitas yang dilakukan mahasiswa..."
+                            className="w-full text-sm resize-none overflow-hidden min-h-[100px]"
+                            onInput={(e) => {
+                              const target = e.target as HTMLTextAreaElement;
+                              target.style.height = 'auto';
+                              target.style.height = Math.max(100, target.scrollHeight) + 'px';
+                            }}
                           />
                         </div>
                         <div>
@@ -266,15 +280,19 @@ export default function WeeklyPlanTab({ data, onUpdate, onGenerate, isGenerating
                             Kriteria Penilaian
                           </label>
                           <textarea
-                            value={week.penilaian.kriteria}
+                            value={week.penilaian?.kriteria || ''}
                             onChange={(e) =>
                               updateWeek(index, {
-                                penilaian: { ...week.penilaian, kriteria: e.target.value },
+                                penilaian: { ...(week.penilaian || { kriteria: '', bobotMateri: 0 }), kriteria: e.target.value },
                               })
                             }
-                            rows={2}
-                            className="w-full text-sm"
                             placeholder="Kriteria dan indikator penilaian..."
+                            className="w-full text-sm resize-none overflow-hidden min-h-[100px]"
+                            onInput={(e) => {
+                              const target = e.target as HTMLTextAreaElement;
+                              target.style.height = 'auto';
+                              target.style.height = Math.max(100, target.scrollHeight) + 'px';
+                            }}
                           />
                         </div>
                       </div>

@@ -7,8 +7,261 @@ Handles template filling and format preservation.
 """
 
 import json
+import re
 from pathlib import Path
 from typing import Optional
+
+
+def clean_key(text):
+    """Membersihkan text untuk pencarian key yang akurat."""
+    if not text: return ""
+    return text.replace('"', '').replace('"', '').replace('"', '').strip()
+
+
+def get_cpmk_index_from_header(text):
+    """
+    Mendeteksi index CPMK dari header kolom.
+    Mendukung format: "CPMK 1", "CPMK 1-1", "CPMK 1-3", "CPMK 3 (%)"
+    """
+    match = re.search(r'CPMK\s*(?:1-)?(\d+)', text, re.IGNORECASE)
+    if match:
+        return int(match.group(1))
+    return None
+
+
+def delete_column_safe(table, col_idx):
+    """
+    Menghapus kolom tabel dengan aman (Update XML tblGrid).
+    Mencegah file Word menjadi corrupt.
+    """
+    tbl = table._tbl
+    
+    # 1. Hapus Definisi Kolom di Grid (tblGrid)
+    if tbl.tblGrid is not None:
+        grid_cols = tbl.tblGrid.gridCol_lst
+        if col_idx < len(grid_cols):
+            tbl.tblGrid.remove(grid_cols[col_idx])
+
+    # 2. Hapus Sel (tc) di setiap Baris (tr)
+    for tr in tbl.tr_lst:
+        tc_list = tr.tc_lst
+        if col_idx < len(tc_list):
+            tc = tc_list[col_idx]
+            tr.remove(tc)
+
+
+def prune_unused_cpmk_columns(table, total_cpmk_json):
+    """
+    Mendeteksi kolom CPMK berlebih dan menghapusnya dari kanan ke kiri.
+    """
+    cols_to_delete = set()
+    
+    # Cek Header (2 baris pertama)
+    header_rows = table.rows[:2]
+    
+    for row in header_rows:
+        for c_idx, cell in enumerate(row.cells):
+            c_idx_num = get_cpmk_index_from_header(cell.text)
+            
+            # Jika angka CPMK di header > jumlah CPMK di JSON -> HAPUS
+            if c_idx_num and c_idx_num > total_cpmk_json:
+                cols_to_delete.add(c_idx)
+            
+            # Cek juga placeholder
+            for i in range(total_cpmk_json + 1, 10):
+                if f"cpmk{i}" in cell.text or f"cpmk {i}" in cell.text.lower():
+                    cols_to_delete.add(c_idx)
+
+    # Hapus dari index TERBESAR ke terkecil
+    sorted_cols = sorted(list(cols_to_delete), reverse=True)
+    for col_idx in sorted_cols:
+        try:
+            delete_column_safe(table, col_idx)
+        except Exception as e:
+            print(f"   [WARN] Gagal hapus kolom {col_idx}: {e}")
+
+
+def duplicate_table_row(table, row_idx):
+    """Duplikasi baris tabel dengan mempertahankan formatting."""
+    row = table.rows[row_idx]
+    new_row = table.add_row()
+    row._tr.addnext(new_row._tr)
+    
+    for i, cell in enumerate(row.cells):
+        new_cell = new_row.cells[i]
+        # Clear default
+        for p in new_cell.paragraphs:
+            p._element.getparent().remove(p._element)
+        # Copy content
+        for p in cell.paragraphs:
+            new_p = new_cell.add_paragraph()
+            new_p.style = p.style
+            new_p.alignment = p.alignment
+            for r in p.runs:
+                new_r = new_p.add_run(r.text)
+                new_r.bold = r.bold
+                new_r.italic = r.italic
+                new_r.underline = r.underline
+                new_r.font.name = r.font.name
+                new_r.font.size = r.font.size
+                if r.font.color and r.font.color.rgb:
+                    new_r.font.color.rgb = r.font.color.rgb
+    return new_row
+
+
+def remove_row_xml(table, row_obj):
+    """Hapus baris dari tabel."""
+    tbl = table._tbl
+    tr = row_obj._tr
+    tbl.remove(tr)
+
+
+def replace_paragraph_text(paragraph, placeholder_map):
+    """Replace text di paragraf dengan exact dan partial matching."""
+    if not paragraph.text: return
+    
+    p_text_raw = paragraph.text
+    p_text_clean = clean_key(p_text_raw)
+    
+    # 1. Exact Match Check (Prioritas)
+    for key, val in placeholder_map.items():
+        if clean_key(key) == p_text_clean:
+            if paragraph.runs:
+                paragraph.runs[0].text = str(val)
+                for r in paragraph.runs[1:]:
+                    r.text = ''
+            return
+
+    # 2. Partial Match Check
+    for key, val in placeholder_map.items():
+        variations = [key, f'"{key}"', f'"{key}"']
+        
+        full_text = paragraph.text
+        matched = False
+        for var in variations:
+            if var in full_text:
+                matched = True
+                new_text = full_text.replace(var, str(val))
+                
+                if paragraph.runs:
+                    paragraph.runs[0].text = new_text
+                    for r in paragraph.runs[1:]:
+                        r.text = ''
+                break
+        
+        if matched:
+            break
+
+
+def generate_media_asesmen_string(cpmk_item):
+    """Generate string media asesmen dari bobot CPMK."""
+    components = []
+    if cpmk_item.get('N1', 0) > 0: components.append("PRS")
+    if cpmk_item.get('N2', 0) > 0: components.append("PRO")
+    if cpmk_item.get('N3', 0) > 0: components.append("QUIZ")
+    if cpmk_item.get('N4', 0) > 0: components.append("UTS")
+    if cpmk_item.get('N5', 0) > 0: components.append("UAS")
+    return ", ".join(components)
+
+
+def process_smart_list_table(table, data_list, mapping_config):
+    """Process tabel dengan duplikasi baris dinamis berdasarkan jumlah data."""
+    template_rows = []
+    
+    is_integration_table = 'IK 1-' in str(mapping_config.keys()) or 'CPL 1' in str(mapping_config.keys())
+    
+    for i, row in enumerate(table.rows):
+        row_text = " ".join([c.text for c in row.cells])
+        is_template = False
+        
+        if is_integration_table:
+            if ('CPL' in row_text and 'IK' in row_text and 'CPMK' in row_text):
+                has_placeholder_pattern = False
+                for ph in mapping_config.keys():
+                    if clean_key(ph) in clean_key(row_text):
+                        has_placeholder_pattern = True
+                        break
+                
+                if not has_placeholder_pattern:
+                    if re.search(r'IK\s+\d+-\d+', row_text) or re.search(r'CPL\s+\d+', row_text):
+                        has_placeholder_pattern = True
+                
+                if has_placeholder_pattern:
+                    is_template = True
+        else:
+            for ph in mapping_config.keys():
+                if clean_key(ph) in clean_key(row_text):
+                    is_template = True
+                    break
+        
+        if is_template:
+            template_rows.append(i)
+
+    if not template_rows: return
+
+    start_idx = template_rows[0]
+    available = len(template_rows)
+    needed = len(data_list)
+    
+    col_mapping = None
+    if is_integration_table:
+        col_mapping = {
+            'cpl_kode': 0,
+            'ik_kode': 1,
+            'pernyataan': 2,
+            'cpmk_kode': 3,
+            'cpmk_pernyataan': 4,
+            'N_total': 5,
+            'MA_val': 6,
+            'N1': 7,
+            'N2': 8,
+            'N3': 9,
+            'N4': 10,
+            'N5': 11
+        }
+
+    # Resize Table
+    if needed > available:
+        diff = needed - available
+        insert_pos = template_rows[-1]
+        curr = insert_pos
+        for _ in range(diff):
+            duplicate_table_row(table, curr)
+            curr += 1
+            
+    elif needed < available:
+        diff = available - needed
+        indices_to_remove = template_rows[needed:]
+        for r_idx in reversed(indices_to_remove):
+            remove_row_xml(table, table.rows[r_idx])
+
+    # Fill Data
+    for i, item in enumerate(data_list):
+        row_idx = start_idx + i
+        if row_idx >= len(table.rows): break
+        
+        row = table.rows[row_idx]
+        
+        if is_integration_table and col_mapping:
+            if len(row.cells) >= 12:
+                row.cells[col_mapping['cpl_kode']].text = str(item.get('cpl_kode', ''))
+                row.cells[col_mapping['ik_kode']].text = str(item.get('ik_kode', ''))
+                row.cells[col_mapping['pernyataan']].text = str(item.get('pernyataan', ''))
+                row.cells[col_mapping['cpmk_kode']].text = str(item.get('cpmk_kode', ''))
+                row.cells[col_mapping['cpmk_pernyataan']].text = str(item.get('cpmk_pernyataan', ''))
+                row.cells[col_mapping['N_total']].text = str(item.get('N_total', ''))
+                row.cells[col_mapping['MA_val']].text = str(item.get('MA_val', ''))
+                row.cells[col_mapping['N1']].text = str(item.get('N1', ''))
+                row.cells[col_mapping['N2']].text = str(item.get('N2', ''))
+                row.cells[col_mapping['N3']].text = str(item.get('N3', ''))
+                row.cells[col_mapping['N4']].text = str(item.get('N4', ''))
+                row.cells[col_mapping['N5']].text = str(item.get('N5', ''))
+        else:
+            row_map = {ph: item.get(key, "") for ph, key in mapping_config.items()}
+            
+            for cell in row.cells:
+                for p in cell.paragraphs:
+                    replace_paragraph_text(p, row_map)
 
 
 def _set_cell_text_preserve_format(cell, text: str) -> None:
@@ -157,307 +410,226 @@ class JSONToDocx:
         print(f"\n[CONVERT] Converting JSON to DOCX...")
         print(f"   Template: {self.template_path}")
         print(f"   Output: {output_path}")
-        print(f"   Input rpsData type: {type(rps_data)}")
-        print(f"   Input meta type: {type(meta)}")
         
         try:
             print(f"[CONVERT] Loading Document from {self.template_path}...")
             doc = Document(str(self.template_path))
             print(f"[CONVERT] Document loaded. Total tables: {len(doc.tables)}")
             
-            # Template structure:
-            # Table 0: Header (RPS title)
-            # Table 1: Identity + Authority (Kode, Nama, SKS, Semester, Status, Prasyarat, Otoritas)
-            # Table 2: Weekly Plan (Minggu 1-16)
-            # Table 3: Assessment Methods (Penilaian)
-            # Table 4: CPL Mappings
+            # ---------------------------------------------------------
+            # 1. PERSIAPAN DATA MAPPING GLOBAL & OTORITAS
+            # ---------------------------------------------------------
             
-            if len(doc.tables) < 5:
-                raise ValueError(f"Template structure unexpected: expected at least 5 tables, got {len(doc.tables)}")
-            
-            print(f"[CONVERT] Template structure validated")
-            
-            # Use the formatting-preserving function
-            set_cell = _set_cell_text_preserve_format
-            
-            # TABLE 1: course identity (index 1) + Authority row
-            t1 = doc.tables[1]
-            set_cell(t1.cell(1, 0), meta["kode"])
-            set_cell(t1.cell(1, 1), meta["nama"])
-            set_cell(t1.cell(1, 2), meta["nama"])
-            set_cell(t1.cell(1, 3), str(meta["sks"]))
-            set_cell(t1.cell(1, 4), str(meta["semester"]))
-            set_cell(t1.cell(1, 5), meta["status"])
-            set_cell(t1.cell(1, 6), meta["prasyarat"])
-            
-            # Row 2: Authority/Otoritas (Koordinator MK, Koordinator GPM, Ketua Prodi, Dekan)
-            if len(t1.rows) > 2:
-                auth_row = t1.rows[2]
-                
-                # Debug: Log table structure
-                print(f"📊 Table 1 structure:")
-                print(f"   - Total rows: {len(t1.rows)}")
-                print(f"   - Auth row (row 2) cells: {len(auth_row.cells)}")
-                
-                # Debug: Log received authority data
-                print(f"📝 Authority data received:")
-                print(f"   - Meta keys: {list(meta.keys())}")
-                print(f"   - koordinatorMK: {meta.get('koordinatorMK')}")
-                print(f"   - koordinatorGPM: {meta.get('koordinatorGPM')}")
-                print(f"   - ketuaProdi: {meta.get('ketuaProdi')}")
-                print(f"   - dekan: {meta.get('dekan')}")
-                
-                # Column structure based on template analysis: 0=Otoritas, 1=KoordinatorMK, 3=KoordinatorGPM, 5=KetuaProdi, 6=Dekan
-                if 'koordinatorMK' in meta and len(auth_row.cells) > 1:
-                    mk = meta['koordinatorMK']
-                    mk_nama = mk.get('nama', '') if isinstance(mk, dict) else ''
-                    mk_nip = mk.get('nip', '') if isinstance(mk, dict) else ''
-                    mk_jabatan = mk.get('jabatan', 'Koordinator Mata Kuliah') if isinstance(mk, dict) else 'Koordinator Mata Kuliah'
-                    # Fill column 1 for Koordinator MK - match template format with line breaks
-                    set_cell(auth_row.cells[1], f"{mk_jabatan}\n\n\n\n\n{mk_nama}\nNIP. {mk_nip}")
-                    print(f"   ✅ Koordinator MK filled: {mk_nama}")
-                
-                if 'koordinatorGPM' in meta and len(auth_row.cells) > 3:
-                    gpm = meta['koordinatorGPM']
-                    gpm_nama = gpm.get('nama', '') if isinstance(gpm, dict) else ''
-                    gpm_nip = gpm.get('nip', '') if isinstance(gpm, dict) else ''
-                    gpm_jabatan = gpm.get('jabatan', 'Koordinator GPM') if isinstance(gpm, dict) else 'Koordinator GPM'
-                    # Fill column 3 for Koordinator GPM - match template format with line breaks
-                    set_cell(auth_row.cells[3], f"{gpm_jabatan}\n\n\n\n\n{gpm_nama}\nNIP. {gpm_nip}")
-                    print(f"   ✅ Koordinator GPM filled: {gpm_nama}")
-                
-                if 'ketuaProdi' in meta and len(auth_row.cells) > 5:
-                    prodi = meta['ketuaProdi']
-                    prodi_nama = prodi.get('nama', '') if isinstance(prodi, dict) else ''
-                    prodi_nip = prodi.get('nip', '') if isinstance(prodi, dict) else ''
-                    prodi_jabatan = prodi.get('jabatan', 'Ketua Prodi') if isinstance(prodi, dict) else 'Ketua Prodi'
-                    # Fill column 5 for Ketua Prodi - match template format with line breaks
-                    set_cell(auth_row.cells[5], f"{prodi_jabatan}\n\n\n\n\n{prodi_nama}\nNIP. {prodi_nip}")
-                    print(f"   ✅ Ketua Prodi filled: {prodi_nama}")
-                
-                if 'dekan' in meta and len(auth_row.cells) > 6:
-                    dekan = meta['dekan']
-                    dekan_nama = dekan.get('nama', '') if isinstance(dekan, dict) else ''
-                    dekan_nip = dekan.get('nip', '') if isinstance(dekan, dict) else ''
-                    dekan_jabatan = dekan.get('jabatan', 'Dekan Sekolah Vokasi') if isinstance(dekan, dict) else 'Dekan Sekolah Vokasi'
-                    # Fill column 6 for Dekan - match template format with line breaks
-                    set_cell(auth_row.cells[6], f"{dekan_jabatan}\n\n\n\n\n{dekan_nama}\nNIP. {dekan_nip}")
-                    print(f"   ✅ Dekan filled: {dekan_nama}")
-            
-            # Row 3: description (deskripsiSingkat)
-            deskripsi = rps_data.get("deskripsiSingkat") or rps_data.get("deskripsi", "")
-            for c in range(1, 7):
-                set_cell(t1.cell(3, c), deskripsi)
-            
-            # Row 4-6: CPL
-            cpl_list = rps_data.get("cplList", []) or rps_data.get("cpl", [])
-            for i, cpl in enumerate(cpl_list[:3]):
-                row_idx = 4 + i
-                set_cell(t1.cell(row_idx, 1), cpl.get("kode", f"CPL{i+1}"))
-                for c in range(2, 7):
-                    set_cell(t1.cell(row_idx, c), cpl.get("pernyataan", ""))
-            
-            # TABLE 2: CPMK (index 2) - Moved after identity table
-            # This is actually the CPMK table with rows for each CPMK description
-            t2_cpmk = doc.tables[2]
-            # But table 2 has 21 rows, suggesting it's the weekly plan table
-            # Let me use table 1 for CPMK since it might be embedded there
-            
-            # Actually, let's reread the structure:
-            # Table 0: Header/Title
-            # Table 1: Identity (16 rows) - first 7 columns for course info, row 2 for authority, row 3 for description, rows 4-6 for CPL
-            # Table 2: Weekly Plan (21 rows) - minggu details
-            # Table 3: Assessment Methods (10 rows) - penilaian
-            # Table 4: CPL Mappings (7 rows)
-            
-            # So we need to fill CPMK directly in Table 1 if there's space, or skip it
-            # For now, let's continue with the weekly plan which is in Table 2
-            
-            # TABLE 2: weekly plan (index 2) - Rencana Pembelajaran Mingguan
-            t2 = doc.tables[2]
-            minggu_list = rps_data.get("minggu", []) or rps_data.get("weeklyPlan", [])
-            
-            print(f"📊 TABLE 2 - Weekly Plan:")
-            print(f"   - Total weeks: {len(minggu_list)}")
-            print(f"   - Table rows: {len(t2.rows)}")
-            print(f"   - Table columns: {len(t2.columns)}")
-            
-            for i, week_data in enumerate(minggu_list[:16]):
-                row_idx = 4 + i  # Rows 4-19 are weeks 1-16
-                
-                # Handle both old flat format and new nested format
-                week_no = str(week_data.get("minggu") or week_data.get("mingguKe", i + 1))
-                cpmk_code = week_data.get("cpmk") or week_data.get("kemampuanAkhir", "")
-                topik = week_data.get("topik") or week_data.get("bahanKajian", "")
-                
-                # Extract metodePembelajaran - can be nested object or flat fields
-                metode_obj = week_data.get("metodePembelajaran", {})
-                if isinstance(metode_obj, dict) and metode_obj:  # Check if it's a non-empty dict
-                    metode = metode_obj.get("metode", "")
-                    deskripsi = metode_obj.get("deskripsi", "")
-                    aktivitas = metode_obj.get("aktivitas", "")
-                else:
-                    # Fallback to flat structure
-                    metode = week_data.get("metode", "")
-                    deskripsi = week_data.get("deskripsi_metode", "")
-                    aktivitas = week_data.get("aktivitas", "")
-                
-                waktu = week_data.get("waktu", "3x50'")
-                pengalaman = week_data.get("pengalaman") or week_data.get("pengalamanBelajar", "")
-                
-                # Extract penilaian - can be nested object or flat fields
-                penilaian_obj = week_data.get("penilaian", {})
-                if isinstance(penilaian_obj, dict) and penilaian_obj:  # Check if it's a non-empty dict
-                    indikator = penilaian_obj.get("kriteria", "")
-                    bobot = str(penilaian_obj.get("bobot", ""))
-                else:
-                    # Fallback to flat structure
-                    indikator = week_data.get("indikator", "")
-                    bobot = str(week_data.get("bobot", ""))
-                
-                print(f"   - Week {week_no}: {cpmk_code} | Metode:{metode} | Kriteria:{indikator[:30] if indikator else 'KOSONG'}")
-                
-                # Check if it's UTS or UAS (merged row)
-                if cpmk_code in ("UTS", "UAS"):
-                    set_cell(t2.cell(row_idx, 0), week_no)
-                    merged_text = f"{cpmk_code}\n{topik}\nBobot: {bobot}%"
-                    set_cell(t2.cell(row_idx, 1), merged_text)
-                else:
-                    cpmk_dict = {c.get("kode", ""): c.get("pernyataan", "") for c in rps_data.get("cpmk", [])}
-                    kemampuan = f"{cpmk_code}:\n{cpmk_dict.get(cpmk_code, '')}"
-                    set_cell(t2.cell(row_idx, 0), week_no)
-                    set_cell(t2.cell(row_idx, 1), kemampuan)
-                    set_cell(t2.cell(row_idx, 2), topik)
-                    
-                    # Fill metode pembelajaran - columns 3-6 are merged into one cell in the template
-                    # Combine all method info into this single merged cell
-                    metode_text = f"{metode}"
-                    if deskripsi:
-                        metode_text += f"\n\n{deskripsi}"
-                    if aktivitas:
-                        metode_text += f"\n\nAktivitas:\n{aktivitas}"
-                    
-                    set_cell(t2.cell(row_idx, 3), metode_text)
-                    
-                    # Column 7: Waktu (total learning time)
-                    if len(t2.columns) > 7:
-                        set_cell(t2.cell(row_idx, 7), waktu)
-                    # Column 8: Pengalaman Belajar
-                    if len(t2.columns) > 8:
-                        set_cell(t2.cell(row_idx, 8), pengalaman)
-                    # Column 9: Kriteria & Indikator (PENTING!)
-                    if len(t2.columns) > 9:
-                        set_cell(t2.cell(row_idx, 9), indikator)
-                    # Column 10: Bobot
-                    if len(t2.columns) > 10:
-                        set_cell(t2.cell(row_idx, 10), bobot)
-                    
-                    if indikator:
-                        print(f"     ✅ Kriteria filled: {indikator[:50]}")
-                    else:
-                        print(f"     ⚠️ Kriteria KOSONG untuk minggu {week_no}")
-            
-            # Row 20: references - in table 2
-            # Only fill if row 20 exists
-            if len(t2.rows) > 20:
-                references_list = rps_data.get("references", [])
-                if references_list:
-                    # Convert array of objects to formatted strings with numbering
-                    formatted_refs = []
-                    for i, ref in enumerate(references_list, 1):
-                        if isinstance(ref, dict):
-                            # Use judul field from reference object
-                            judul = ref.get("judul", "")
-                            if judul:
-                                formatted_refs.append(f"[{i}] {judul}")
-                        elif isinstance(ref, str):
-                            # Handle if it's already a string
-                            formatted_refs.append(f"[{i}] {ref}")
-                    referensi_text = "\n".join(formatted_refs)
-                else:
-                    # Fallback: try old field name for compatibility
-                    referensi_list = rps_data.get("referensi", [])
-                    if referensi_list:
-                        numbered_refs = [f"[{i}] {ref}" for i, ref in enumerate(referensi_list, 1)]
-                        referensi_text = "\n".join(numbered_refs)
-                    else:
-                        referensi_text = "referensinya"
-                
-                if len(t2.rows[20].cells) > 5:
-                    set_cell(t2.cell(20, 5), referensi_text)
-                    print(f"   ✅ References filled in row 20")
-            
-            # TABLE 3: assessment (index 3) - Metode Penilaian
-            t3 = doc.tables[3]
-            penilaian_list = rps_data.get("penilaian", []) or rps_data.get("assessmentMethods", [])
+            # Lookup CPMK Code -> Description
             cpmk_list = rps_data.get("cpmkList", []) or rps_data.get("cpmk", [])
+            cpmk_desc_lookup = {item['kode']: item['pernyataan'] for item in cpmk_list}
+            total_cpmk = len(cpmk_list)
             
-            print(f"📊 TABLE 3 - Assessment Methods:")
-            print(f"   - Total methods: {len(penilaian_list)}")
-            print(f"   - Total CPMK: {len(cpmk_list)}")
-            print(f"   - Table rows: {len(t3.rows)}")
+            # Dapatkan deskripsi dari data
+            deskripsi = rps_data.get("deskripsiSingkat") or rps_data.get("deskripsi", "")
             
-            for i, penilaian in enumerate(penilaian_list[:5]):
-                row_idx = 2 + i
-                if row_idx < len(t3.rows):
-                    # Handle both old format (komponen field) and new format (teknik field)
-                    teknik = penilaian.get("teknik") or penilaian.get("komponen", "")
-                    persentase = penilaian.get("persentase") or penilaian.get("bobot", 0)
-                    kriteria = penilaian.get("kriteria", "")
+            # Global Map
+            global_map = {
+                'identitas.kode': meta.get('kode', ''),
+                'identitas.nama': meta.get('nama', ''),
+                'identitas.sks': str(meta.get('sks', '')),
+                'identitas.semester': str(meta.get('semester', '')),
+                'identitas.status': meta.get('status', ''),
+                'identitas.prasyarat': meta.get('prasyarat', ''),
+                'identitas.prasayarat': meta.get('prasyarat', ''),
+                'Deskripsi mata kuliah': deskripsi,
+                
+                # --- OTORITAS (NAMA & NIP) ---
+                'Otoritas.koordinatormk.nama': meta.get('koordinatorMK', {}).get('nama', ''),
+                'Otoritas.koordinatormk.nip': meta.get('koordinatorMK', {}).get('nip', ''),
+                
+                'Otoritas.koordinatorGPM.nama': meta.get('koordinatorGPM', {}).get('nama', ''),
+                'Otoritas.koordinatorGPM.nip': meta.get('koordinatorGPM', {}).get('nip', ''),
+                
+                'Otoritas.ketuaProdi.nama': meta.get('ketuaProdi', {}).get('nama', ''),
+                'Otoritas.ketuaProdi.nip': meta.get('ketuaProdi', {}).get('nip', ''),
+                
+                'Otoritas.dekan.nama': meta.get('dekan', {}).get('nama', ''),
+                'Otoritas.dekan.nip': meta.get('dekan', {}).get('nip', ''),
+            }
+            
+            # CPMK Weights & Media for Global Use
+            for i, cpmk in enumerate(cpmk_list):
+                idx = i + 1
+                ma_str = generate_media_asesmen_string(cpmk)
+                global_map[f'MA_cpmk{idx}'] = ma_str
+                global_map[f'N1_cpmk{idx}'] = cpmk.get('N1', 0)
+                global_map[f'N2_cpmk{idx}'] = cpmk.get('N2', 0)
+                global_map[f'N3_cpmk{idx}'] = cpmk.get('N3', 0)
+                global_map[f'N4_cpmk{idx}'] = cpmk.get('N4', 0)
+                global_map[f'N5_cpmk{idx}'] = cpmk.get('N5', 0)
+                global_map[f'Ntotal_cpmk{idx}'] = cpmk.get('N_cpmk', 0)
+                global_map[f'CPMK 1-{idx}'] = cpmk.get('kode', '')
+                global_map[f'Deskripsi cpmk 1-{idx}'] = cpmk.get('pernyataan', '')
+            
+            # ---------------------------------------------------------
+            # 2. PREPARE DATA CPL
+            # ---------------------------------------------------------
+            cpl_list = rps_data.get("cplList", []) or rps_data.get("cpl", [])
+            
+            # ---------------------------------------------------------
+            # 3. PREPARE DATA INTEGRASI (TABEL TERAKHIR)
+            # ---------------------------------------------------------
+            integration_rows = []
+            ik_list = rps_data.get("ik", [])
+            if ik_list:
+                cpmk_obj_lookup = {item['kode']: item for item in cpmk_list}
+                cpl_obj_lookup = {item['kode']: item for item in cpl_list}
+                
+                for ik_item in ik_list:
+                    # IK mapping ke CPMK
+                    cpmk_code = ik_item.get('mapping_cpmk', '')  # CPMK code
+                    cpmk_data = cpmk_obj_lookup.get(cpmk_code, {})
                     
-                    print(f"   - Method {i+1}: {teknik} ({persentase}%)")
+                    # CPMK mapping ke CPL
+                    cpl_code = cpmk_data.get('mapping_cpl', '')
+                    cpl_data = cpl_obj_lookup.get(cpl_code, {})
                     
-                    set_cell(t3.cell(row_idx, 1), teknik)
-                    set_cell(t3.cell(row_idx, 2), str(persentase))
-                    set_cell(t3.cell(row_idx, 3), kriteria)
+                    ma_val = generate_media_asesmen_string(cpmk_data)
                     
-                    # CPMK distribution columns - handle both formats (array vs object)
-                    distribusi = penilaian.get("distribusiCPMK", [])
+                    integration_rows.append({
+                        'ik_kode': ik_item.get('kode', ''),
+                        'pernyataan': ik_item.get('pernyataan', ''),
+                        'cpmk_kode': cpmk_code,
+                        'cpmk_pernyataan': cpmk_data.get('pernyataan', ''),
+                        'cpl_kode': cpl_code,
+                        'cpl_pernyataan': cpl_data.get('pernyataan', ''),
+                        'N1': cpmk_data.get('N1', ''),
+                        'N2': cpmk_data.get('N2', ''),
+                        'N3': cpmk_data.get('N3', ''),
+                        'N4': cpmk_data.get('N4', ''),
+                        'N5': cpmk_data.get('N5', ''),
+                        'N_total': cpmk_data.get('N_cpmk', ''),
+                        'MA_val': ma_val
+                    })
+            
+            # ---------------------------------------------------------
+            # 4. EKSEKUSI PADA SETIAP TABEL
+            # ---------------------------------------------------------
+            
+            for table in doc.tables:
+                all_text = " ".join([c.text for r in table.rows for c in r.cells])
+                
+                # A. DELETE KOLOM CPMK BERLEBIH (Pruning)
+                if 'CPMK 1-' in all_text or 'CPMK 1 (' in all_text:
+                    prune_unused_cpmk_columns(table, total_cpmk)
+                
+                # B. GLOBAL REPLACE (Identitas, Otoritas, Bobot CPMK)
+                for row in table.rows:
+                    for cell in row.cells:
+                        for p in cell.paragraphs:
+                            replace_paragraph_text(p, global_map)
+                
+                # C. CPL LIST
+                if 'cpl.kode' in all_text:
+                    process_smart_list_table(table, cpl_list, {
+                        'cpl.kode': 'kode',
+                        'cpl.pernyataan': 'pernyataan'
+                    })
+                
+                # D. CPMK LIST
+                if 'cpmk.kode' in all_text:
+                    process_smart_list_table(table, cpmk_list, {
+                        'cpmk.kode': 'kode',
+                        'cpmk.pernyataan': 'pernyataan'
+                    })
+                
+                # E. TABEL INTEGRASI (IK - CPL)
+                if 'IK - CPL' in all_text and integration_rows:
+                    process_smart_list_table(table, integration_rows, {
+                        'IK 1-1': 'ik_kode',
+                        'Deskripsi Ik 1-1': 'pernyataan',
+                        'CPMK 1-1': 'cpmk_kode',
+                        'Deskripsi cpmk 1-1': 'cpmk_pernyataan',
+                        'CPL 1': 'cpl_kode',
+                        'MA_cpmk1': 'MA_val',
+                        'N1_cpmk1': 'N1',
+                        'N2_cpmk1': 'N2',
+                        'N3_cpmk1': 'N3',
+                        'N4_cpmk1': 'N4',
+                        'N5_cpmk1': 'N5',
+                        'Ntotal_cpmk1': 'N_total'
+                    })
+                
+                # F. JADWAL MINGGUAN (Weekly)
+                if 'Minggu ke' in all_text and 'Kemampuan Akhir' in all_text:
+                    minggu_list = rps_data.get("minggu", []) or rps_data.get("weeklyPlan", [])
+                    minggu_map_data = {m.get('mingguKe') or m.get('minggu'): m for m in minggu_list}
                     
-                    if isinstance(distribusi, list):
-                        # New format: array of {cpmkId, nilai}
-                        cpmk_values = {}
-                        for dist_item in distribusi:
-                            cpmk_id = dist_item.get("cpmkId", "")
-                            nilai = str(dist_item.get("nilai", 0) or 0)
-                            cpmk_values[cpmk_id] = nilai
-                        
-                        # Fill columns 4 onwards with CPMK values in order
-                        for j, cpmk in enumerate(cpmk_list[:10]):  # Support up to 10 CPMK
-                            col_idx = 4 + j
-                            if col_idx < len(t3.rows[row_idx].cells):
-                                cpmk_nilai = cpmk_values.get(cpmk.get("kode", ""), "0")
-                                set_cell(t3.cell(row_idx, col_idx), cpmk_nilai)
-                        
-                        # Print summary
-                        nilai_list = [f"{cpmk.get('kode', 'CPMK')}:{cpmk_values.get(cpmk.get('kode', ''), '0')}%" for cpmk in cpmk_list[:4]]
-                        print(f"     ✅ Distribution - {' '.join(nilai_list)}")
+                    for row in table.rows:
+                        if not row.cells: continue
+                        txt = clean_key(row.cells[0].text)
+                        if txt.isdigit():
+                            m_ke = int(txt)
+                            if m_ke in minggu_map_data:
+                                item = minggu_map_data[m_ke]
+                                wm = {}
+                                
+                                # Handle Deskripsi Kemampuan Akhir
+                                raw_ka = item.get('kemampuanAkhir') or item.get('cpmk', '')
+                                wm['kemampuanAkhir'] = raw_ka
+                                clean_ka = clean_key(raw_ka)
+                                if clean_ka in cpmk_desc_lookup:
+                                    wm['pernyataan_kemampuanAkhir'] = cpmk_desc_lookup[clean_ka]
+                                else:
+                                    wm['pernyataan_kemampuanAkhir'] = raw_ka
+                                
+                                wm['bahan kajian'] = item.get('bahanKajian') or item.get('topik', '')
+                                
+                                metode = item.get('metodePembelajaran', {})
+                                if isinstance(metode, dict):
+                                    metode_val = metode.get('metode', '')
+                                    wm['metode'] = metode_val
+                                    wm['Metode :'] = metode_val
+                                    wm['deskripsi metode'] = metode.get('deskripsi', '')
+                                    wm['deskripsi aktivitas'] = metode.get('aktivitas', '')
+                                else:
+                                    wm['metode'] = str(metode)
+                                    wm['Metode :'] = str(metode)
+                                
+                                wm['waktu'] = item.get('waktu', '3x50\'')
+                                wm['pengalamanBelajar'] = item.get('pengalamanBelajar') or item.get('pengalaman', '')
+                                
+                                pen = item.get('penilaian', {})
+                                if isinstance(pen, dict):
+                                    wm['penilaian.kriteria'] = pen.get('kriteria', '')
+                                    wm['penilaian.bobot'] = pen.get('bobotMateri') or pen.get('bobot', '')
+                                
+                                for cell in row.cells:
+                                    for p in cell.paragraphs:
+                                        replace_paragraph_text(p, wm)
+                
+                # G. Referensi
+                if 'Paste_referensinya_disini' in all_text:
+                    references_list = rps_data.get("references", [])
+                    if references_list:
+                        formatted_refs = []
+                        for i, ref in enumerate(references_list, 1):
+                            if isinstance(ref, dict):
+                                judul = ref.get("judul", "")
+                                if judul:
+                                    formatted_refs.append(f"{i}. {judul}")
+                            elif isinstance(ref, str):
+                                formatted_refs.append(f"{i}. {ref}")
+                        ref_str = "\n".join(formatted_refs)
                     else:
-                        # Old format: object with cpmk1, cpmk2, cpmk3, cpmk4 keys
-                        cpmk1 = str(distribusi.get("cpmk1", 0) or 0)
-                        cpmk2 = str(distribusi.get("cpmk2", 0) or 0)
-                        cpmk3 = str(distribusi.get("cpmk3", 0) or 0)
-                        cpmk4 = str(distribusi.get("cpmk4", 0) or 0)
-                        
-                        if len(t3.rows[row_idx].cells) >= 8:
-                            set_cell(t3.cell(row_idx, 4), cpmk1)
-                            set_cell(t3.cell(row_idx, 5), cpmk2)
-                            set_cell(t3.cell(row_idx, 6), cpmk3)
-                            set_cell(t3.cell(row_idx, 7), cpmk4)
-                            print(f"     ✅ Distribution - CPMK1:{cpmk1}% CPMK2:{cpmk2}% CPMK3:{cpmk3}% CPMK4:{cpmk4}%")
-            
-            
-            # TABLE 5: CPL-CPMK mapping (index 5) - Media Asesmen dan Kontribusinya
-            # NOTE: This table may not exist in all template versions - skip if not available
-            if len(doc.tables) > 5:
-                print(f"📊 TABLE 5 - CPL-CPMK Mapping is available, skipping for now (template version mismatch)")
-            else:
-                print(f"📊 TABLE 5 - Not available in template (has {len(doc.tables)} tables)")
+                        referensi_list = rps_data.get("referensi", [])
+                        ref_str = "\n".join([f"{i+1}. {r}" for i, r in enumerate(referensi_list)])
+                    
+                    for row in table.rows:
+                        for cell in row.cells:
+                            for p in cell.paragraphs:
+                                if 'Paste_referensinya_disini' in p.text:
+                                    p.text = p.text.replace('Paste_referensinya_disini', ref_str)
             
             # Validate document before saving
             print(f"\n[VALIDATE] Checking document integrity before save...")
             try:
-                # Check all tables have valid structure
                 for table_idx, table in enumerate(doc.tables):
                     if not table or len(table.rows) == 0:
                         print(f"   ⚠️ Table {table_idx} is empty or invalid")
@@ -535,10 +707,10 @@ if __name__ == "__main__":
         "status": args.status,
         "prasyarat": args.prasyarat,
         # Extract authority from JSON data
-        "koordinatorMK": rps_data.get('authority', {}).get('koordinatorMK', {}),
-        "koordinatorGPM": rps_data.get('authority', {}).get('koordinatorGPM', {}),
-        "ketuaProdi": rps_data.get('authority', {}).get('ketuaProdi', {}),
-        "dekan": rps_data.get('authority', {}).get('dekan', {}),
+        "koordinatorMK": rps_data.get('otoritas', {}).get('koordinatorMK', {}) or rps_data.get('authority', {}).get('koordinatorMK', {}),
+        "koordinatorGPM": rps_data.get('otoritas', {}).get('koordinatorGPM', {}) or rps_data.get('authority', {}).get('koordinatorGPM', {}),
+        "ketuaProdi": rps_data.get('otoritas', {}).get('ketuaProdi', {}) or rps_data.get('authority', {}).get('ketuaProdi', {}),
+        "dekan": rps_data.get('otoritas', {}).get('dekan', {}) or rps_data.get('authority', {}).get('dekan', {}),
     }
     
     # Convert

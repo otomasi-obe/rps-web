@@ -15,34 +15,35 @@ interface CPMKTabProps {
 
 export default function CPMKTab({ data, onUpdate, onGenerate, isGenerating, contextValue = '', onContextChange, progress = 0 }: CPMKTabProps) {
   const updateCPMK = (index: number, updates: Partial<CPMK>) => {
-    const newList = [...data.cpmkList];
+    const newList = [...data.cpmk];
     newList[index] = { ...newList[index], ...updates };
-    onUpdate({ cpmkList: newList });
+    onUpdate({ cpmk: newList });
   };
 
   const addCPMK = () => {
-    const nextNum = data.cpmkList.length + 1;
+    const nextNum = data.cpmk.length + 1;
+    const newCpmkKode = `CPMK ${nextNum}`;
     onUpdate({
-      cpmkList: [
-        ...data.cpmkList,
-        { kode: `CPMK ${nextNum}`, pernyataan: '' },
+      cpmk: [
+        ...data.cpmk,
+        { kode: newCpmkKode, pernyataan: '', mapping_cpl: '', N1: 20, N2: 30, N3: 10, N4: 20, N5: 20, N_cpmk: 100 },
       ],
-      indikatorKinerjaList: [
-        ...data.indikatorKinerjaList,
-        { kode: `IK ${nextNum}`, kodeCPL: '', pernyataan: '' },
+      ik: [
+        ...data.ik,
+        { kode: `IK ${nextNum}`, mapping_cpl: '', mapping_cpmk: newCpmkKode, pernyataan: '' },
       ],
     });
   };
 
   const removeCPMK = (index: number) => {
-    if (data.cpmkList.length <= 1) return;
+    if (data.cpmk.length <= 1) return;
     onUpdate({
-      cpmkList: data.cpmkList.filter((_, i) => i !== index),
-      indikatorKinerjaList: data.indikatorKinerjaList.filter((_, i) => i !== index),
+      cpmk: data.cpmk.filter((_, i) => i !== index),
+      ik: data.ik.filter((_, i) => i !== index),
     });
   };
 
-  const canGenerate = data.identity.nama && data.cplList.some(c => c.pernyataan) && data.deskripsiSingkat;
+  const canGenerate = data.identitas.nama && data.cpl.some(c => c.pernyataan) && data.deskripsi;
 
   return (
     <div className="space-y-6">
@@ -57,7 +58,13 @@ export default function CPMKTab({ data, onUpdate, onGenerate, isGenerating, cont
             onChange={(e) => onContextChange?.(e.target.value)}
             placeholder="Contoh: Mahasiswa harus mampu membuat aplikasi web full-stack, desain database, dan deploy ke cloud..."
             rows={2}
-            className="w-full text-sm"
+            className="w-full text-sm resize-y"
+            style={{ minHeight: '60px' }}
+            onInput={(e) => {
+              const target = e.target as HTMLTextAreaElement;
+              target.style.height = 'auto';
+              target.style.height = Math.max(60, target.scrollHeight) + 'px';
+            }}
           />
         </div>
         <button
@@ -90,7 +97,7 @@ export default function CPMKTab({ data, onUpdate, onGenerate, isGenerating, cont
       )}
 
       <div className="space-y-4">
-        {data.cpmkList.map((cpmk, index) => (
+        {data.cpmk.map((cpmk, index) => (
           <div key={index} className="bg-slate-50 p-4 rounded-lg border border-slate-200">
             <div className="flex gap-4">
               <div className="w-28">
@@ -109,14 +116,20 @@ export default function CPMKTab({ data, onUpdate, onGenerate, isGenerating, cont
                   value={cpmk.pernyataan}
                   onChange={(e) => updateCPMK(index, { pernyataan: e.target.value })}
                   rows={2}
-                  className="w-full"
+                  className="w-full resize-y min-h-[60px]"
                   placeholder="Contoh: Merakit rangkaian sensor–aktuator dan melakukan pengukuran dasar serta troubleshooting."
+                  style={{ height: 'auto', minHeight: '60px' }}
+                  onInput={(e) => {
+                    const target = e.target as HTMLTextAreaElement;
+                    target.style.height = 'auto';
+                    target.style.height = target.scrollHeight + 'px';
+                  }}
                 />
               </div>
               <div className="flex items-end">
                 <button
                   onClick={() => removeCPMK(index)}
-                  disabled={data.cpmkList.length <= 1}
+                  disabled={data.cpmk.length <= 1}
                   className="btn btn-danger text-sm px-3"
                   title="Hapus CPMK"
                 >
@@ -136,18 +149,29 @@ export default function CPMKTab({ data, onUpdate, onGenerate, isGenerating, cont
             <thead>
               <tr className="table-header">
                 <th className="px-3 py-2">CPMK</th>
-                {data.cplList.map((cpl) => (
+                {data.cpl.map((cpl) => (
                   <th key={cpl.kode} className="px-3 py-2 text-center">{cpl.kode}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {data.cpmkList.map((cpmk) => (
+              {data.cpmk.map((cpmk, cpmkIdx) => (
                 <tr key={cpmk.kode} className="border-b border-slate-200">
                   <td className="px-3 py-2 font-medium">{cpmk.kode}</td>
-                  {data.cplList.map((cpl) => (
+                  {data.cpl.map((cpl) => (
                     <td key={cpl.kode} className="px-3 py-2 text-center">
-                      <input type="checkbox" className="w-4 h-4" />
+                      <input 
+                        type="checkbox" 
+                        className="w-4 h-4 cursor-pointer"
+                        checked={cpmk.mapping_cpl === cpl.kode}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            updateCPMK(cpmkIdx, { mapping_cpl: cpl.kode });
+                          } else {
+                            updateCPMK(cpmkIdx, { mapping_cpl: '' });
+                          }
+                        }}
+                      />
                     </td>
                   ))}
                 </tr>

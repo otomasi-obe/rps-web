@@ -29,13 +29,168 @@ export default function RPSEditor() {
   const [generatingType, setGeneratingType] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
 
+  // Update RPS data
+  const updateRPS = (updates: Partial<RPSData>) => {
+    setRpsData(prev => ({ ...prev, ...updates }));
+  };
+
+  function normalizeRpsData(input: unknown): RPSData {
+    const base = createEmptyRPS();
+    const data = (input && typeof input === 'object') ? (input as any) : {};
+
+    const identitasSource = data.identitas || data.identity || {};
+    const institusiSource = data.institusi || data.institution || {};
+    const otoritasSource = data.otoritas || data.authority || {};
+    const baseOtoritas = base.otoritas;
+
+    const cplSource = Array.isArray(data.cpl) ? data.cpl : Array.isArray(data.cplList) ? data.cplList : base.cpl;
+    const cpmkSource = Array.isArray(data.cpmk) ? data.cpmk : Array.isArray(data.cpmkList) ? data.cpmkList : base.cpmk;
+    
+    // Normalize IK with backward compatibility
+    const ikSourceRaw = Array.isArray(data.ik) ? data.ik : Array.isArray(data.indikatorKinerjaList) ? data.indikatorKinerjaList : base.ik;
+    const ikSource = ikSourceRaw.map((ik: any, idx: number) => {
+      // Handle old format with kodeCPL -> find matching CPMK for that CPL
+      let mapping_cpl = ik.mapping_cpl || '';
+      let mapping_cpmk = ik.mapping_cpmk || '';
+      
+      // If using old format with kodeCPL, find the first CPMK that maps to this CPL
+      if (!mapping_cpl && ik.kodeCPL && Array.isArray(cpmkSource)) {
+        const matchingCpmk = cpmkSource.find((c: any) => c.mapping_cpl === ik.kodeCPL);
+        if (matchingCpmk) {
+          mapping_cpl = matchingCpmk.mapping_cpl;
+          mapping_cpmk = matchingCpmk.kode;
+        }
+      }
+      
+      // Fallback: auto-assign to CPMK by index
+      if (!mapping_cpmk && cpmkSource[idx]) {
+        mapping_cpmk = cpmkSource[idx].kode;
+        // Get CPL from CPMK's mapping
+        mapping_cpl = cpmkSource[idx].mapping_cpl || '';
+      }
+      
+      return {
+        kode: ik.kode || '',
+        pernyataan: ik.pernyataan || ik.ik_pernyataan || '',
+        mapping_cpl: mapping_cpl,
+        mapping_cpmk: mapping_cpmk,
+      };
+    });
+
+    const referensiSource = Array.isArray(data.referensi)
+      ? data.referensi
+      : Array.isArray(data.references)
+      ? data.references
+      : [];
+
+    const referensi = referensiSource
+      .map((ref: any) => {
+        if (typeof ref === 'string') return ref;
+        if (ref && typeof ref === 'object') {
+          const judul = ref.judul || ref.title || '';
+          const penulis = ref.penulis || ref.author || '';
+          const jenis = ref.jenis || ref.type || '';
+          const parts = [judul, penulis].filter(Boolean).join(' - ');
+          return jenis ? `${parts} (${jenis})`.trim() : parts.trim();
+        }
+        return '';
+      })
+      .filter((v: string) => v.length > 0);
+
+    const parseBobot = (value: unknown): number => {
+      if (typeof value === 'number') return value;
+      const n = parseInt(String(value || '').replace('%', ''), 10);
+      return Number.isFinite(n) ? n : 0;
+    };
+
+    const sourceWeeks = Array.isArray(data.minggu) ? data.minggu : Array.isArray(data.weeklyPlan) ? data.weeklyPlan : [];
+    const normalizeWeek = (week: any, weekNo: number) => {
+      const kemampuanAkhir = week?.kemampuanAkhir || week?.cpmk || '';
+      if (kemampuanAkhir === 'UTS' || kemampuanAkhir === 'UAS') {
+        return { mingguKe: weekNo, kemampuanAkhir };
+      }
+      return {
+        mingguKe: weekNo,
+        kemampuanAkhir,
+        bahanKajian: week?.bahanKajian || week?.topik || '',
+        metodePembelajaran: {
+          metode: week?.metodePembelajaran?.metode || week?.metode || '',
+          deskripsi: week?.metodePembelajaran?.deskripsi || week?.deskripsi_metode || '',
+          aktivitas: week?.metodePembelajaran?.aktivitas || week?.aktivitas || '',
+        },
+        waktu: week?.waktu || base.minggu[weekNo - 1]?.waktu || '3x50"',
+        pengalamanBelajar: week?.pengalamanBelajar || week?.pengalaman || '',
+        penilaian: {
+          kriteria: week?.penilaian?.kriteria || week?.indikator || '',
+          bobotMateri: parseBobot(week?.penilaian?.bobotMateri ?? week?.penilaian?.bobot ?? week?.bobot),
+        },
+      };
+    };
+
+    const merged: RPSData = {
+      ...base,
+      id: data.id || base.id,
+      createdAt: data.createdAt || base.createdAt,
+      updatedAt: data.updatedAt || base.updatedAt,
+      identitas: { ...base.identitas, ...identitasSource },
+      institusi: { ...base.institusi, ...institusiSource },
+      otoritas: {
+        ...baseOtoritas,
+        ...otoritasSource,
+        koordinatorMK: { ...baseOtoritas.koordinatorMK, ...(otoritasSource.koordinatorMK || {}) },
+        koordinatorGPM: { ...baseOtoritas.koordinatorGPM, ...(otoritasSource.koordinatorGPM || {}) },
+        ketuaProdi: { ...baseOtoritas.ketuaProdi, ...(otoritasSource.ketuaProdi || {}) },
+        dekan: { ...baseOtoritas.dekan, ...(otoritasSource.dekan || {}) },
+      },
+      deskripsi: data.deskripsi || data.deskripsiSingkat || base.deskripsi,
+      cpl: cplSource,
+      cpmk: cpmkSource,
+      ik: ikSource,
+      referensi,
+      minggu: base.minggu,
+    };
+
+    const weeksByNumber = new Map<number, any>();
+    if (Array.isArray(sourceWeeks)) {
+      for (const week of sourceWeeks) {
+        const n = typeof week?.mingguKe === 'number' ? week.mingguKe : parseInt(String(week?.mingguKe || ''), 10);
+        const num = Number.isFinite(n) ? n : parseInt(String(week?.minggu || ''), 10);
+        if (Number.isFinite(num) && num >= 1 && num <= 16) {
+          weeksByNumber.set(num, week);
+        }
+      }
+    }
+
+    merged.minggu = Array.from({ length: 16 }, (_, idx) => {
+      const weekNo = idx + 1;
+      const baseWeek = base.minggu[idx] || {
+        mingguKe: weekNo,
+        kemampuanAkhir: weekNo === 8 ? 'UTS' : weekNo === 16 ? 'UAS' : '',
+      };
+
+      const existing = weeksByNumber.get(weekNo);
+      if (!existing) return { ...baseWeek, mingguKe: weekNo };
+
+      const normalizedWeek = normalizeWeek(existing, weekNo);
+      return {
+        ...baseWeek,
+        ...normalizedWeek,
+        metodePembelajaran: normalizedWeek.metodePembelajaran || baseWeek.metodePembelajaran || { metode: '', deskripsi: '', aktivitas: '' },
+        penilaian: normalizedWeek.penilaian || baseWeek.penilaian || { kriteria: '', bobotMateri: 0 },
+      };
+    });
+
+    return merged;
+  }
+
   // Load data from localStorage on mount
   useEffect(() => {
     try {
       const savedState = localStorage.getItem(STORAGE_KEY);
       if (savedState) {
         const parsedState = JSON.parse(savedState);
-        setRpsData(parsedState.rpsData || createEmptyRPS());
+        const normalized = normalizeRpsData(parsedState.rpsData);
+        setRpsData(normalized);
         setJenisMK(parsedState.jenisMK || 'campuran');
         setPromptRpsMantap(parsedState.promptRpsMantap || '');
         setCplContext(parsedState.cplContext || '');
@@ -69,77 +224,6 @@ export default function RPSEditor() {
     }
   }, [rpsData, jenisMK, promptRpsMantap, cplContext, cpmkContext, weeklyPlanContext, referencesContext, isLoaded]);
 
-  // Update RPS data
-  const updateRPS = (updates: Partial<RPSData>) => {
-    setRpsData(prev => ({ ...prev, ...updates }));
-  };
-
-  const normalizeRpsData = (input: unknown): RPSData => {
-    const base = createEmptyRPS();
-    const data = (input && typeof input === 'object') ? (input as any) : {};
-
-    const authority = data.authority || {};
-    const baseAuthority = base.authority;
-
-    const merged: RPSData = {
-      ...base,
-      ...data,
-      identity: { ...base.identity, ...(data.identity || {}) },
-      institution: { ...base.institution, ...(data.institution || {}) },
-      authority: {
-        ...baseAuthority,
-        ...authority,
-        koordinatorMK: { ...baseAuthority.koordinatorMK, ...(authority.koordinatorMK || {}) },
-        koordinatorGPM: { ...baseAuthority.koordinatorGPM, ...(authority.koordinatorGPM || {}) },
-        ketuaProdi: { ...baseAuthority.ketuaProdi, ...(authority.ketuaProdi || {}) },
-        dekan: { ...baseAuthority.dekan, ...(authority.dekan || {}) },
-      },
-      cplList: Array.isArray(data.cplList) ? data.cplList : base.cplList,
-      cpmkList: Array.isArray(data.cpmkList) ? data.cpmkList : base.cpmkList,
-      indikatorKinerjaList: Array.isArray(data.indikatorKinerjaList) ? data.indikatorKinerjaList : base.indikatorKinerjaList,
-      assessmentMethods: Array.isArray(data.assessmentMethods) ? data.assessmentMethods : base.assessmentMethods,
-      cplMappings: Array.isArray(data.cplMappings) ? data.cplMappings : [],
-      references: Array.isArray(data.references) ? data.references : [],
-      weeklyPlan: base.weeklyPlan,
-    };
-
-    const weeksByNumber = new Map<number, any>();
-    if (Array.isArray(data.weeklyPlan)) {
-      for (const week of data.weeklyPlan) {
-        const n = typeof week?.mingguKe === 'number' ? week.mingguKe : parseInt(String(week?.mingguKe || ''), 10);
-        if (Number.isFinite(n) && n >= 1 && n <= 16) {
-          weeksByNumber.set(n, week);
-        }
-      }
-    }
-
-    merged.weeklyPlan = Array.from({ length: 16 }, (_, idx) => {
-      const weekNo = idx + 1;
-      const baseWeek = base.weeklyPlan[idx] || {
-        mingguKe: weekNo,
-        kemampuanAkhir: '',
-        bahanKajian: '',
-        metodePembelajaran: { metode: '', deskripsi: '', aktivitas: '' },
-        waktu: '3x50"',
-        pengalamanBelajar: '',
-        penilaian: { kriteria: '', bobot: 0 },
-      };
-
-      const existing = weeksByNumber.get(weekNo);
-      if (!existing) return { ...baseWeek, mingguKe: weekNo };
-
-      return {
-        ...baseWeek,
-        ...existing,
-        mingguKe: weekNo,
-        metodePembelajaran: { ...baseWeek.metodePembelajaran, ...(existing.metodePembelajaran || {}) },
-        penilaian: { ...baseWeek.penilaian, ...(existing.penilaian || {}) },
-      };
-    });
-
-    return merged;
-  };
-
   // Load sample data
   const loadSample = async () => {
     try {
@@ -158,7 +242,7 @@ export default function RPSEditor() {
 
       setRpsData(normalized);
       setJenisMK('campuran');
-      setPromptRpsMantap(normalized.deskripsiSingkat || '');
+      setPromptRpsMantap(normalized.deskripsi || '');
       setSuccess('✅ Data contoh berhasil dimuat dari sample_rps.json');
       setIsGenerating(false);
       setGeneratingType(null);
@@ -190,9 +274,13 @@ export default function RPSEditor() {
     }
   };
 
+  const cplList = Array.isArray(rpsData.cpl) ? rpsData.cpl : [];
+  const cpmkList = Array.isArray(rpsData.cpmk) ? rpsData.cpmk : [];
+  const ikList = Array.isArray(rpsData.ik) ? rpsData.ik : [];
+
   // Generate with AI
   const generateWithAI = async (type: 'full' | 'description' | 'cpl' | 'cpmk' | 'weeklyPlan' | 'references', customContext?: string) => {
-    if (!rpsData.identity.nama) {
+    if (!rpsData.identitas.nama) {
       setError('⚠️ Nama mata kuliah harus diisi terlebih dahulu!');
       const identitySection = document.querySelector('[data-section="identity"]');
       if (identitySection) {
@@ -218,13 +306,13 @@ export default function RPSEditor() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type,
-          identity: rpsData.identity,
-          institution: rpsData.institution,
+          identitas: rpsData.identitas,
+          institusi: rpsData.institusi,
           jenisMK,
           additionalContext: customContext || promptRpsMantap,
-          deskripsiSingkat: rpsData.deskripsiSingkat,
-          cplList: rpsData.cplList,
-          cpmkList: rpsData.cpmkList,
+          deskripsi: rpsData.deskripsi,
+          cpl: cplList,
+          cpmk: cpmkList,
         }),
       });
 
@@ -274,64 +362,63 @@ export default function RPSEditor() {
       
       if (type === 'full') {
         const updates: Partial<RPSData> = {};
-        if (generatedData.deskripsiSingkat) updates.deskripsiSingkat = generatedData.deskripsiSingkat;
-        if (generatedData.cplList) updates.cplList = generatedData.cplList;
-        if (generatedData.indikatorKinerjaList) updates.indikatorKinerjaList = generatedData.indikatorKinerjaList;
-        if (generatedData.cpmkList) updates.cpmkList = generatedData.cpmkList;
-        if (generatedData.weeklyPlan) updates.weeklyPlan = generatedData.weeklyPlan;
-        if (generatedData.assessmentMethods) updates.assessmentMethods = generatedData.assessmentMethods;
-        if (generatedData.references) updates.references = generatedData.references;
+        if (generatedData.deskripsi) updates.deskripsi = generatedData.deskripsi;
+        if (generatedData.cpl) updates.cpl = generatedData.cpl;
+        if (generatedData.ik) updates.ik = generatedData.ik;
+        if (generatedData.cpmk) updates.cpmk = generatedData.cpmk;
+        if (generatedData.minggu) updates.minggu = generatedData.minggu;
+        if (generatedData.referensi) updates.referensi = generatedData.referensi;
         
         setRpsData(prev => ({ ...prev, ...updates }));
       } else if (type === 'description') {
-        if (!generatedData.deskripsiSingkat) {
+        if (!generatedData.deskripsi) {
           throw new Error('No description data received');
         }
-        updateRPS({ deskripsiSingkat: generatedData.deskripsiSingkat });
+        updateRPS({ deskripsi: generatedData.deskripsi });
       } else if (type === 'cpl') {
-        if (!generatedData.cplList || !Array.isArray(generatedData.cplList)) {
+        if (!generatedData.cpl || !Array.isArray(generatedData.cpl)) {
           throw new Error('Invalid CPL data structure received');
         }
-        const updates: Partial<RPSData> = { cplList: generatedData.cplList };
-        if (generatedData.indikatorKinerjaList) {
-          updates.indikatorKinerjaList = generatedData.indikatorKinerjaList;
+        const updates: Partial<RPSData> = { cpl: generatedData.cpl };
+        if (generatedData.ik) {
+          updates.ik = generatedData.ik;
         }
         updateRPS(updates);
       } else if (type === 'cpmk') {
-        if (!generatedData.cpmkList || !Array.isArray(generatedData.cpmkList)) {
+        if (!generatedData.cpmk || !Array.isArray(generatedData.cpmk)) {
           throw new Error('Invalid CPMK data structure received');
         }
         
-        // Use IK from API if available, otherwise preserve existing or create new
-        let newIndikatorList = generatedData.indikatorKinerjaList || [];
+        // Use IK from API if available
+        let newIkList = generatedData.ik || [];
         
         // If IK not provided by API, ensure same length as CPMK
-        if (newIndikatorList.length !== generatedData.cpmkList.length) {
-          newIndikatorList = generatedData.cpmkList.map((cpmk: any, index: number) => {
-            const existing = rpsData.indikatorKinerjaList[index];
-            const fromAPI = newIndikatorList[index];
+        if (newIkList.length !== generatedData.cpmk.length) {
+          newIkList = generatedData.cpmk.map((cpmk: any, index: number) => {
+            const existing = ikList[index];
+            const fromAPI = newIkList[index];
             return fromAPI || existing || { 
               kode: `IK ${index + 1}`, 
-              kodeCPL: '', 
+              mapping_cpl: '', 
               pernyataan: '' 
             };
           });
         }
         
         updateRPS({ 
-          cpmkList: generatedData.cpmkList,
-          indikatorKinerjaList: newIndikatorList
+          cpmk: generatedData.cpmk,
+          ik: newIkList
         });
       } else if (type === 'weeklyPlan') {
-        if (!generatedData.weeklyPlan || !Array.isArray(generatedData.weeklyPlan)) {
-          throw new Error('Invalid weeklyPlan data structure received');
+        if (!generatedData.minggu || !Array.isArray(generatedData.minggu)) {
+          throw new Error('Invalid minggu data structure received');
         }
-        updateRPS({ weeklyPlan: generatedData.weeklyPlan });
+        updateRPS({ minggu: generatedData.minggu });
       } else if (type === 'references') {
-        if (!generatedData.references || !Array.isArray(generatedData.references)) {
-          throw new Error('Invalid references data structure received');
+        if (!generatedData.referensi || !Array.isArray(generatedData.referensi)) {
+          throw new Error('Invalid referensi data structure received');
         }
-        updateRPS({ references: generatedData.references });
+        updateRPS({ referensi: generatedData.referensi });
       }
 
       setSuccess(`Berhasil generate ${type === 'full' ? 'RPS lengkap' : type.toUpperCase()}`);
@@ -351,7 +438,7 @@ export default function RPSEditor() {
 
   // Export to DOCX
   const exportToDocx = async () => {
-    if (!rpsData.identity.nama) {
+    if (!rpsData.identitas.nama) {
       setError('Nama mata kuliah harus diisi terlebih dahulu');
       return;
     }
@@ -369,17 +456,17 @@ export default function RPSEditor() {
         body: JSON.stringify({
           rpsData,
           meta: {
-            nama: rpsData.identity.nama,
-            kode: rpsData.identity.kode,
-            sks: rpsData.identity.sks,
-            semester: rpsData.identity.semester,
-            status: rpsData.identity.status || 'Mata Kuliah Wajib',
-            prasyarat: rpsData.identity.prasyarat || '-',
-            // Include authority data for DOCX export
-            koordinatorMK: rpsData.authority.koordinatorMK,
-            koordinatorGPM: rpsData.authority.koordinatorGPM,
-            ketuaProdi: rpsData.authority.ketuaProdi,
-            dekan: rpsData.authority.dekan,
+            nama: rpsData.identitas.nama,
+            kode: rpsData.identitas.kode,
+            sks: rpsData.identitas.sks,
+            semester: rpsData.identitas.semester,
+            status: rpsData.identitas.status || 'Mata Kuliah Wajib',
+            prasyarat: rpsData.identitas.prasyarat || '-',
+            // Include otoritas data for DOCX export
+            koordinatorMK: rpsData.otoritas.koordinatorMK,
+            koordinatorGPM: rpsData.otoritas.koordinatorGPM,
+            ketuaProdi: rpsData.otoritas.ketuaProdi,
+            dekan: rpsData.otoritas.dekan,
           },
         }),
       });
@@ -412,7 +499,7 @@ export default function RPSEditor() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `RPS_${rpsData.identity.kode || 'draft'}_${rpsData.identity.nama.replace(/\s+/g, '_')}.docx`;
+      a.download = `RPS_${rpsData.identitas.kode || 'draft'}_${rpsData.identitas.nama.replace(/\s+/g, '_')}.docx`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -437,7 +524,7 @@ export default function RPSEditor() {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `RPS_${rpsData.identity.kode || 'draft'}.json`;
+    a.download = `RPS_${rpsData.identitas.kode || 'draft'}.json`;
     document.body.appendChild(a);
     a.click();
     window.URL.revokeObjectURL(url);
@@ -484,7 +571,7 @@ export default function RPSEditor() {
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => generateWithAI('full')}
-              disabled={isGenerating || !rpsData.identity.nama}
+              disabled={isGenerating || !rpsData.identitas?.nama}
               className="btn btn-primary flex items-center gap-2"
             >
               {isGenerating && generatingType === 'full' ? (
@@ -530,7 +617,7 @@ export default function RPSEditor() {
             </label>
             <button
               onClick={exportToDocx}
-              disabled={isExporting || !rpsData.identity.nama}
+              disabled={isExporting || !rpsData.identitas?.nama}
               className="btn btn-success flex items-center gap-2"
             >
               {isExporting ? <span className="spinner" /> : '📄'}
@@ -546,11 +633,11 @@ export default function RPSEditor() {
           <div>
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-slate-800 mb-1">💡 Prompt RPS Mantap</h3>
-              {!rpsData.identity.nama && <span className="text-xs text-slate-500 italic">(Nama mata kuliah belum diisi)</span>}
+              {!rpsData.identitas?.nama && <span className="text-xs text-slate-500 italic">(Nama mata kuliah belum diisi)</span>}
             </div>
-            {rpsData.identity.nama && (
+            {rpsData.identitas?.nama && (
               <p className="text-sm font-medium text-purple-700 mb-2">
-                {rpsData.identity.nama}
+                {rpsData.identitas?.nama}
               </p>
             )}
             <p className="text-xs text-slate-600 mb-3">
@@ -623,33 +710,26 @@ export default function RPSEditor() {
         </h2>
         <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 mb-4">
           <p className="text-sm text-blue-800">
-            💡 <strong>Catatan:</strong> Jumlah Indikator Kinerja harus sama dengan jumlah CPMK ({rpsData.cpmkList.length} IK)
+            💡 <strong>Catatan:</strong> Jumlah Indikator Kinerja harus sama dengan jumlah CPMK ({cpmkList.length} IK)
           </p>
         </div>
         <div className="space-y-4">
-          {rpsData.cpmkList.map((cpmk, index) => {
-            const ik = rpsData.indikatorKinerjaList[index] || { kode: '', kodeCPL: '', pernyataan: '' };
+          {ikList.map((ik, index) => {
+            // Cari CPL dan CPMK yang terkait
+            const linkedCpmk = cpmkList.find(c => c.kode === ik.mapping_cpmk);
+            const linkedCpl = cplList.find(c => c.kode === ik.mapping_cpl);
             return (
               <div key={index} className="bg-slate-50 p-4 rounded-lg border border-slate-200">
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                  <div className="md:col-span-2">
-                    <label className="block text-xs font-medium text-slate-600 mb-1">CPMK</label>
-                    <input
-                      type="text"
-                      value={cpmk.kode}
-                      disabled
-                      className="w-full text-center font-semibold bg-slate-100 text-sm"
-                    />
-                  </div>
                   <div className="md:col-span-2">
                     <label className="block text-xs font-medium text-slate-600 mb-1">Kode IK</label>
                     <input
                       type="text"
                       value={ik.kode}
                       onChange={(e) => {
-                        const newList = [...rpsData.indikatorKinerjaList];
+                        const newList = [...ikList];
                         newList[index] = { ...ik, kode: e.target.value };
-                        updateRPS({ indikatorKinerjaList: newList });
+                        updateRPS({ ik: newList });
                       }}
                       placeholder={`IK ${index + 1}`}
                       className="w-full text-center font-semibold text-sm"
@@ -658,119 +738,86 @@ export default function RPSEditor() {
                   <div className="md:col-span-2">
                     <label className="block text-xs font-medium text-slate-600 mb-1">CPL</label>
                     <select
-                      value={ik.kodeCPL}
+                      value={ik.mapping_cpl || ''}
                       onChange={(e) => {
-                        const newList = [...rpsData.indikatorKinerjaList];
-                        newList[index] = { ...ik, kodeCPL: e.target.value };
-                        updateRPS({ indikatorKinerjaList: newList });
+                        const newList = [...ikList];
+                        newList[index] = { ...ik, mapping_cpl: e.target.value };
+                        updateRPS({ ik: newList });
                       }}
                       className="w-full text-sm"
                     >
                       <option value="">Pilih CPL</option>
-                      {rpsData.cplList.map((cpl) => (
+                      {cplList.map((cpl) => (
                         <option key={cpl.kode} value={cpl.kode}>
                           {cpl.kode}
                         </option>
                       ))}
                     </select>
                   </div>
-                  <div className="md:col-span-6">
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-medium text-slate-600 mb-1">CPMK</label>
+                    <select
+                      value={ik.mapping_cpmk || ''}
+                      onChange={(e) => {
+                        const newList = [...ikList];
+                        newList[index] = { ...ik, mapping_cpmk: e.target.value };
+                        updateRPS({ ik: newList });
+                      }}
+                      className="w-full text-sm"
+                    >
+                      <option value="">Pilih CPMK</option>
+                      {cpmkList.map((cpmk) => (
+                        <option key={cpmk.kode} value={cpmk.kode}>
+                          {cpmk.kode}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="md:col-span-5">
                     <label className="block text-xs font-medium text-slate-600 mb-1">Pernyataan Indikator Kinerja</label>
                     <textarea
-                      value={ik.pernyataan}
+                      value={ik.pernyataan || ''}
                       onChange={(e) => {
-                        const newList = [...rpsData.indikatorKinerjaList];
+                        const newList = [...ikList];
                         newList[index] = { ...ik, pernyataan: e.target.value };
-                        updateRPS({ indikatorKinerjaList: newList });
+                        updateRPS({ ik: newList });
                       }}
                       rows={2}
                       placeholder="Pernyataan indikator kinerja..."
-                      className="w-full text-sm"
+                      className="w-full text-sm resize-y min-h-[60px]"
+                      onInput={(e) => {
+                        const target = e.target as HTMLTextAreaElement;
+                        target.style.height = 'auto';
+                        target.style.height = Math.max(60, target.scrollHeight) + 'px';
+                      }}
                     />
+                  </div>
+                  <div className="md:col-span-1 flex items-end justify-center">
+                    <button
+                      onClick={() => {
+                        const newList = ikList.filter((_, i) => i !== index);
+                        updateRPS({ ik: newList });
+                      }}
+                      className="btn btn-danger text-sm px-3"
+                      title="Hapus IK"
+                    >
+                      🗑️
+                    </button>
                   </div>
                 </div>
               </div>
             );
           })}
-        </div>
-      </div>
-
-      {/* Section: Media Asesmen */}
-      <div className="card">
-        <h2 className="text-2xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-          <span>📊</span>
-          Media Asesmen dan Kontribusinya terhadap Skor Kompetensi MK
-        </h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm border-collapse bg-white">
-            <thead>
-              <tr className="table-header">
-                <th className="px-3 py-2">CPMK</th>
-                <th className="px-3 py-2 text-center w-20">QUI (%)</th>
-                <th className="px-3 py-2 text-center w-20">PRS (%)</th>
-                <th className="px-3 py-2 text-center w-20">PRO (%)</th>
-                <th className="px-3 py-2 text-center w-20">UTS (%)</th>
-                <th className="px-3 py-2 text-center w-20">UAS (%)</th>
-                <th className="px-3 py-2 text-center w-20">Total (%)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rpsData.cpmkList.map((cpmk, cpmkIndex) => {
-                // Calculate totals for this CPMK from all assessment methods
-                let qui = 0, prs = 0, pro = 0, uts = 0, uas = 0;
-                
-                rpsData.assessmentMethods.forEach((method) => {
-                  // Find value for this CPMK from the array
-                  let value = 0;
-                  if (Array.isArray(method.distribusiCPMK)) {
-                    const found = method.distribusiCPMK.find(d => d.cpmkId === `CPMK ${cpmkIndex + 1}`);
-                    value = found?.nilai || 0;
-                  } else {
-                    // Legacy format support
-                    const cpmkKey = `cpmk${cpmkIndex + 1}` as keyof typeof method.distribusiCPMK;
-                    value = (method.distribusiCPMK as any)[cpmkKey] || 0;
-                  }
-                  
-                  if (method.teknik.toLowerCase().includes('kuis')) {
-                    qui += value;
-                  } else if (method.teknik.toLowerCase().includes('presentasi') || method.teknik.toLowerCase().includes('partisipatif')) {
-                    prs += value;
-                  } else if (method.teknik.toLowerCase().includes('project') || method.teknik.toLowerCase().includes('tugas') || method.teknik.toLowerCase().includes('laporan')) {
-                    pro += value;
-                  } else if (method.teknik.toLowerCase().includes('uts')) {
-                    uts += value;
-                  } else if (method.teknik.toLowerCase().includes('uas')) {
-                    uas += value;
-                  }
-                });
-                
-                const total = qui + prs + pro + uts + uas;
-                
-                return (
-                  <tr key={cpmkIndex} className="border-b border-slate-200">
-                    <td className="table-cell font-medium">{cpmk.kode}</td>
-                    <td className="table-cell text-center">{qui || '-'}</td>
-                    <td className="table-cell text-center">{prs || '-'}</td>
-                    <td className="table-cell text-center">{pro || '-'}</td>
-                    <td className="table-cell text-center">{uts || '-'}</td>
-                    <td className="table-cell text-center">{uas || '-'}</td>
-                    <td className={`table-cell text-center font-bold ${total === 100 ? 'text-green-600' : total > 0 ? 'text-orange-600' : 'text-red-600'}`}>
-                      {total}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        
-        <div className="mt-3 text-xs text-slate-600 bg-blue-50 p-3 rounded">
-          <p className="font-medium mb-1">💡 Keterangan:</p>
-          <ul className="list-disc list-inside ml-2 space-y-1">
-            <li>QUI = Kuis, PRS = Presentasi/Partisipatif, PRO = Proyek/Tugas/Laporan</li>
-            <li>Total untuk setiap CPMK harus 100%</li>
-            <li>Data dihitung otomatis dari tabel Metode Penilaian</li>
-          </ul>
+          <button
+            onClick={() => {
+              updateRPS({
+                ik: [...ikList, { kode: '', mapping_cpl: '', mapping_cpmk: '', pernyataan: '' }]
+              });
+            }}
+            className="btn btn-secondary text-sm"
+          >
+            + Tambah IK
+          </button>
         </div>
       </div>
 

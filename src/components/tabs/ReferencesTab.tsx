@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { RPSData, Reference } from '@/types/rps';
+import { RPSData } from '@/types/rps';
 
 interface ReferencesTabProps {
   data: RPSData;
@@ -14,30 +14,30 @@ interface ReferencesTabProps {
 }
 
 export default function ReferencesTab({ data, onUpdate, onGenerate, isGenerating = false, contextValue = '', onContextChange, progress = 0 }: ReferencesTabProps) {
-  const updateReference = (index: number, updates: Partial<Reference>) => {
-    const newRefs = [...data.references];
-    newRefs[index] = { ...newRefs[index], ...updates };
-    onUpdate({ references: newRefs });
+  const updateReference = (index: number, value: string) => {
+    const newRefs = [...data.referensi];
+    newRefs[index] = value;
+    onUpdate({ referensi: newRefs });
   };
 
   const addReference = () => {
     onUpdate({
-      references: [
-        ...data.references,
-        { judul: '', penulis: '', jenis: 'buku' },
+      referensi: [
+        ...data.referensi,
+        '',
       ],
     });
   };
 
   const removeReference = (index: number) => {
     onUpdate({
-      references: data.references.filter((_, i) => i !== index),
+      referensi: data.referensi.filter((_, i) => i !== index),
     });
   };
 
-  const addCommonReference = (ref: Reference) => {
+  const addCommonReference = (ref: string) => {
     onUpdate({
-      references: [...data.references, ref],
+      referensi: [...data.referensi, ref],
     });
   };
 
@@ -55,12 +55,18 @@ export default function ReferencesTab({ data, onUpdate, onGenerate, isGenerating
               onChange={(e) => onContextChange?.(e.target.value)}
               placeholder="Contoh: Buku-buku tentang machine learning, deep learning, dan Python programming..."
               rows={2}
-              className="w-full text-sm"
+              className="w-full text-sm resize-y"
+              style={{ minHeight: '60px' }}
+              onInput={(e) => {
+                const target = e.target as HTMLTextAreaElement;
+                target.style.height = 'auto';
+                target.style.height = Math.max(60, target.scrollHeight) + 'px';
+              }}
             />
           </div>
           <button
             onClick={onGenerate}
-            disabled={isGenerating || !data.identity.nama}
+            disabled={isGenerating || !data.identitas.nama}
             className="btn btn-primary text-sm flex items-center gap-2"
           >
             {isGenerating ? <span className="spinner" /> : '🤖'}
@@ -83,12 +89,12 @@ export default function ReferencesTab({ data, onUpdate, onGenerate, isGenerating
 
       {/* References List */}
       <div className="space-y-3">
-        {data.references.length === 0 ? (
+        {data.referensi.length === 0 ? (
           <div className="text-center py-8 text-slate-500 bg-slate-50 rounded-lg">
             <p>Belum ada referensi. Klik tombol di atas untuk menambahkan.</p>
           </div>
         ) : (
-          data.references.map((ref, index) => (
+          data.referensi.map((ref, index) => (
             <div key={index} className="bg-slate-50 p-4 rounded-lg border border-slate-200">
               <div className="flex gap-3 items-start">
                 <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-1 rounded min-w-fit">
@@ -96,11 +102,17 @@ export default function ReferencesTab({ data, onUpdate, onGenerate, isGenerating
                 </span>
                 <div className="flex-1">
                   <textarea
-                    value={ref.judul}
-                    onChange={(e) => updateReference(index, { judul: e.target.value })}
+                    value={ref}
+                    onChange={(e) => updateReference(index, e.target.value)}
                     placeholder="Contoh: Judul Buku, Penulis, Penerbit, Tahun"
                     rows={2}
-                    className="w-full"
+                    className="w-full resize-y min-h-[60px]"
+                    style={{ height: 'auto', minHeight: '60px' }}
+                    onInput={(e) => {
+                      const target = e.target as HTMLTextAreaElement;
+                      target.style.height = 'auto';
+                      target.style.height = target.scrollHeight + 'px';
+                    }}
                   />
                 </div>
                 <button

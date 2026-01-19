@@ -26,8 +26,8 @@ export default function IdentityTab({
             <label className="block text-sm font-medium text-slate-700 mb-1">Kode Mata Kuliah</label>
             <input
               type="text"
-              value={data.identity.kode}
-              onChange={(e) => onUpdate({ identity: { ...data.identity, kode: e.target.value } })}
+              value={data.identitas.kode}
+              onChange={(e) => onUpdate({ identitas: { ...data.identitas, kode: e.target.value } })}
               placeholder="e.g., TRAO6251"
               className="w-full"
             />
@@ -36,8 +36,8 @@ export default function IdentityTab({
             <label className="block text-sm font-medium text-slate-700 mb-1">Nama Mata Kuliah *</label>
             <input
               type="text"
-              value={data.identity.nama}
-              onChange={(e) => onUpdate({ identity: { ...data.identity, nama: e.target.value } })}
+              value={data.identitas.nama}
+              onChange={(e) => onUpdate({ identitas: { ...data.identitas, nama: e.target.value } })}
               placeholder="e.g., Praktikum Mekatronika dan Robotika"
               className="w-full"
               required
@@ -49,8 +49,8 @@ export default function IdentityTab({
               type="number"
               min="1"
               max="6"
-              value={data.identity.sks}
-              onChange={(e) => onUpdate({ identity: { ...data.identity, sks: parseInt(e.target.value) || 2 } })}
+              value={data.identitas.sks}
+              onChange={(e) => onUpdate({ identitas: { ...data.identitas, sks: parseInt(e.target.value) || 2 } })}
               className="w-full"
             />
           </div>
@@ -60,16 +60,16 @@ export default function IdentityTab({
               type="number"
               min="1"
               max="8"
-              value={data.identity.semester}
-              onChange={(e) => onUpdate({ identity: { ...data.identity, semester: parseInt(e.target.value) || 1 } })}
+              value={data.identitas.semester}
+              onChange={(e) => onUpdate({ identitas: { ...data.identitas, semester: parseInt(e.target.value) || 1 } })}
               className="w-full"
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Status MK</label>
             <select
-              value={data.identity.status}
-              onChange={(e) => onUpdate({ identity: { ...data.identity, status: e.target.value } })}
+              value={data.identitas.status}
+              onChange={(e) => onUpdate({ identitas: { ...data.identitas, status: e.target.value } })}
               className="w-full"
             >
               <option value="Mata Kuliah Wajib">Mata Kuliah Wajib</option>
@@ -81,8 +81,8 @@ export default function IdentityTab({
             <label className="block text-sm font-medium text-slate-700 mb-1">Mata Kuliah Prasyarat</label>
             <input
               type="text"
-              value={data.identity.prasyarat}
-              onChange={(e) => onUpdate({ identity: { ...data.identity, prasyarat: e.target.value } })}
+              value={data.identitas.prasyarat}
+              onChange={(e) => onUpdate({ identitas: { ...data.identitas, prasyarat: e.target.value } })}
               placeholder="e.g., Dasar Elektronika, Pemrograman Dasar"
               className="w-full"
             />
@@ -110,8 +110,8 @@ export default function IdentityTab({
             <label className="block text-sm font-medium text-slate-700 mb-1">Program Studi</label>
             <input
               type="text"
-              value={data.institution.programStudi}
-              onChange={(e) => onUpdate({ institution: { ...data.institution, programStudi: e.target.value } })}
+              value={data.institusi.programStudi}
+              onChange={(e) => onUpdate({ institusi: { ...data.institusi, programStudi: e.target.value } })}
               className="w-full"
             />
           </div>
@@ -119,8 +119,8 @@ export default function IdentityTab({
             <label className="block text-sm font-medium text-slate-700 mb-1">Fakultas</label>
             <input
               type="text"
-              value={data.institution.fakultas}
-              onChange={(e) => onUpdate({ institution: { ...data.institution, fakultas: e.target.value } })}
+              value={data.institusi.fakultas}
+              onChange={(e) => onUpdate({ institusi: { ...data.institusi, fakultas: e.target.value } })}
               className="w-full"
             />
           </div>
@@ -128,8 +128,8 @@ export default function IdentityTab({
             <label className="block text-sm font-medium text-slate-700 mb-1">Universitas</label>
             <input
               type="text"
-              value={data.institution.universitas}
-              onChange={(e) => onUpdate({ institution: { ...data.institution, universitas: e.target.value } })}
+              value={data.institusi.universitas}
+              onChange={(e) => onUpdate({ institusi: { ...data.institusi, universitas: e.target.value } })}
               className="w-full"
             />
           </div>
@@ -147,12 +147,12 @@ export default function IdentityTab({
               <input
                 type="text"
                 placeholder="Nama"
-                value={data.authority.koordinatorMK.nama}
+                value={data.otoritas.koordinatorMK.nama}
                 onChange={(e) =>
                   onUpdate({
-                    authority: {
-                      ...data.authority,
-                      koordinatorMK: { ...data.authority.koordinatorMK, nama: e.target.value, jabatan: 'Koordinator Mata Kuliah' },
+                    otoritas: {
+                      ...data.otoritas,
+                      koordinatorMK: { ...data.otoritas.koordinatorMK, nama: e.target.value, jabatan: 'Koordinator Mata Kuliah' },
                     },
                   })
                 }
@@ -161,12 +161,12 @@ export default function IdentityTab({
               <input
                 type="text"
                 placeholder="NIP/NPPU"
-                value={data.authority.koordinatorMK.nip}
+                value={data.otoritas.koordinatorMK.nip}
                 onChange={(e) =>
                   onUpdate({
-                    authority: {
-                      ...data.authority,
-                      koordinatorMK: { ...data.authority.koordinatorMK, nip: e.target.value, jabatan: 'Koordinator Mata Kuliah' },
+                    otoritas: {
+                      ...data.otoritas,
+                      koordinatorMK: { ...data.otoritas.koordinatorMK, nip: e.target.value, jabatan: 'Koordinator Mata Kuliah' },
                     },
                   })
                 }
@@ -182,12 +182,12 @@ export default function IdentityTab({
               <input
                 type="text"
                 placeholder="Nama"
-                value={data.authority.koordinatorGPM.nama}
+                value={data.otoritas.koordinatorGPM.nama}
                 onChange={(e) =>
                   onUpdate({
-                    authority: {
-                      ...data.authority,
-                      koordinatorGPM: { ...data.authority.koordinatorGPM, nama: e.target.value, jabatan: 'Koordinator GPM' },
+                    otoritas: {
+                      ...data.otoritas,
+                      koordinatorGPM: { ...data.otoritas.koordinatorGPM, nama: e.target.value, jabatan: 'Koordinator GPM' },
                     },
                   })
                 }
@@ -196,12 +196,12 @@ export default function IdentityTab({
               <input
                 type="text"
                 placeholder="NIP/NPPU"
-                value={data.authority.koordinatorGPM.nip}
+                value={data.otoritas.koordinatorGPM.nip}
                 onChange={(e) =>
                   onUpdate({
-                    authority: {
-                      ...data.authority,
-                      koordinatorGPM: { ...data.authority.koordinatorGPM, nip: e.target.value, jabatan: 'Koordinator GPM' },
+                    otoritas: {
+                      ...data.otoritas,
+                      koordinatorGPM: { ...data.otoritas.koordinatorGPM, nip: e.target.value, jabatan: 'Koordinator GPM' },
                     },
                   })
                 }
@@ -217,12 +217,12 @@ export default function IdentityTab({
               <input
                 type="text"
                 placeholder="Nama"
-                value={data.authority.ketuaProdi.nama}
+                value={data.otoritas.ketuaProdi.nama}
                 onChange={(e) =>
                   onUpdate({
-                    authority: {
-                      ...data.authority,
-                      ketuaProdi: { ...data.authority.ketuaProdi, nama: e.target.value, jabatan: 'Ketua Prodi' },
+                    otoritas: {
+                      ...data.otoritas,
+                      ketuaProdi: { ...data.otoritas.ketuaProdi, nama: e.target.value, jabatan: 'Ketua Prodi' },
                     },
                   })
                 }
@@ -231,12 +231,12 @@ export default function IdentityTab({
               <input
                 type="text"
                 placeholder="NIP"
-                value={data.authority.ketuaProdi.nip}
+                value={data.otoritas.ketuaProdi.nip}
                 onChange={(e) =>
                   onUpdate({
-                    authority: {
-                      ...data.authority,
-                      ketuaProdi: { ...data.authority.ketuaProdi, nip: e.target.value, jabatan: 'Ketua Prodi' },
+                    otoritas: {
+                      ...data.otoritas,
+                      ketuaProdi: { ...data.otoritas.ketuaProdi, nip: e.target.value, jabatan: 'Ketua Prodi' },
                     },
                   })
                 }
@@ -252,12 +252,12 @@ export default function IdentityTab({
               <input
                 type="text"
                 placeholder="Nama"
-                value={data.authority.dekan.nama}
+                value={data.otoritas.dekan.nama}
                 onChange={(e) =>
                   onUpdate({
-                    authority: {
-                      ...data.authority,
-                      dekan: { ...data.authority.dekan, nama: e.target.value, jabatan: 'Dekan' },
+                    otoritas: {
+                      ...data.otoritas,
+                      dekan: { ...data.otoritas.dekan, nama: e.target.value, jabatan: 'Dekan' },
                     },
                   })
                 }
@@ -266,12 +266,12 @@ export default function IdentityTab({
               <input
                 type="text"
                 placeholder="NIP"
-                value={data.authority.dekan.nip}
+                value={data.otoritas.dekan.nip}
                 onChange={(e) =>
                   onUpdate({
-                    authority: {
-                      ...data.authority,
-                      dekan: { ...data.authority.dekan, nip: e.target.value, jabatan: 'Dekan' },
+                    otoritas: {
+                      ...data.otoritas,
+                      dekan: { ...data.otoritas.dekan, nip: e.target.value, jabatan: 'Dekan' },
                     },
                   })
                 }
@@ -286,11 +286,17 @@ export default function IdentityTab({
       <section>
         <h3 className="text-lg font-semibold text-slate-800 mb-4">📝 Deskripsi Singkat Mata Kuliah</h3>
         <textarea
-          value={data.deskripsiSingkat}
-          onChange={(e) => onUpdate({ deskripsiSingkat: e.target.value })}
+          value={data.deskripsi}
+          onChange={(e) => onUpdate({ deskripsi: e.target.value })}
           placeholder="Deskripsi singkat mata kuliah (2-4 kalimat)..."
           rows={4}
-          className="w-full"
+          className="w-full resize-y min-h-[100px]"
+          style={{ height: 'auto', minHeight: '100px' }}
+          onInput={(e) => {
+            const target = e.target as HTMLTextAreaElement;
+            target.style.height = 'auto';
+            target.style.height = target.scrollHeight + 'px';
+          }}
         />
       </section>
     </div>

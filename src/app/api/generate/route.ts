@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { CourseIdentity, Institution } from '@/types/rps';
+import { Identitas, Institusi } from '@/types/rps';
 
 // Python API URL - get from environment, use localhost as fallback for dev
 const PYTHON_API_URL = process.env.PYTHON_API_URL || 'http://127.0.0.1:5000';
@@ -16,22 +16,22 @@ export const maxDuration = 300; // 5 minutes
 
 interface GenerateRequest {
   type: 'full' | 'description' | 'cpl' | 'cpmk' | 'weeklyPlan' | 'references';
-  identity: CourseIdentity;
-  institution: Institution;
+  identitas: Identitas;
+  institusi: Institusi;
   jenisMK?: 'teori' | 'praktikum' | 'campuran';
   additionalContext?: string;
-  deskripsiSingkat?: string;
-  cplList?: { kode: string; pernyataan: string }[];
-  cpmkList?: { kode: string; pernyataan: string }[];
+  deskripsi?: string;
+  cpl?: { kode: string; pernyataan: string }[];
+  cpmk?: { kode: string; pernyataan: string }[];
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body: GenerateRequest = await request.json();
-    const { identity, jenisMK = 'campuran', additionalContext, type = 'full', deskripsiSingkat, cplList, cpmkList } = body;
+    const { identitas, jenisMK = 'campuran', additionalContext, type = 'full', deskripsi, cpl, cpmk } = body;
 
     // Validate required fields
-    if (!identity?.nama) {
+    if (!identitas?.nama) {
       return NextResponse.json(
         { error: 'Nama mata kuliah harus diisi' },
         { status: 400 }
@@ -52,17 +52,17 @@ export async function POST(request: NextRequest) {
         },
         body: JSON.stringify({
           type,
-          courseName: identity.nama,
-          courseCode: identity.kode || 'MK001',
-          sks: identity.sks || 3,
-          semester: identity.semester || 1,
-          status: identity.status || 'Mata Kuliah Wajib',
-          prereq: identity.prasyarat || '-',
+          courseName: identitas.nama,
+          courseCode: identitas.kode || 'MK001',
+          sks: identitas.sks || 3,
+          semester: identitas.semester || 1,
+          status: identitas.status || 'Mata Kuliah Wajib',
+          prereq: identitas.prasyarat || '-',
           jenisMK,
           additionalContext: additionalContext || '',
-          deskripsiSingkat: deskripsiSingkat || '',
-          cplList: cplList || [],
-          cpmkList: cpmkList || [],
+          deskripsi: deskripsi || '',
+          cpl: cpl || [],
+          cpmk: cpmk || [],
         }),
         signal: controller.signal,
       });
@@ -118,42 +118,49 @@ export async function POST(request: NextRequest) {
         }
         
         // Extract Indikator Kinerja from CPL data if available
-        const indikatorKinerjaList = data.cpl
+        const ik = data.cpl
           .filter((c: any) => c.ik_kode && c.ik_pernyataan)
           .map((c: any) => ({
             kode: c.ik_kode,
-            kodeCPL: c.kode,
+            mapping_cpl: c.kode,
             pernyataan: c.ik_pernyataan,
           }));
         
         return NextResponse.json({ 
           success: true, 
           data: {
-            cplList: data.cpl.map((c: { kode: string; pernyataan: string }) => ({
+            cpl: data.cpl.map((c: { kode: string; pernyataan: string }) => ({
               kode: c.kode,
               pernyataan: c.pernyataan,
             })),
-            indikatorKinerjaList,
+            ik,
           }
         });
       }
       
       if (type === 'cpmk') {
         // Extract IK from CPMK if available
-        const indikatorKinerjaList = data.cpmk.map((c: any, index: number) => ({
+        const ik = data.cpmk.map((c: any, index: number) => ({
           kode: c.ik_kode || `IK ${index + 1}`,
-          kodeCPL: c.mapping_cpl || '',
+          mapping_cpl: c.kode || '',
           pernyataan: c.ik_pernyataan || '',
         }));
         
         return NextResponse.json({ 
           success: true, 
           data: {
-            cpmkList: data.cpmk.map((c: { kode: string; pernyataan: string }) => ({
+            cpmk: data.cpmk.map((c: any) => ({
               kode: c.kode,
               pernyataan: c.pernyataan,
+              mapping_cpl: c.mapping_cpl || '',
+              N1: c.N1 || 0,
+              N2: c.N2 || 0,
+              N3: c.N3 || 0,
+              N4: c.N4 || 0,
+              N5: c.N5 || 0,
+              N_cpmk: c.N_cpmk || 0,
             })),
-            indikatorKinerjaList,
+            ik,
           }
         });
       }
@@ -162,7 +169,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ 
           success: true, 
           data: {
-            weeklyPlan: data.minggu.map((w: any) => ({
+            minggu: data.minggu.map((w: any) => ({
               mingguKe: w.mingguKe || w.minggu || 0,
               kemampuanAkhir: w.kemampuanAkhir || w.cpmk || '',
               bahanKajian: w.bahanKajian || w.topik || '',
@@ -171,12 +178,14 @@ export async function POST(request: NextRequest) {
                 deskripsi: w.metodePembelajaran?.deskripsi || w.deskripsi_metode || '',
                 aktivitas: w.metodePembelajaran?.aktivitas || w.aktivitas || '',
               },
-              waktu: w.waktu || '3x50"',
+              waktu: w.waktu || 'PjBL/Praktikum 2x170\'',
               pengalamanBelajar: w.pengalamanBelajar || w.pengalaman || '',
               penilaian: {
                 kriteria: w.penilaian?.kriteria || w.indikator || '',
-                bobot: typeof w.penilaian?.bobot === 'number' 
-                  ? w.penilaian.bobot 
+                bobotMateri: typeof w.penilaian?.bobotMateri === 'number' 
+                  ? w.penilaian.bobotMateri
+                  : typeof w.penilaian?.bobot === 'number'
+                  ? w.penilaian.bobot
                   : parseInt(String(w.penilaian?.bobot || w.bobot || '0').replace('%', '')) || 0,
               },
             })),
@@ -188,38 +197,40 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ 
           success: true, 
           data: {
-            references: data.referensi.map((r: string) => ({
-              judul: r,
-              penulis: '',
-              jenis: 'buku' as const,
-            })),
+            referensi: Array.isArray(data.referensi) ? data.referensi : [],
           }
         });
       }
       
       // Full generation
       // Extract Indikator Kinerja from CPL OR CPMK data
-      let indikatorKinerjaList: any[] = [];
+      let ik: any[] = [];
       
-      // Try to extract from CPL first
-      if (data.cpl) {
+      // Try to extract from CPL first (if IK data embedded)
+      if (data.cpl && data.ik) {
+        ik = data.ik.map((i: any) => ({
+          kode: i.kode,
+          mapping_cpl: i.mapping_cpl || '',
+          pernyataan: i.pernyataan || '',
+        }));
+      } else if (data.cpl) {
         const ikFromCPL = data.cpl
           .filter((c: any) => c.ik_kode && c.ik_pernyataan)
           .map((c: any) => ({
             kode: c.ik_kode,
-            kodeCPL: c.kode,
+            mapping_cpl: c.kode,
             pernyataan: c.ik_pernyataan,
           }));
         if (ikFromCPL.length > 0) {
-          indikatorKinerjaList = ikFromCPL;
+          ik = ikFromCPL;
         }
       }
       
       // If not found in CPL, try CPMK
-      if (indikatorKinerjaList.length === 0 && data.cpmk) {
-        indikatorKinerjaList = data.cpmk.map((c: any, index: number) => ({
+      if (ik.length === 0 && data.cpmk) {
+        ik = data.cpmk.map((c: any, index: number) => ({
           kode: c.ik_kode || `IK ${index + 1}`,
-          kodeCPL: c.mapping_cpl || '',
+          mapping_cpl: c.kode || '',
           pernyataan: c.ik_pernyataan || '',
         }));
       }
@@ -227,58 +238,54 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         data: {
-          deskripsiSingkat: data.deskripsi,
-          cplList: data.cpl.map((c: { kode: string; pernyataan: string }) => ({
+          deskripsi: data.deskripsi,
+          cpl: data.cpl.map((c: { kode: string; pernyataan: string }) => ({
             kode: c.kode,
             pernyataan: c.pernyataan,
           })),
-          indikatorKinerjaList,
-          cpmkList: data.cpmk.map((c: { kode: string; pernyataan: string }) => ({
+          ik,
+          cpmk: data.cpmk.map((c: any) => ({
             kode: c.kode,
             pernyataan: c.pernyataan,
+            mapping_cpl: c.mapping_cpl || '',
+            N1: c.N1 || 0,
+            N2: c.N2 || 0,
+            N3: c.N3 || 0,
+            N4: c.N4 || 0,
+            N5: c.N5 || 0,
+            N_cpmk: c.N_cpmk || 0,
           })),
-          weeklyPlan: data.minggu.map((w: any) => ({
-            mingguKe: w.mingguKe || w.minggu || 0,
-            kemampuanAkhir: w.kemampuanAkhir || w.cpmk || '',
-            bahanKajian: w.bahanKajian || w.topik || '',
-            metodePembelajaran: {
-              metode: w.metodePembelajaran?.metode || w.metode || '',
-              deskripsi: w.metodePembelajaran?.deskripsi || w.deskripsi_metode || '',
-              aktivitas: w.metodePembelajaran?.aktivitas || w.aktivitas || '',
-            },
-            waktu: w.waktu || '3x50"',
-            pengalamanBelajar: w.pengalamanBelajar || w.pengalaman || '',
-            penilaian: {
-              kriteria: w.penilaian?.kriteria || w.indikator || '',
-              bobot: typeof w.penilaian?.bobot === 'number' 
-                ? w.penilaian.bobot 
-                : parseInt(String(w.penilaian?.bobot || w.bobot || '0').replace('%', '')) || 0,
-            },
-          })),
-          assessmentMethods: data.penilaian.map((p: { 
-            komponen: string; 
-            bobot: string; 
-            kriteria: string;
-            cpmk1?: string;
-            cpmk2?: string;
-            cpmk3?: string;
-            cpmk4?: string;
-          }) => ({
-            teknik: p.komponen,
-            persentase: parseInt(p.bobot.replace('%', '')) || 0,
-            kriteria: p.kriteria,
-            distribusiCPMK: {
-              cpmk1: parseInt(p.cpmk1?.replace('%', '') || '0') || 0,
-              cpmk2: parseInt(p.cpmk2?.replace('%', '') || '0') || 0,
-              cpmk3: parseInt(p.cpmk3?.replace('%', '') || '0') || 0,
-              cpmk4: parseInt(p.cpmk4?.replace('%', '') || '0') || 0,
-            },
-          })),
-          references: data.referensi.map((r: string) => ({
-            judul: r,
-            penulis: '',
-            jenis: 'buku' as const,
-          })),
+          minggu: data.minggu.map((w: any) => {
+            // Handle UTS/UAS (no optional fields)
+            if (w.kemampuanAkhir === 'UTS' || w.kemampuanAkhir === 'UAS' || w.cpmk === 'UTS' || w.cpmk === 'UAS') {
+              return {
+                mingguKe: w.mingguKe || w.minggu || 0,
+                kemampuanAkhir: w.kemampuanAkhir || w.cpmk || 'UTS',
+              };
+            }
+            // Regular week
+            return {
+              mingguKe: w.mingguKe || w.minggu || 0,
+              kemampuanAkhir: w.kemampuanAkhir || w.cpmk || '',
+              bahanKajian: w.bahanKajian || w.topik || '',
+              metodePembelajaran: {
+                metode: w.metodePembelajaran?.metode || w.metode || '',
+                deskripsi: w.metodePembelajaran?.deskripsi || w.deskripsi_metode || '',
+                aktivitas: w.metodePembelajaran?.aktivitas || w.aktivitas || '',
+              },
+              waktu: w.waktu || "PjBL/Praktikum 2x170'",
+              pengalamanBelajar: w.pengalamanBelajar || w.pengalaman || '',
+              penilaian: {
+                kriteria: w.penilaian?.kriteria || w.indikator || '',
+                bobotMateri: typeof w.penilaian?.bobotMateri === 'number' 
+                  ? w.penilaian.bobotMateri
+                  : typeof w.penilaian?.bobot === 'number'
+                  ? w.penilaian.bobot
+                  : parseInt(String(w.penilaian?.bobot || w.bobot || '0').replace('%', '')) || 0,
+              },
+            };
+          }),
+          referensi: Array.isArray(data.referensi) ? data.referensi : [],
         },
       });
       

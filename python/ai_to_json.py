@@ -85,12 +85,11 @@ class AIToJSON:
                        semester: int, status: str = "Mata Kuliah Wajib", 
                        prereq: str = "-", additional_context: str = "") -> str:
         """Generate prompt for OpenAI to create complete RPS content matching template structure."""
-        
-        # Use string formatting to avoid f-string issues
+
         context_section = ""
         if additional_context.strip():
             context_section = f"## Konteks Tambahan:\n{additional_context}\n"
-        
+
         prompt_template = """Anda adalah ahli kurikulum pendidikan tinggi Indonesia. Buatkan Rencana Pembelajaran Semester (RPS) lengkap untuk mata kuliah berikut:
 
 ## Informasi Mata Kuliah:
@@ -100,7 +99,7 @@ class AIToJSON:
 - Semester: {semester}
 - Status: {status}
 - Prasyarat: {prereq}
-
+- konteks tambahan:
 {context_section}
 
 ## Instruksi:
@@ -110,104 +109,87 @@ Buatkan RPS dalam format JSON dengan struktur PERSIS seperti berikut. PENTING: H
   "deskripsi": "Deskripsi mata kuliah 3-5 kalimat yang menjelaskan tujuan, cakupan, dan manfaat mata kuliah ini bagi mahasiswa",
   
   "cpl": [
-    {{"kode": "CPL3", "pernyataan": "Capaian Pembelajaran Lulusan yang relevan dengan mata kuliah", "ik_kode": "IK 3-1", "ik_pernyataan": "Indikator kinerja spesifik untuk CPL3"}},
-    {{"kode": "CPL4", "pernyataan": "Capaian Pembelajaran Lulusan yang relevan dengan mata kuliah", "ik_kode": "IK 4-1", "ik_pernyataan": "Indikator kinerja spesifik untuk CPL4"}},
-    {{"kode": "CPL10", "pernyataan": "Capaian Pembelajaran Lulusan yang relevan dengan mata kuliah", "ik_kode": "IK 10-1", "ik_pernyataan": "Indikator kinerja spesifik untuk CPL10"}}
+	{{"kode": "CPL 1", "pernyataan": "Capaian Pembelajaran Lulusan yang relevan dengan mata kuliah"}},
   ],
   
-  "cpmk": [
-    {{"kode": "CPMK 1", "pernyataan": "Mahasiswa mampu [capaian spesifik 1]", "mapping_cpl": "CPL3"}},
-    {{"kode": "CPMK 2", "pernyataan": "Mahasiswa mampu [capaian spesifik 2]", "mapping_cpl": "CPL3"}},
-    {{"kode": "CPMK 3", "pernyataan": "Mahasiswa mampu [capaian spesifik 3]", "mapping_cpl": "CPL4"}}
-  ],
-  
-  "minggu": [
-    {{"mingguKe": 1, "kemampuanAkhir": "CPMK 1", "bahanKajian": "Topik minggu 1", "metodePembelajaran": {{"metode": "Ceramah", "deskripsi": "penjelasan metode pembelajaran", "aktivitas": "Penjelasan aktivitas pembelajaran mahasiswa"}}, "waktu": "1x50'", "pengalamanBelajar": "pengalaman belajar mahasiswa", "penilaian": {{"kriteria": "kriteria indikator pencapaian", "bobot": 5}}}},
-    {{"mingguKe": 8, "kemampuanAkhir": "UTS", "bahanKajian": "UTS - Ujian Tengah Semester", "metodePembelajaran": {{"metode": "Ujian", "deskripsi": "Penilaian tertulis atau praktik komprehensif mencakup seluruh materi evaluasi penguasaan kompetensi", "aktivitas": "Pelaksanaan ujian tulis atau praktik sesuai jadwal akademik"}}, "waktu": "3x50'", "pengalamanBelajar": "UTS", "penilaian": {{"kriteria": "UTS", "bobot": 15}}}},
-    {{"mingguKe": 16, "kemampuanAkhir": "UAS", "bahanKajian": "UAS - Ujian Akhir Semester", "metodePembelajaran": {{"metode": "Ujian", "deskripsi": "Penilaian akhir semester melalui demo proyek integrasi presentasi hasil pembelajaran keseluruhan", "aktivitas": "Pelaksanaan ujian tulis atau praktik sesuai jadwal akademik"}}, "waktu": "3x50'", "pengalamanBelajar": "UAS", "penilaian": {{"kriteria": "UAS", "bobot": 20}}}}
-  ],
-  
-  "penilaian": [
-    {{"komponen": "Aktivitas Partisipatif", "bobot": "20%", "kriteria": "Kehadiran, partisipasi aktif, disiplin, dan kontribusi dalam diskusi", "cpmk1": "5%", "cpmk2": "5%", "cpmk3": "5%"}},
-    {{"komponen": "Project/ Problem/ Case Based Learning", "bobot": "30%", "kriteria": "Analisis kasus, kualitas laporan, dan presentasi", "cpmk1": "", "cpmk2": "10%", "cpmk3": "10%"}},
-    {{"komponen": "Kuis", "bobot": "10%", "kriteria": "Pemahaman materi dan pengembangan konsep", "cpmk1": "5%", "cpmk2": "", "cpmk3": ""}},
-    {{"komponen": "UTS", "bobot": "20%", "kriteria": "Ujian Tengah Semester", "cpmk1": "10%", "cpmk2": "10%", "cpmk3": ""}},
-    {{"komponen": "UAS", "bobot": "20%", "kriteria": "Ujian Akhir Semester", "cpmk1": "", "cpmk2": "", "cpmk3": "10%"}}
-  ],
-  
-  "assessment_summary": {{"total_bobot": "100%", "cpmk1_total": "20%", "cpmk2_total": "25%", "cpmk3_total": "25%"}},
-  
-  "media_assessment": {{"qui": "10%", "prs": "20%", "pro": "30%", "uts": "20%", "uas": "20%"}},
-  
-  "cpl_cpmk_mapping": [
-    {{"cpl": "CPL3", "ik": "IK 3-1", "ik_pernyataan": "Indikator kinerja untuk CPL3", "cpmk": "CPMK 1", "cpmk_pernyataan": "Pernyataan CPMK 1", "bobot": "20%", "media": "Kuis, Tugas Kasus, Project Kelompok, UTS, UAS", "qui": "5", "prs": "5", "pro": "", "uts": "10", "uas": ""}},
-    {{"cpl": "CPL3", "ik": "IK 3-2", "ik_pernyataan": "Indikator kinerja untuk CPL3", "cpmk": "CPMK 2", "cpmk_pernyataan": "Pernyataan CPMK 2", "bobot": "25%", "media": "Tugas Makalah, Aktivitas Partisipatif, UTS", "qui": "", "prs": "5", "pro": "10", "uts": "10", "uas": ""}},
-    {{"cpl": "CPL4", "ik": "IK 4-1", "ik_pernyataan": "Indikator kinerja untuk CPL4", "cpmk": "CPMK 3", "cpmk_pernyataan": "Pernyataan CPMK 3", "bobot": "25%", "media": "Aktivitas Partisipatif, Final Project, UAS", "qui": "", "prs": "5", "pro": "10", "uts": "", "uas": "10"}},
-    {{"cpl": "CPL10", "ik": "IK 10-1", "ik_pernyataan": "Indikator kinerja untuk CPL10", "cpmk": "CPMK 4", "cpmk_pernyataan": "Pernyataan CPMK 4", "bobot": "30%", "media": "Kuis, Tugas Esai, UAS", "qui": "5", "prs": "5", "pro": "10", "uts": "", "uas": "10"}}
-  ],
-  
-  "referensi": [
-    "Buku referensi utama 1 dengan penulis dan penerbit",
-    "Buku referensi utama 2 dengan penulis dan penerbit", 
-    "Buku referensi pendukung 3",
-    "Dokumentasi atau sumber online relevan",
-    "Jurnal atau publikasi terkait"
-  ],
-  
-  "metode_pembelajaran": [
-    "Ceramah",
-    "Diskusi",
-    "Kuis",
-    "Tugas",
-    "Presentasi",
-    "Praktikum"
+  "ik": [
+	{{"kode": "IK 1-1", 
+		"pernyataan": "Indikator kinerja spesifik untuk CPL 1 dan CPMK 1-1", 
+		"mapping_cpl": "CPL 1",
+		"mapping_cpmk": "CPMK 1-1"
+    }},
   ],
 
-  "learning_experience_keywords": [
-    "Memahami",
-    "Menjelaskan",
-    "Menghitung",
-    "Menganalisis",
-    "Melakukan",
-    "Mengerjakan",
-    "Mempresentasikan",
-    "Mendiskusikan",
-    "Membuat laporan",
-    "Mengisi formulir",
-    "Memproses",
-    "Melaporkan",
-    "Menyediakan informasi",
-    "Memecahkan masalah"
-  ]
+  "cpmk": [
+	{{"kode": "CPMK 1-1", "pernyataan": "Mahasiswa mampu [capaian spesifik 1-1]", 
+		"mapping_cpl": "CPL1", "N1": 5,N2: 5,"N3": 5,"N4": 5,"N5": 0,"N_cpmk": 30}},
+  ],
+
+  "minggu": [
+	{{"mingguKe": 1, 
+		"kemampuanAkhir": "CPMK 1-1", 
+		"bahanKajian": "Topik minggu 1", 
+		"metodePembelajaran": {{"metode": "TM SCL", 
+		"deskripsi": "peran dosen dalam metode pembelajaran", 
+		"aktivitas": "aktivitas mahasiswa dalam metode pembelajaran"}}, 
+		"waktu": "TM Ceramah 1x50', Kuis, Tugas Mandiri", 
+		"pengalamanBelajar": "pengalaman belajar mahasiswa", 
+		"penilaian": {{"kriteria": "kriteria indikator pencapaian", 
+		"bobotMateri": 5}}}},
+	{{"mingguKe": 8, "kemampuanAkhir": "UTS"}},
+	{{"mingguKe": 16, "kemampuanAkhir": "UAS"}},   
+	],
+    
+  "referensi": [
+	"Buku/Jurnal/Proceding/Website"
+  ],
+
 }}
 
 ## Catatan Penting:
-1. Minggu 8 = UTS, Minggu 16 = UAS
-2. Total bobot penilaian = 100%
-3. Setiap CPMK memetakan ke CPL
-4. Konten harus relevan dengan "{course_name}"
-5. Gunakan bahasa Indonesia yang baik dan akademis
-6. Pastikan semua 16 minggu terisi lengkap
-7. WAJIB untuk setiap minggu (selain UTS/UAS):
-   - "metodePembelajaran.metode": pilih 1 dari: Ceramah, Diskusi, Kuis, Tugas, Presentasi, Praktikum
-    - "metodePembelajaran.deskripsi": HARUS 20 kata penjelasan metode pembelajaran
-    - "metodePembelajaran.aktivitas": HARUS 20 kata penjelasan aktivitas pembelajaran
-    - "pengalamanBelajar": HARUS 20 kata pengalaman belajar mahasiswa
-    - "penilaian.kriteria": HARUS 20 kata kriteria indikator pencapaian
-8. Struktur minggu harus mengikuti format EXACT (gunakan mingguKe, bukan minggu):
-   {{
-     "mingguKe": nomor,
-     "kemampuanAkhir": "CPMK X",
-     "bahanKajian": "topik pembelajaran",
-      "metodePembelajaran": {{"metode": "Metode", "deskripsi": "deskripsi 20 kata", "aktivitas": "aktivitas pembelajaran 20 kata"}},
-     "waktu": "3x50'",
-      "pengalamanBelajar": "pengalaman 20 kata",
-      "penilaian": {{"kriteria": "kriteria 20 kata", "bobot": nilai}}
-   }}
-9. Berikan referensi buku yang nyata dan relevan
-
+. Gunakan bahasa Indonesia yang baik dan akademis
+. Konten harus relevan dengan "{course_name}"
+. Pastikan semua 16 minggu terisi lengkap (14 pertemuan + UTS minggu 8 + UAS minggu 16)
+. Minggu 8 = UTS, Minggu 16 = UAS (hanya ada field mingguKe dan kemampuanAkhir)
+. N1(Partisipatif 20%),N2(Project/ Problem/ Case Based Learning 30%),N3(Kuis 10%),N4(UTS 20%),N5(UAS 20%)
+. Total N1 dari semua CPMK harus 20%, N2-N5 juga sama sesuai proporsi di atas
+. Total bobot penilaian = 100% dari N_cpmk semua CPMK
+. Sesuaikan jumlah CPL,CPMK,IK sesuai konteks tambahan
+. Format kode CPL (CPL 3, CPL 8), CPMK (CPMK 3-1, CPMK 8-1), IK (IK 3-1, IK 8-1)
+. Mapping: CPMK memetakan ke CPL (CPMK 3-1 → CPL 3), IK memetakan ke CPMK (IK 3-1 → CPMK 3-1)
+. Setiap minggu (selain UTS/UAS) harus ada semua field lengkap
+. Total bobotMateri dari semua minggu (14 pertemuan) harus 100%
+. WAJIB untuk setiap minggu (selain UTS/UAS):
+   - "metodePembelajaran.metode": pilih 1 dari: 
+     * TM SCL (untuk mata kuliah teori)
+     * CBL (Case Based Learning)
+     * PBL (Problem Based Learning)
+     * PjBL (untuk mata kuliah Praktikum)
+   - "metodePembelajaran.deskripsi": minimal 15 kata menjelaskan peran dosen dalam metode pembelajaran
+   - "metodePembelajaran.aktivitas": minimal 15 kata menjelaskan aktivitas mahasiswa
+   - "pengalamanBelajar": minimal 25 kata pengalaman belajar yang didapat mahasiswa
+   - "penilaian.kriteria": minimal 20 kata kriteria penilaian yang jelas
+   - "penilaian.bobotMateri": setiap bobotMateri dari beberapa minggu untuk satu CPMK dijumlahkan harus sesuai N_cpmk
+   - "bahanKajian": sesuai dengan course_name dan relevan dengan CPMK yang dituju
+   - "waktu": 
+     * Untuk mata kuliah teori (non-Praktikum):
+       - TM SCL: "TM Ceramah {sks}x50', Kuis, Tugas Mandiri"
+       - CBL: "CBL {sks}x50', Diskusi Kelompok, Studi Kasus"
+       - PBL: "PBL {sks}x50', Diskusi Kelompok, Tugas Mandiri"
+       - PjBL: "PjBL {sks}x50', Proyek Mini, Presentasi"
+     * Untuk mata kuliah Praktikum (nama dimulai "Praktikum"):
+       - PjBL: "Praktikum {sks}x170', Praktikum Hands-on, Laporan Praktikum"
+. Untuk mata kuliah Praktikum, gunakan metode PjBL dengan deskripsi tentang praktikum
+. Variasikan metode pembelajaran di berbagai minggu (TM SCL, CBL, PBL, PjBL)
+. bahanKajian harus spesifik dan bervariasi setiap minggu, tidak generik
+. Referensi harus mengikuti format (Penulis,Tahun,Judul,Penerbit):
+  1. Buku internasional 
+  2-3. Buku nasional 
+  4-5. Jurnal internasional 
+  6-7. Jurnal nasional 
+  8. Website/Dokumentasi resmi (Penulis,Tahun,Judul,alamat URL)
 Output JSON saja, tanpa markdown formatting atau penjelasan."""
-        
+
         return prompt_template.format(
             course_name=course_name,
             course_code=course_code,

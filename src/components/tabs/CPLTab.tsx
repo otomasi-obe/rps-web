@@ -15,25 +15,25 @@ interface CPLTabProps {
 
 export default function CPLTab({ data, onUpdate, onGenerate, isGenerating, contextValue = '', onContextChange, progress = 0 }: CPLTabProps) {
   const updateCPL = (index: number, updates: Partial<CPL>) => {
-    const newList = [...data.cplList];
+    const newList = [...data.cpl];
     newList[index] = { ...newList[index], ...updates };
-    onUpdate({ cplList: newList });
+    onUpdate({ cpl: newList });
   };
 
   const addCPL = () => {
-    const nextNum = data.cplList.length + 1;
+    const nextNum = data.cpl.length + 1;
     onUpdate({
-      cplList: [
-        ...data.cplList,
+      cpl: [
+        ...data.cpl,
         { kode: `CPL${nextNum}`, pernyataan: '' },
       ],
     });
   };
 
   const removeCPL = (index: number) => {
-    if (data.cplList.length <= 1) return;
+    if (data.cpl.length <= 1) return;
     onUpdate({
-      cplList: data.cplList.filter((_, i) => i !== index),
+      cpl: data.cpl.filter((_, i) => i !== index),
     });
   };
 
@@ -50,12 +50,16 @@ export default function CPLTab({ data, onUpdate, onGenerate, isGenerating, conte
             onChange={(e) => onContextChange?.(e.target.value)}
             placeholder="Contoh: Fokus pada kemampuan analisis data, pemrograman Python, dan machine learning..."
             rows={2}
-            className="w-full text-sm"
-          />
+            className="w-full text-sm resize-y"
+            style={{ minHeight: '60px' }}            onInput={(e) => {
+              const target = e.target as HTMLTextAreaElement;
+              target.style.height = 'auto';
+              target.style.height = Math.max(60, target.scrollHeight) + 'px';
+            }}          />
         </div>
         <button
           onClick={onGenerate}
-          disabled={isGenerating || !data.identity.nama}
+          disabled={isGenerating || !data.identitas.nama}
           className="btn btn-primary text-sm flex items-center gap-2"
         >
           {isGenerating ? <span className="spinner" /> : '🤖'}
@@ -76,12 +80,12 @@ export default function CPLTab({ data, onUpdate, onGenerate, isGenerating, conte
       </div>
 
       <div className="space-y-4">
-        {(!data.cplList || data.cplList.length === 0) ? (
+        {(!data.cpl || data.cpl.length === 0) ? (
           <div className="text-center py-8 text-slate-500">
             <p>Belum ada CPL. Klik "Generate CPL dengan AI" atau "Tambah CPL" untuk memulai.</p>
           </div>
         ) : (
-          data.cplList.map((cpl, index) => (
+          data.cpl.map((cpl, index) => (
           <div key={index} className="bg-slate-50 p-4 rounded-lg border border-slate-200">
             <div className="flex gap-4">
               <div className="w-28">
@@ -100,14 +104,20 @@ export default function CPLTab({ data, onUpdate, onGenerate, isGenerating, conte
                   value={cpl.pernyataan}
                   onChange={(e) => updateCPL(index, { pernyataan: e.target.value })}
                   rows={2}
-                  className="w-full"
+                  className="w-full resize-y min-h-[60px]"
                   placeholder="Contoh: Mampu menganalisis dan memecahkan permasalahan rekayasa melalui pendekatan eksperimen..."
+                  style={{ height: 'auto', minHeight: '60px' }}
+                  onInput={(e) => {
+                    const target = e.target as HTMLTextAreaElement;
+                    target.style.height = 'auto';
+                    target.style.height = target.scrollHeight + 'px';
+                  }}
                 />
               </div>
               <div className="flex items-end">
                 <button
                   onClick={() => removeCPL(index)}
-                  disabled={!data.cplList || data.cplList.length <= 1}
+                  disabled={!data.cpl || data.cpl.length <= 1}
                   className="btn btn-danger text-sm px-3"
                   title="Hapus CPL"
                 >

@@ -166,9 +166,9 @@ class RPSAPIHandler(BaseHTTPRequestHandler):
         additional_context = data.get('additionalContext', '')
         
         # Additional data for partial generation
-        deskripsi = data.get('deskripsiSingkat', '')
-        cpl_list = data.get('cplList', [])
-        cpmk_list = data.get('cpmkList', [])
+        deskripsi = data.get('deskripsi', data.get('deskripsiSingkat', ''))
+        cpl_list = data.get('cpl', data.get('cplList', []))
+        cpmk_list = data.get('cpmk', data.get('cpmkList', []))
         
         print(f"\n📝 Generating {generate_type.upper()} for: {course_name}")
         if additional_context:
