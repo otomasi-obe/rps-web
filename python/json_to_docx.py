@@ -244,18 +244,18 @@ def process_smart_list_table(table, data_list, mapping_config):
         
         if is_integration_table and col_mapping:
             if len(row.cells) >= 12:
-                row.cells[col_mapping['cpl_kode']].text = str(item.get('cpl_kode', ''))
-                row.cells[col_mapping['ik_kode']].text = str(item.get('ik_kode', ''))
-                row.cells[col_mapping['pernyataan']].text = str(item.get('pernyataan', ''))
-                row.cells[col_mapping['cpmk_kode']].text = str(item.get('cpmk_kode', ''))
-                row.cells[col_mapping['cpmk_pernyataan']].text = str(item.get('cpmk_pernyataan', ''))
-                row.cells[col_mapping['N_total']].text = str(item.get('N_total', ''))
-                row.cells[col_mapping['MA_val']].text = str(item.get('MA_val', ''))
-                row.cells[col_mapping['N1']].text = str(item.get('N1', ''))
-                row.cells[col_mapping['N2']].text = str(item.get('N2', ''))
-                row.cells[col_mapping['N3']].text = str(item.get('N3', ''))
-                row.cells[col_mapping['N4']].text = str(item.get('N4', ''))
-                row.cells[col_mapping['N5']].text = str(item.get('N5', ''))
+                _set_cell_text_preserve_format(row.cells[col_mapping['cpl_kode']], str(item.get('cpl_kode', '')))
+                _set_cell_text_preserve_format(row.cells[col_mapping['ik_kode']], str(item.get('ik_kode', '')))
+                _set_cell_text_preserve_format(row.cells[col_mapping['pernyataan']], str(item.get('pernyataan', '')))
+                _set_cell_text_preserve_format(row.cells[col_mapping['cpmk_kode']], str(item.get('cpmk_kode', '')))
+                _set_cell_text_preserve_format(row.cells[col_mapping['cpmk_pernyataan']], str(item.get('cpmk_pernyataan', '')))
+                _set_cell_text_preserve_format(row.cells[col_mapping['N_total']], str(item.get('N_total', '')))
+                _set_cell_text_preserve_format(row.cells[col_mapping['MA_val']], str(item.get('MA_val', '')))
+                _set_cell_text_preserve_format(row.cells[col_mapping['N1']], str(item.get('N1', '')))
+                _set_cell_text_preserve_format(row.cells[col_mapping['N2']], str(item.get('N2', '')))
+                _set_cell_text_preserve_format(row.cells[col_mapping['N3']], str(item.get('N3', '')))
+                _set_cell_text_preserve_format(row.cells[col_mapping['N4']], str(item.get('N4', '')))
+                _set_cell_text_preserve_format(row.cells[col_mapping['N5']], str(item.get('N5', '')))
         else:
             row_map = {ph: item.get(key, "") for ph, key in mapping_config.items()}
             
@@ -293,19 +293,19 @@ def _set_cell_text_preserve_format(cell, text: str) -> None:
             source_para = cell.paragraphs[0]
         
         # Save formatting from first run if it exists
-        saved_font_size = Pt(9)
-        saved_font_name = 'Calibri'
-        saved_bold = False
-        saved_italic = False
+        saved_font_size = None
+        saved_font_name = None
+        saved_bold = None
+        saved_italic = None
         
         if source_run:
             try:
-                saved_font_size = source_run.font.size or Pt(9)
-                saved_font_name = source_run.font.name or 'Calibri'
-                saved_bold = source_run.font.bold if source_run.font.bold is not None else False
-                saved_italic = source_run.font.italic if source_run.font.italic is not None else False
+                saved_font_size = source_run.font.size
+                saved_font_name = source_run.font.name
+                saved_bold = source_run.font.bold
+                saved_italic = source_run.font.italic
             except:
-                pass  # Use defaults if error reading formatting
+                pass  # Use existing formatting if error
         
         # Safely clear all runs from source paragraph
         try:
@@ -329,11 +329,13 @@ def _set_cell_text_preserve_format(cell, text: str) -> None:
                 
                 new_run = source_para.add_run(line)
                 try:
-                    new_run.font.size = saved_font_size
-                    new_run.font.name = saved_font_name
-                    if saved_bold:
+                    if saved_font_size is not None:
+                        new_run.font.size = saved_font_size
+                    if saved_font_name is not None:
+                        new_run.font.name = saved_font_name
+                    if saved_bold is not None:
                         new_run.font.bold = saved_bold
-                    if saved_italic:
+                    if saved_italic is not None:
                         new_run.font.italic = saved_italic
                 except:
                     pass  # If formatting fails, continue with plain text
