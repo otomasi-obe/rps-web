@@ -34,6 +34,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from ai_to_json import AIToJSON
 from json_to_docx import JSONToDocx
+from logger_util import logger, log_request, log_response, log_timing, save_export_json, log_performance_metrics
+from logger_util import logger, log_request, log_response, log_timing, save_export_json, log_performance_metrics
 
 # Global AI generator instance
 _generator = None
@@ -294,8 +296,10 @@ class RPSAPIHandler(BaseHTTPRequestHandler):
         script_dir = Path(__file__).parent
         template_path = script_dir / 'RPS.docx'
         
-        print(f"📝 Template path: {template_path}")
-        print(f"📝 Template exists: {template_path.exists()}")
+        # Save JSON for history
+        json_path = save_export_json(rps_data, meta, 'docx_export')
+        logger.info(f"📝 Template path: {template_path}")
+        logger.info(f"📝 Template exists: {template_path.exists()}")
         
         if not template_path.exists():
             raise Exception(f"Template not found: {template_path}")
@@ -349,11 +353,25 @@ class RPSAPIHandler(BaseHTTPRequestHandler):
                 'filename': f"RPS_{meta['kode']}.docx"
             }
             
-            print(f"✅ Sending response with keys: {list(response_data.keys())}")
+            # Log performance metrics
+            total_time = (time.time() - start_time) * 1000
+            metrics = {
+                'total_time_ms': total_time,
+                'file_size_bytes': len(docx_bytes),
+                'file_size_mb': len(docx_bytes) / 1024 / 1024,
+                'course': meta.get('nama', 'Unknown'),
+                'json_saved': json_path is not None
+            }
+            log_performance_metrics(metrics)
+            log_response('/export', 200, total_time)
+            
+            logger.info(f"✅ Sending response with keys: {list(response_data.keys())}")
             self._send_json(response_data)
             
         except Exception as e:
-            print(f"❌ Export error: {e}")
+            total_time = (time.time() - start_time) * 1000
+            log_response('/export', 500, total_time, str(e))
+            logger.error(f"❌ Export error: {e}")
             import traceback
             traceback.print_exc()
             raise
@@ -373,15 +391,18 @@ def run_server(port=5000):
     # This allows the server to be accessed from other machines
     server_address = ('0.0.0.0', port)
     httpd = ThreadedHTTPServer(server_address, RPSAPIHandler)
-    print(f"🚀 RPS API Server running on http://0.0.0.0:{port}")
-    print(f"   Accessible at: http://localhost:{port}")
-    print("=" * 50)
-    print("Endpoints:")
-    print(f"  GET  http://localhost:{port}/health")
-    print(f"  POST http://localhost:{port}/generate")
-    print(f"  POST http://localhost:{port}/export")
-    print("=" * 50)
-    print("🔄 Multi-threaded mode: Ready for concurrent requests")
+    
+    logger.info(f"🚀 RPS API Server running on http://0.0.0.0:{port}")
+    logger.info(f"   Accessible at: http://localhost:{port}")
+    logger.info("=" * 50)
+    logger.info("Endpoints:")
+    logger.info(f"  GET  http://localhost:{port}/health")
+    logger.info(f"  POST http://localhost:{port}/generate")
+    logger.info(f"  POST http://localhost:{port}/export")
+    logger.info("=" * 50)
+    logger.info("🔄 Multi-threaded mode: Ready for concurrent requests")
+    logger.info("📊 Logging enabled - check /root/rps-web/logs/")
+    
     httpd.serve_forever()
 
 

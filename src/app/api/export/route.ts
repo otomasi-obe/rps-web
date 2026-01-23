@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { RPSData } from '@/types/rps';
+import Logger, { saveExportJSON } from '@/lib/logger';
+
+const logger = new Logger('ExportAPI');
 
 // Python API URL - get from environment, use localhost as fallback for dev
 const PYTHON_API_URL = process.env.PYTHON_API_URL || 'http://127.0.0.1:5000';
@@ -7,7 +10,7 @@ const PYTHON_API_URL = process.env.PYTHON_API_URL || 'http://127.0.0.1:5000';
 // Function to get API URL with debugging
 function getAPIUrl() {
   const url = PYTHON_API_URL;
-  console.log('[Export Route] Using PYTHON_API_URL:', url);
+  logger.debug('Using PYTHON_API_URL', { url });
   return url;
 }
 
@@ -15,17 +18,36 @@ function getAPIUrl() {
 export const maxDuration = 120; // 2 minutes
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+  const clientIP = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+  
+  logger.info(`📥 Export request received from IP: ${clientIP}`);
+  
   try {
     const body = await request.json();
     const { rpsData, meta } = body as { rpsData: RPSData; meta: Record<string, unknown> };
 
+    logger.info('Request data received', {
+      courseName: meta?.nama || rpsData?.identitas?.nama || 'Unknown',
+      courseCode: meta?.kode || rpsData?.identitas?.kode || 'Unknown',
+      hasCPL: !!rpsData?.cpl,
+      hasCPMK: !!rpsData?.cpmk,
+      hasMinggu: !!rpsData?.minggu,
+    });
+
     // Validate required data
     if (!rpsData) {
+      logger.error('RPS data is missing');
       return NextResponse.json(
         { error: 'RPS data is required' },
         { status: 400 }
       );
     }
+    
+    // Save JSON for history/debugging
+    const saveStart = Date.now();
+    await saveExportJSON(rpsData, meta || {}, 'nextjs_export');
+    logger.timing('JSON save', Date.now() - saveStart);
 
     // Prepare meta (merge defaults even if meta is an empty object)
     const defaults = {
@@ -111,6 +133,10 @@ export async function POST(request: NextRequest) {
 
     // Call Python API
     const pythonApiUrl = getAPIUrl();
+    const pythonCallStart = Date.now();
+    
+    logger.info('🚀 Calling Python API', { url: `${pythonApiUrl}/export` });
+    
     const response = await fetch(`${pythonApiUrl}/export`, {
       method: 'POST',
       headers: {
@@ -122,12 +148,19 @@ export async function POST(request: NextRequest) {
       }),
     });
 
-    console.log('[Export Route] Python API Response Status:', response.status);
-    console.log('[Export Route] Content-Type:', response.headers.get('content-type'));
+    const pythonDuration = Date.now() - pythonCallStart;
+    logger.timing('Python API call', pythonDuration);
+    logger.info('Python API Response', {
+      status: response.status,
+      contentType: response.headers.get('content-type'),
+    });
 
     if (!response.ok) {
       const responseText = await response.text();
-      console.error('[Export Route] Error response:', responseText.substring(0, 500));
+      logger.error('Python API error', {
+        status: response.status,
+        response: responseText.substring(0, 500),
+      });
       
       let errorData: any = {};
       try {
@@ -138,22 +171,35 @@ export async function POST(request: NextRequest) {
       throw new Error(errorData.error || `Python API error: ${response.status}`);
     }
 
+    const parseStart = Date.now();
     const responseText = await response.text();
     let result;
     try {
       result = JSON.parse(responseText);
     } catch (parseError) {
-      console.error('[Export Route] JSON Parse error:', parseError);
-      console.error('[Export Route] Response text:', responseText.substring(0, 1000));
+      logger.error('JSON parse error', {
+        error: parseError,
+        responseText: responseText.substring(0, 1000),
+      });
       throw new Error(`Invalid JSON from Python API: ${responseText.substring(0, 200)}`);
     }
+    logger.timing('JSON parse', Date.now() - parseStart);
 
     if (!result.success || !result.docx) {
       throw new Error('Invalid response from Python API');
     }
 
     // Decode base64 to buffer
+    const decodeStart = Date.now();
     const docxBuffer = Buffer.from(result.docx, 'base64');
+    logger.timing('Base64 decode', Date.now() - decodeStart);
+
+    const totalDuration = Date.now() - startTime;
+    logger.info('✅ Export completed successfully', {
+      totalDuration: `${totalDuration}ms`,
+      fileSize: `${(docxBuffer.length / 1024).toFixed(2)} KB`,
+      filename: result.filename || 'RPS.docx',
+    });
 
     // Return the DOCX file
     return new NextResponse(new Uint8Array(docxBuffer), {
@@ -164,7 +210,13 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Export error:', error);
+    const totalDuration = Date.now() - startTime;
+    logger.error('❌ Export failed', {
+      duration: `${totalDuration}ms`,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to export document' },
       { status: 500 }

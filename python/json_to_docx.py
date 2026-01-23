@@ -166,6 +166,9 @@ def generate_media_asesmen_string(cpmk_item):
 
 def process_smart_list_table(table, data_list, mapping_config):
     """Process tabel dengan duplikasi baris dinamis berdasarkan jumlah data."""
+    if not data_list:  # Skip if no data
+        return
+        
     template_rows = []
     
     is_integration_table = 'IK 1-' in str(mapping_config.keys()) or 'CPL 1' in str(mapping_config.keys())
@@ -414,9 +417,13 @@ class JSONToDocx:
         print(f"   Output: {output_path}")
         
         try:
+            import time
+            start_time = time.time()
+            
             print(f"[CONVERT] Loading Document from {self.template_path}...")
             doc = Document(str(self.template_path))
-            print(f"[CONVERT] Document loaded. Total tables: {len(doc.tables)}")
+            load_time = time.time() - start_time
+            print(f"[CONVERT] Document loaded in {load_time:.2f}s. Total tables: {len(doc.tables)}")
             
             # ---------------------------------------------------------
             # 1. PERSIAPAN DATA MAPPING GLOBAL & OTORITAS
@@ -514,8 +521,29 @@ class JSONToDocx:
             # 4. EKSEKUSI PADA SETIAP TABEL
             # ---------------------------------------------------------
             
-            for table in doc.tables:
-                all_text = " ".join([c.text for r in table.rows for c in r.cells])
+            process_start = time.time()
+            print(f"[PROCESS] Starting table processing...")
+            
+            for table_idx, table in enumerate(doc.tables):
+                table_start = time.time()
+                
+                # Quick pre-check to skip irrelevant tables
+                try:
+                    # Only get text if needed (expensive operation)
+                    first_row_text = " ".join([c.text for c in table.rows[0].cells]) if table.rows else ""
+                    
+                    # Skip tables that clearly don't need processing
+                    if not first_row_text or len(first_row_text.strip()) < 5:
+                        continue
+                    
+                    # Only get full table text for matching tables (expensive)
+                    needs_full_scan = any(keyword in first_row_text for keyword in ['CPMK', 'cpl.', 'cpmk.', 'IK', 'Minggu', 'Paste_referensi'])
+                    if needs_full_scan:
+                        all_text = " ".join([c.text for r in table.rows for c in r.cells])
+                    else:
+                        all_text = first_row_text
+                except:
+                    continue
                 
                 # A. DELETE KOLOM CPMK BERLEBIH (Pruning)
                 if 'CPMK 1-' in all_text or 'CPMK 1 (' in all_text:
@@ -606,6 +634,10 @@ class JSONToDocx:
                                     for p in cell.paragraphs:
                                         replace_paragraph_text(p, wm)
                 
+                table_time = time.time() - table_start
+                if table_time > 0.5:  # Log only slow tables
+                    print(f"   Table {table_idx}: {table_time:.2f}s")
+                
                 # G. Referensi
                 if 'Paste_referensinya_disini' in all_text:
                     references_list = rps_data.get("references", [])
@@ -630,6 +662,9 @@ class JSONToDocx:
                                     new_text = p.text.replace('Paste_referensinya_disini', ref_str)
                                     _set_cell_text_preserve_format(cell, new_text)
             
+            process_time = time.time() - process_start
+            print(f"[PROCESS] Table processing completed in {process_time:.2f}s")
+            
             # Validate document before saving
             print(f"\n[VALIDATE] Checking document integrity before save...")
             try:
@@ -643,8 +678,11 @@ class JSONToDocx:
             
             # Save with proper error handling
             try:
+                save_start = time.time()
                 doc.save(str(output_path))
-                print(f"✅ DOCX saved successfully to: {output_path}")
+                save_time = time.time() - save_start
+                total_time = time.time() - start_time
+                print(f"✅ DOCX saved in {save_time:.2f}s (total: {total_time:.2f}s) to: {output_path}")
                 
                 # Verify file was created and has content
                 from pathlib import Path as PathlibPath

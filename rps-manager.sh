@@ -22,7 +22,7 @@ print_header() {
     echo ""
     echo -e "${BLUE}╔════════════════════════════════════════╗${NC}"
     echo -e "${BLUE}║       RPS-WEB Server Manager           ║${NC}"
-    echo -e "${BLUE}║     PM2 + Nginx + Python API           ║${NC}"
+    echo -e "${BLUE}║   Systemd + Nginx + Python API         ║${NC}"
     echo -e "${BLUE}╚════════════════════════════════════════╝${NC}"
     echo ""
 }
@@ -38,23 +38,18 @@ check_status() {
         echo -e "   ${RED}✗${NC} Nginx:          ${RED}STOPPED${NC}"
     fi
     
-    # Check Next.js via PM2
-    PM2_STATUS=$(pm2 jlist 2>/dev/null | grep -o '"name":"rps-web"' | head -1)
-    if [ -n "$PM2_STATUS" ]; then
-        PM2_ONLINE=$(pm2 jlist 2>/dev/null | grep -o '"status":"online"' | head -1)
-        if [ -n "$PM2_ONLINE" ]; then
-            echo -e "   ${GREEN}✓${NC} Next.js (PM2):  ${GREEN}RUNNING${NC}"
-        else
-            echo -e "   ${RED}✗${NC} Next.js (PM2):  ${RED}STOPPED${NC}"
-        fi
+    # Check Next.js via systemd
+    if systemctl is-active --quiet rps-nextjs 2>/dev/null; then
+        NEXT_PID=$(systemctl show -p MainPID --value rps-nextjs 2>/dev/null)
+        echo -e "   ${GREEN}✓${NC} Next.js (systemd): ${GREEN}RUNNING${NC} (PID: ${NEXT_PID:-unknown})"
     else
-        echo -e "   ${RED}✗${NC} Next.js (PM2):  ${RED}NOT CONFIGURED${NC}"
+        echo -e "   ${RED}✗${NC} Next.js (systemd): ${RED}STOPPED${NC}"
     fi
     
     # Check Python API
-    PYTHON_PID=$(pgrep -f "api_server.py" 2>/dev/null)
-    if [ -n "$PYTHON_PID" ]; then
-        echo -e "   ${GREEN}✓${NC} Python API:     ${GREEN}RUNNING${NC} (PID: $PYTHON_PID)"
+    if systemctl is-active --quiet rps-python 2>/dev/null; then
+        PYTHON_PID=$(systemctl show -p MainPID --value rps-python 2>/dev/null)
+        echo -e "   ${GREEN}✓${NC} Python API:     ${GREEN}RUNNING${NC} (PID: ${PYTHON_PID:-unknown})"
     else
         echo -e "   ${RED}✗${NC} Python API:     ${RED}STOPPED${NC}"
     fi
@@ -94,13 +89,6 @@ check_status() {
         echo -e "   ${GREEN}✓${NC} Node.js: $NODE_VER"
     else
         echo -e "   ${RED}✗${NC} Node.js: Not installed"
-    fi
-    
-    if command -v pm2 &> /dev/null; then
-        PM2_VER=$(pm2 -v)
-        echo -e "   ${GREEN}✓${NC} PM2: v$PM2_VER"
-    else
-        echo -e "   ${RED}✗${NC} PM2: Not installed"
     fi
     
     if command -v python3 &> /dev/null; then
@@ -148,93 +136,88 @@ check_status() {
 start_services() {
     echo -e "${YELLOW}🚀 Starting Services...${NC}"
     
+    # Start Next.js with systemd
+    sudo systemctl start rps-nextjs
+    sleep 2
+    if systemctl is-active --quiet rps-nextjs; then
+        echo -e "   ${GREEN}✓${NC} Next.js started (systemctl)"
+    else
+        echo -e "   ${RED}✗${NC} Next.js failed to start"
+        echo -e "   Check logs: sudo journalctl -u rps-nextjs -n 50"
+    fi
+    
+    # Start Python API with systemd
+    sudo systemctl start rps-python
+    sleep 2
+    if systemctl is-active --quiet rps-python; then
+        echo -e "   ${GREEN}✓${NC} Python API started (systemctl)"
+    else
+        echo -e "   ${RED}✗${NC} Python API failed to start"
+        echo -e "   Check logs: sudo journalctl -u rps-python -n 50"
+    fi
+    
     # Start Nginx
-    if ! systemctl is-active --quiet nginx 2>/dev/null; then
+    if ! systemctl is-active --quiet nginx; then
         sudo systemctl start nginx
-        if systemctl is-active --quiet nginx; then
-            echo -e "   ${GREEN}✓${NC} Nginx started"
-        else
-            echo -e "   ${RED}✗${NC} Failed to start Nginx"
-        fi
+        echo -e "   ${GREEN}✓${NC} Nginx started"
     else
-        echo -e "   ${YELLOW}!${NC} Nginx already running"
+        echo -e "   ${YELLOW}ℹ${NC}  Nginx already running"
     fi
     
-    # Start Next.js via PM2
-    PM2_STATUS=$(pm2 jlist 2>/dev/null | grep -o '"name":"rps-web"' | head -1)
-    if [ -z "$PM2_STATUS" ]; then
-        cd "$APP_DIR"
-        PORT=3000 pm2 start "npm run start" --name "rps-web"
-        sleep 2
-        echo -e "   ${GREEN}✓${NC} Next.js started via PM2"
-    else
-        pm2 restart rps-web 2>/dev/null
-        echo -e "   ${GREEN}✓${NC} Next.js restarted via PM2"
-    fi
-    
-    # Start Python API via systemctl
-    if ! systemctl is-active --quiet rps-python-api 2>/dev/null; then
-        sudo systemctl start rps-python-api
-        sleep 2
-        if systemctl is-active --quiet rps-python-api; then
-            PYTHON_PID=$(pgrep -f "api_server.py" 2>/dev/null)
-            echo -e "   ${GREEN}✓${NC} Python API started (PID: $PYTHON_PID)"
-        else
-            echo -e "   ${RED}✗${NC} Failed to start Python API"
-        fi
-    else
-        echo -e "   ${YELLOW}!${NC} Python API already running"
-    fi
-    
-    pm2 save 2>/dev/null
     echo ""
+    echo -e "${GREEN}✅ All services started!${NC}"
 }
 
 stop_services() {
     echo -e "${YELLOW}🛑 Stopping Services...${NC}"
     
-    pm2 stop rps-web 2>/dev/null
-    echo -e "   ${GREEN}✓${NC} Next.js stopped"
+    sudo systemctl stop rps-nextjs
+    echo -e "   ${GREEN}✓${NC} Next.js stopped (systemctl)"
     
-    sudo systemctl stop rps-python-api 2>/dev/null
-    echo -e "   ${GREEN}✓${NC} Python API stopped"
+    sudo systemctl stop rps-python
+    echo -e "   ${GREEN}✓${NC} Python API stopped (systemctl)"
     
-    echo -e "   ${YELLOW}!${NC} Nginx left running (use 'sudo systemctl stop nginx' to stop)"
+    echo -e "   ${YELLOW}ℹ${NC}  Nginx left running (use sudo systemctl stop nginx to stop)"
     echo ""
 }
 
 restart_services() {
     echo -e "${YELLOW}🔄 Restarting Services...${NC}"
     
-    sudo systemctl reload nginx 2>/dev/null
-    echo -e "   ${GREEN}✓${NC} Nginx reloaded"
-    
-    pm2 restart rps-web 2>/dev/null
-    echo -e "   ${GREEN}✓${NC} Next.js restarted"
-    
-    sudo systemctl restart rps-python-api 2>/dev/null
+    sudo systemctl restart rps-nextjs
     sleep 2
-    if systemctl is-active --quiet rps-python-api; then
-        PYTHON_PID=$(pgrep -f "api_server.py" 2>/dev/null)
-        echo -e "   ${GREEN}✓${NC} Python API restarted (PID: $PYTHON_PID)"
+    if systemctl is-active --quiet rps-nextjs; then
+        echo -e "   ${GREEN}✓${NC} Next.js restarted (systemctl)"
     else
-        echo -e "   ${RED}✗${NC} Failed to restart Python API"
+        echo -e "   ${RED}✗${NC} Next.js failed to restart"
     fi
+    
+    sudo systemctl restart rps-python
+    sleep 2
+    if systemctl is-active --quiet rps-python; then
+        echo -e "   ${GREEN}✓${NC} Python API restarted (systemctl)"
+    else
+        echo -e "   ${RED}✗${NC} Python API failed to restart"
+    fi
+    
+    read -p "Restart Nginx too? [y/N]: " restart_nginx
+    if [[ "$restart_nginx" =~ ^[Yy]$ ]]; then
+        sudo systemctl restart nginx
+        echo -e "   ${GREEN}✓${NC} Nginx restarted"
+    fi
+    
     echo ""
+    echo -e "${GREEN}✅ Services restarted!${NC}"
 }
 
 show_logs() {
     echo -e "${YELLOW}📋 Recent Logs:${NC}"
     echo ""
-    echo -e "${BLUE}=== PM2 Logs (Next.js) ===${NC}"
-    pm2 logs rps-web --lines 15 --nostream 2>/dev/null
+    echo -e "${BLUE}=== Next.js (systemd) ===${NC}"
+    sudo journalctl -u rps-nextjs -n 20 --no-pager 2>/dev/null || echo "No access to Next.js logs"
     echo ""
-    echo -e "${BLUE}=== Python API Log ===${NC}"
-    if [ -f "$PYTHON_LOG" ]; then
-        tail -15 "$PYTHON_LOG"
-    else
-        echo "No log file found"
-    fi
+    echo -e "${BLUE}=== Python API (systemd) ===${NC}"
+    sudo journalctl -u rps-python -n 20 --no-pager 2>/dev/null || echo "No access to Python API logs"
     echo ""
     echo -e "${BLUE}=== Nginx Error Log ===${NC}"
     sudo tail -10 /var/log/nginx/error.log 2>/dev/null || echo "No access to nginx logs"
@@ -243,9 +226,7 @@ show_logs() {
 
 rebuild() {
     echo -e "${YELLOW}🔨 Rebuilding Application...${NC}"
-    
-    pm2 stop rps-web 2>/dev/null
-    
+
     cd "$APP_DIR"
     echo -e "   Building Next.js..."
     npm run build
@@ -255,10 +236,13 @@ rebuild() {
         echo -e "   ${RED}✗${NC} Build failed"
         return 1
     fi
-    
-    pm2 restart rps-web 2>/dev/null
-    pm2 save 2>/dev/null
-    echo -e "   ${GREEN}✓${NC} Application restarted"
+
+    sudo systemctl restart rps-nextjs
+    if systemctl is-active --quiet rps-nextjs; then
+        echo -e "   ${GREEN}✓${NC} Next.js restarted (systemctl)"
+    else
+        echo -e "   ${RED}✗${NC} Next.js failed to restart"
+    fi
     echo ""
 }
 
