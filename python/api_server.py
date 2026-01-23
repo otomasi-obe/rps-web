@@ -233,18 +233,25 @@ class RPSAPIHandler(BaseHTTPRequestHandler):
                 raise Exception("Failed to generate References")
         
         else:  # full generation
-            rps_data = generator.generate_rps_json(
-                course_name=course_name,
-                course_code=course_code,
-                sks=sks,
-                semester=semester,
-                status=status,
-                prereq=prereq,
-                additional_context=additional_context
-            )
+            try:
+                rps_data = generator.generate_rps_json(
+                    course_name=course_name,
+                    course_code=course_code,
+                    sks=sks,
+                    semester=semester,
+                    status=status,
+                    prereq=prereq,
+                    additional_context=additional_context
+                )
+            except Exception as e:
+                error_msg = str(e)
+                print(f"❌ Exception during RPS generation: {error_msg}")
+                import traceback
+                traceback.print_exc()
+                raise Exception(f"Failed to generate RPS: {error_msg}")
             
             if not rps_data:
-                raise Exception("Failed to generate RPS content")
+                raise Exception("Failed to generate RPS content - generator returned None")
             
             print(f"✅ Generated RPS with {len(rps_data.get('minggu', []))} weeks")
             self._send_json({'success': True, 'data': rps_data})

@@ -201,7 +201,8 @@ Output JSON saja, tanpa markdown formatting atau penjelasan."""
         )
     
     def parse_json_response(self, response: str) -> dict:
-        """Parse JSON from OpenAI response, handle markdown code blocks."""
+        """Parse JSON from OpenAI response, handle markdown code blocks and common JSON errors."""
+        import re
         text = response.strip()
         
         # Handle ```json ... ``` format
@@ -211,9 +212,142 @@ Output JSON saja, tanpa markdown formatting atau penjelasan."""
                 lines = lines[1:]
             if lines and lines[-1].strip() == "```":
                 lines = lines[:-1]
-            text = "\n".join(lines)
+            text = "\n".join(lines).strip()
         
-        return json.loads(text)
+        # Try direct parsing first
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError as e:
+            print(f"⚠️ First JSON parse attempt failed at line {e.lineno}, col {e.colno}: {e.msg}")
+            print(f"   Attempting to fix common JSON issues...")
+            
+            original_text = text
+            
+            # Fix 1: Remove control characters and normalize whitespace
+            try:
+                text = ''.join(char if ord(char) >= 32 or char in '\n\r\t' else '' for char in text)
+                result = json.loads(text)
+                print(f"✅ Fixed JSON by removing control characters")
+                return result
+            except json.JSONDecodeError:
+                pass
+            
+            # Fix 2: Fix trailing commas before ] or }
+            try:
+                text = re.sub(r',(\s*[}\]])', r'\1', text)
+                result = json.loads(text)
+                print(f"✅ Fixed JSON with trailing comma removal")
+                return result
+            except json.JSONDecodeError as e2:
+                print(f"⚠️ Trailing comma fix failed: {e2}")
+            
+            # Fix 3: Fix single quotes to double quotes (more comprehensive)
+            try:
+                text = original_text
+                # Replace single quotes with double quotes, being careful about escapes
+                # This is a simplified approach that works for most cases
+                result_chars = []
+                in_single_quote = False
+                in_double_quote = False
+                escape_next = False
+                
+                for char in text:
+                    if escape_next:
+                        result_chars.append(char)
+                        escape_next = False
+                        continue
+                    
+                    if char == '\\':
+                        result_chars.append(char)
+                        escape_next = True
+                        continue
+                    
+                    if char == '"' and not in_single_quote:
+                        in_double_quote = not in_double_quote
+                        result_chars.append(char)
+                    elif char == "'" and not in_double_quote:
+                        in_single_quote = not in_single_quote
+                        result_chars.append('"')  # Replace single quote with double quote
+                    else:
+                        result_chars.append(char)
+                
+                text = ''.join(result_chars)
+                result = json.loads(text)
+                print(f"✅ Fixed JSON by converting single quotes to double quotes")
+                return result
+            except json.JSONDecodeError:
+                pass
+            
+            # Fix 4: Try to extract JSON object/array manually
+            try:
+                text = original_text
+                # Find first { or [
+                start_idx = -1
+                start_char = None
+                for i, char in enumerate(text):
+                    if char in '{[':
+                        start_idx = i
+                        start_char = char
+                        break
+                
+                if start_idx == -1:
+                    raise ValueError("No JSON object or array found in response")
+                
+                # Find matching closing bracket
+                end_char = '}' if start_char == '{' else ']'
+                bracket_count = 0
+                end_idx = -1
+                in_string = False
+                escape_next = False
+                
+                for i in range(start_idx, len(text)):
+                    char = text[i]
+                    
+                    if escape_next:
+                        escape_next = False
+                        continue
+                    
+                    if char == '\\':
+                        escape_next = True
+                        continue
+                    
+                    if char == '"':
+                        in_string = not in_string
+                        continue
+                    
+                    if not in_string:
+                        if char == start_char:
+                            bracket_count += 1
+                        elif char == end_char:
+                            bracket_count -= 1
+                            if bracket_count == 0:
+                                end_idx = i
+                                break
+                
+                if end_idx == -1:
+                    raise ValueError("Could not find matching closing bracket")
+                
+                json_str = text[start_idx:end_idx+1]
+                result = json.loads(json_str)
+                print(f"✅ Fixed JSON by extracting valid JSON substring")
+                return result
+                
+            except Exception as e3:
+                print(f"❌ Could not extract valid JSON: {e3}")
+                # Show the problematic area around line 134 if applicable
+                lines = original_text.split('\n')
+                if len(lines) > 130:
+                    print(f"   Context around line 134:")
+                    for i in range(max(0, 130-3), min(len(lines), 134+3)):
+                        print(f"   Line {i+1}: {lines[i][:100]}")
+                else:
+                    print(f"   Response preview (first 1000 chars):")
+                    print(f"   {original_text[:1000]}")
+                raise json.JSONDecodeError(
+                    f"Failed to parse JSON after multiple fix attempts: {e.msg}",
+                    original_text[:100],
+                    0
+                )
     
     def send_message(self, prompt: str, max_retries: int = 3) -> Optional[str]:
         """
