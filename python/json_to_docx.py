@@ -625,7 +625,8 @@ class JSONToDocx:
                         for cell in row.cells:
                             for p in cell.paragraphs:
                                 if 'Paste_referensinya_disini' in p.text:
-                                    p.text = p.text.replace('Paste_referensinya_disini', ref_str)
+                                    new_text = p.text.replace('Paste_referensinya_disini', ref_str)
+                                    _set_cell_text_preserve_format(cell, new_text)
             
             # Validate document before saving
             print(f"\n[VALIDATE] Checking document integrity before save...")
