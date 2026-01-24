@@ -17,6 +17,7 @@ Endpoints:
 import json
 import os
 import sys
+import time
 import tempfile
 import base64
 from pathlib import Path
@@ -34,7 +35,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from ai_to_json import AIToJSON
 from json_to_docx import JSONToDocx
-from logger_util import logger, log_request, log_response, log_timing, save_export_json, log_performance_metrics
 from logger_util import logger, log_request, log_response, log_timing, save_export_json, log_performance_metrics
 
 # Global AI generator instance
@@ -260,6 +260,7 @@ class RPSAPIHandler(BaseHTTPRequestHandler):
     
     def _handle_export(self, data):
         """Export RPS to DOCX."""
+        start_time = time.time()
         print("\n📄 Starting DOCX export...")
         rps_data = data.get('rpsData', {})
         meta = data.get('meta', {})
@@ -273,6 +274,12 @@ class RPSAPIHandler(BaseHTTPRequestHandler):
         print(f"   - koordinatorGPM: {meta.get('koordinatorGPM')}")
         print(f"   - ketuaProdi: {meta.get('ketuaProdi')}")
         print(f"   - dekan: {meta.get('dekan')}")
+        print(f"📦 Data counts:")
+        print(f"   - CPL: {len(rps_data.get('cpl', []))}")
+        print(f"   - CPMK: {len(rps_data.get('cpmk', []))}")
+        print(f"   - IK: {len(rps_data.get('ik', []))}")
+        print(f"   - Minggu: {len(rps_data.get('minggu', []))}")
+        print(f"   - Referensi: {len(rps_data.get('referensi', []))}")
         
         # Validate rpsData
         if not rps_data or not isinstance(rps_data, dict):

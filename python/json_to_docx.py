@@ -8,6 +8,7 @@ Handles template filling and format preservation.
 
 import json
 import re
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -117,38 +118,50 @@ def remove_row_xml(table, row_obj):
 
 
 def replace_paragraph_text(paragraph, placeholder_map):
-    """Replace text di paragraf dengan exact dan partial matching."""
-    if not paragraph.text: return
-    
+    """Replace text di paragraf dengan exact dan partial matching (case-insensitive, normalized)."""
+    if not paragraph.text:
+        return
+
+    def norm(s: str) -> str:
+        # Lowercase, strip quotes/spaces, collapse whitespace
+        s = s or ""
+        s = s.replace('"', '').replace("'", '')
+        s = re.sub(r"\s+", " ", s.strip().lower())
+        return s
+
     p_text_raw = paragraph.text
-    p_text_clean = clean_key(p_text_raw)
-    
+    p_text_norm = norm(p_text_raw)
+
     # 1. Exact Match Check (Prioritas)
     for key, val in placeholder_map.items():
-        if clean_key(key) == p_text_clean:
+        if norm(key) == p_text_norm:
             if paragraph.runs:
                 paragraph.runs[0].text = str(val)
                 for r in paragraph.runs[1:]:
                     r.text = ''
+            else:
+                paragraph.text = str(val)
             return
 
-    # 2. Partial Match Check
+    # 2. Partial Match Check (case-insensitive)
     for key, val in placeholder_map.items():
-        variations = [key, f'"{key}"', f'"{key}"']
-        
         full_text = paragraph.text
+        key_variants = [key, f'"{key}"', f"'{key}'"]
+
         matched = False
-        for var in variations:
-            if var in full_text:
+        for var in key_variants:
+            # Case-insensitive replace
+            pattern = re.compile(re.escape(var), re.IGNORECASE)
+            if pattern.search(full_text):
                 matched = True
-                new_text = full_text.replace(var, str(val))
-                
+                new_text = pattern.sub(str(val), full_text)
                 if paragraph.runs:
                     paragraph.runs[0].text = new_text
                     for r in paragraph.runs[1:]:
                         r.text = ''
+                else:
+                    paragraph.text = new_text
                 break
-        
         if matched:
             break
 
@@ -526,23 +539,14 @@ class JSONToDocx:
             
             for table_idx, table in enumerate(doc.tables):
                 table_start = time.time()
-                
-                # Quick pre-check to skip irrelevant tables
+
+                # Build full table text for reliable detection (no early skip)
+                if not table.rows:
+                    continue
                 try:
-                    # Only get text if needed (expensive operation)
-                    first_row_text = " ".join([c.text for c in table.rows[0].cells]) if table.rows else ""
-                    
-                    # Skip tables that clearly don't need processing
-                    if not first_row_text or len(first_row_text.strip()) < 5:
-                        continue
-                    
-                    # Only get full table text for matching tables (expensive)
-                    needs_full_scan = any(keyword in first_row_text for keyword in ['CPMK', 'cpl.', 'cpmk.', 'IK', 'Minggu', 'Paste_referensi'])
-                    if needs_full_scan:
-                        all_text = " ".join([c.text for r in table.rows for c in r.cells])
-                    else:
-                        all_text = first_row_text
-                except:
+                    all_text = " ".join([c.text for r in table.rows for c in r.cells])
+                except Exception as e:
+                    print(f"[WARN] Failed to read table {table_idx} text: {e}")
                     continue
                 
                 # A. DELETE KOLOM CPMK BERLEBIH (Pruning)
@@ -638,28 +642,36 @@ class JSONToDocx:
                 if table_time > 0.5:  # Log only slow tables
                     print(f"   Table {table_idx}: {table_time:.2f}s")
                 
-                # G. Referensi
-                if 'Paste_referensinya_disini' in all_text:
+                # G. Referensi (flexible placeholder detection)
+                ref_placeholder_regex = re.compile(r"paste[_\s]?referensi(nya)?[_\s]?disini", re.IGNORECASE)
+                if ref_placeholder_regex.search(all_text):
                     references_list = rps_data.get("references", [])
+                    referensi_list = rps_data.get("referensi", [])
+
+                    formatted_refs: list[str] = []
                     if references_list:
-                        formatted_refs = []
                         for i, ref in enumerate(references_list, 1):
                             if isinstance(ref, dict):
-                                judul = ref.get("judul", "")
+                                judul = ref.get("judul", "").strip()
                                 if judul:
                                     formatted_refs.append(f"{i}. {judul}")
                             elif isinstance(ref, str):
-                                formatted_refs.append(f"{i}. {ref}")
-                        ref_str = "\n".join(formatted_refs)
-                    else:
-                        referensi_list = rps_data.get("referensi", [])
-                        ref_str = "\n".join([f"{i+1}. {r}" for i, r in enumerate(referensi_list)])
-                    
+                                s = ref.strip()
+                                if s:
+                                    formatted_refs.append(f"{i}. {s}")
+                    elif referensi_list:
+                        for i, r in enumerate(referensi_list, 1):
+                            s = (r or "").strip()
+                            if s:
+                                formatted_refs.append(f"{i}. {s}")
+
+                    ref_str = "\n".join(formatted_refs) if formatted_refs else ""
+
                     for row in table.rows:
                         for cell in row.cells:
-                            for p in cell.paragraphs:
-                                if 'Paste_referensinya_disini' in p.text:
-                                    new_text = p.text.replace('Paste_referensinya_disini', ref_str)
+                            for p in list(cell.paragraphs):
+                                if ref_placeholder_regex.search(p.text):
+                                    new_text = ref_placeholder_regex.sub(ref_str, p.text)
                                     _set_cell_text_preserve_format(cell, new_text)
             
             process_time = time.time() - process_start

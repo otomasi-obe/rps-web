@@ -31,3 +31,6 @@ venv/
 
 # Secrets
 python/api_openai.txt
+
+log/
+logs/

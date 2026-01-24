@@ -90,12 +90,13 @@ export async function POST(request: NextRequest) {
         ketuaProdi: rpsData.otoritas?.ketuaProdi || exportMeta.ketuaProdi,
         dekan: rpsData.otoritas?.dekan || exportMeta.dekan,
       },
-      deskripsi: rpsData.deskripsi,
-      cpl: rpsData.cpl.map(c => ({
+      deskripsiSingkat: rpsData.deskripsiSingkat || rpsData.deskripsi || '',
+      deskripsi: rpsData.deskripsi || rpsData.deskripsiSingkat || '',
+      cpl: (rpsData.cpl || []).map(c => ({
         kode: c.kode,
         pernyataan: c.pernyataan,
       })),
-      cpmk: rpsData.cpmk.map(c => ({
+      cpmk: (rpsData.cpmk || []).map(c => ({
         kode: c.kode,
         pernyataan: c.pernyataan,
         mapping_cpl: c.mapping_cpl || '',
@@ -106,13 +107,13 @@ export async function POST(request: NextRequest) {
         N5: c.N5 || 0,
         N_cpmk: c.N_cpmk || 100,
       })),
-      ik: rpsData.ik.map(ik => ({
+      ik: (rpsData.ik || []).map(ik => ({
         kode: ik.kode,
         pernyataan: ik.pernyataan || '',
         mapping_cpl: ik.mapping_cpl || '',
         mapping_cpmk: ik.mapping_cpmk || '',
       })),
-      minggu: rpsData.minggu.map(w => ({
+      minggu: (rpsData.minggu || []).map(w => ({
         mingguKe: w.mingguKe,
         kemampuanAkhir: w.kemampuanAkhir,
         bahanKajian: w.bahanKajian || '',
@@ -136,6 +137,13 @@ export async function POST(request: NextRequest) {
     const pythonCallStart = Date.now();
     
     logger.info('🚀 Calling Python API', { url: `${pythonApiUrl}/export` });
+        logger.info('📦 Data being sent', {
+          cpl: pythonRPSData.cpl?.length || 0,
+          cpmk: pythonRPSData.cpmk?.length || 0,
+          minggu: pythonRPSData.minggu?.length || 0,
+          referensi: pythonRPSData.referensi?.length || 0,
+          ik: pythonRPSData.ik?.length || 0,
+        });
     
     const response = await fetch(`${pythonApiUrl}/export`, {
       method: 'POST',
