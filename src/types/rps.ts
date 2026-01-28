@@ -49,7 +49,7 @@ export interface IK {
 }
 
 // Alias untuk backward compatibility
-export interface IndikatorKinerja extends IK {}
+export interface IndikatorKinerja extends IK { }
 
 // ============ CPMK (Capaian Pembelajaran Mata Kuliah) ============
 export interface CPMK {
@@ -92,12 +92,13 @@ export interface RPSData {
   id?: string;
   createdAt?: string;
   updatedAt?: string;
-  
+
   // Content - sesuai format.json
   identitas: Identitas;
   institusi: Institusi;
   otoritas: Otoritas;
   deskripsi: string;                // Deskripsi mata kuliah
+  deskripsiSingkat?: string;        // Optional deskripsi singkat
   cpl: CPL[];                       // Array CPL
   ik: IK[];                         // Array Indikator Kinerja
   cpmk: CPMK[];                     // Array CPMK

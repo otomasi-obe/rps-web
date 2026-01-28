@@ -129,7 +129,7 @@ check_status() {
     echo ""
     echo -e "${CYAN}🌍 Access URLs:${NC}"
     echo -e "   https://otomasi.app"
-    echo -e "   https://170.64.166.119/"
+    echo -e "   https://159.65.134.244/"
     echo ""
 }
 
