@@ -184,26 +184,27 @@ def process_smart_list_table(table, data_list, mapping_config):
         
     template_rows = []
     
-    is_integration_table = 'IK 1-' in str(mapping_config.keys()) or 'CPL 1' in str(mapping_config.keys())
+    # Detect if this is an integration table by checking mapping values
+    is_integration_table = 'cpl_kode' in mapping_config.values()
     
     for i, row in enumerate(table.rows):
         row_text = " ".join([c.text for c in row.cells])
         is_template = False
         
         if is_integration_table:
-            if ('CPL' in row_text and 'IK' in row_text and 'CPMK' in row_text):
-                has_placeholder_pattern = False
-                for ph in mapping_config.keys():
-                    if clean_key(ph) in clean_key(row_text):
-                        has_placeholder_pattern = True
-                        break
-                
-                if not has_placeholder_pattern:
-                    if re.search(r'IK\s+\d+-\d+', row_text) or re.search(r'CPL\s+\d+', row_text):
-                        has_placeholder_pattern = True
-                
-                if has_placeholder_pattern:
-                    is_template = True
+            # Skip header rows (first 2 rows typically)
+            if i < 2:
+                continue
+            
+            # Skip total row (usually contains "Total Bobot")
+            if 'Total Bobot' in row_text or 'total bobot' in row_text.lower():
+                continue
+            
+            # Check for template placeholder patterns
+            if re.search(r'CPL\s+\d+', row_text) and re.search(r'IK\s+\d+-\d+', row_text):
+                is_template = True
+            elif re.search(r'CPMK\s+\d+-\d+', row_text) and 'Ntotal_cpmk' in row_text:
+                is_template = True
         else:
             for ph in mapping_config.keys():
                 if clean_key(ph) in clean_key(row_text):
@@ -576,18 +577,18 @@ class JSONToDocx:
                 # E. TABEL INTEGRASI (IK - CPL)
                 if 'IK - CPL' in all_text and integration_rows:
                     process_smart_list_table(table, integration_rows, {
-                        'IK 1-1': 'ik_kode',
-                        'Deskripsi Ik 1-1': 'pernyataan',
-                        'CPMK 1-1': 'cpmk_kode',
-                        'Deskripsi cpmk 1-1': 'cpmk_pernyataan',
-                        'CPL 1': 'cpl_kode',
-                        'MA_cpmk1': 'MA_val',
-                        'N1_cpmk1': 'N1',
-                        'N2_cpmk1': 'N2',
-                        'N3_cpmk1': 'N3',
-                        'N4_cpmk1': 'N4',
-                        'N5_cpmk1': 'N5',
-                        'Ntotal_cpmk1': 'N_total'
+                        'Kode CPL': 'cpl_kode',
+                        'IK - CPL': 'ik_kode',
+                        'Indikator Kinerja': 'pernyataan',
+                        'Kode CPMK': 'cpmk_kode',
+                        'CPMK': 'cpmk_pernyataan',
+                        'Bobot CPMK': 'N_total',
+                        'Media Asesmen': 'MA_val',
+                        'PRS': 'N1',
+                        'PRO': 'N2',
+                        'QUIZ': 'N3',
+                        'UTS': 'N4',
+                        'UAS': 'N5'
                     })
                 
                 # F. JADWAL MINGGUAN (Weekly)

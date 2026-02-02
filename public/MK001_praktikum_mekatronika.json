@@ -1,0 +1,536 @@
+{
+  "identitas": {
+    "kode": "MK001",
+    "nama": "Praktikum Mekatronika dan Robotika",
+    "sks": 2,
+    "semester": 1,
+    "status": "Mata Kuliah Wajib",
+    "prasyarat": "-"
+  },
+  "institusi": {
+    "programStudi": "Sarjana Terapan Teknologi Rekayasa Otomasi",
+    "fakultas": "Sekolah Vokasi",
+    "universitas": "Universitas Diponegoro"
+  },
+  "otoritas": {
+    "koordinatorMK": {
+      "nama": "Dr. Ir. Suwarno, MT.",
+      "nip": "195901011986031001",
+      "jabatan": "Koordinator Mata Kuliah"
+    },
+    "koordinatorGPM": {
+      "nama": "Prof. Bambang Supriyanto, PhD.",
+      "nip": "196202021987121001",
+      "jabatan": "Koordinator GPM"
+    },
+    "ketuaProdi": {
+      "nama": "Dr. Heri Santoso, S.T., M.Eng.",
+      "nip": "197103151998021001",
+      "jabatan": "Ketua Prodi"
+    },
+    "dekan": {
+      "nama": "Prof. Dr. Ir. Budiyono, M.Si.",
+      "nip": "196602201991021001",
+      "jabatan": "Dekan Sekolah Vokasi"
+    }
+  },
+  "deskripsi": "Praktikum Mekatronika dan Robotika merupakan mata kuliah praktik yang memperkenalkan mahasiswa pada penerapan prinsip mekatronika, integrasi sensor-aktuator, kontrol dan pemrograman robotika. Cakupan meliputi instalasi alat, pengukuran sinyal, pemrograman mikrokontroler, interfacing sensor, aktuator, serta integrasi subsistem untuk tugas otomatisasi sederhana. Mata kuliah ini memberi pengalaman hands-on dalam merancang, menguji, dan mendokumentasikan solusi mekatronika untuk masalah rekayasa otomasi.",
+  "cpl": [
+    {
+      "kode": "CPL 3",
+      "pernyataan": "Mampu menguasai pengetahuan aplikatif bidang rekayasa mekatronika dan robotika untuk merancang dan menganalisis sistem otomasi."
+    },
+    {
+      "kode": "CPL 8",
+      "pernyataan": "Mampu bekerja secara mandiri dan dalam tim serta bertanggung jawab atas praktik laboratorium, keselamatan, dan pelaporan teknis dalam proyek mekatronika."
+    }
+  ],
+  "ik": [
+    {
+      "kode": "IK 3-1",
+      "pernyataan": "Mengidentifikasi komponen mekatronika dan menentukan fungsi sensor-aktuator dalam suatu sistem sesuai CPMK 3-1",
+      "mapping_cpl": "CPL 3",
+      "mapping_cpmk": "CPMK 3-1"
+    },
+    {
+      "kode": "IK 3-2",
+      "pernyataan": "Mendesain rangkaian interfacing sederhana dan menguji pengukuran sinyal pada mikrokontroler sesuai CPMK 3-2",
+      "mapping_cpl": "CPL 3",
+      "mapping_cpmk": "CPMK 3-2"
+    },
+    {
+      "kode": "IK 8-1",
+      "pernyataan": "Mengimplementasikan kontrol dasar dan algoritma gerak pada robot menggunakan pemrograman terstruktur sesuai CPMK 8-1",
+      "mapping_cpl": "CPL 8",
+      "mapping_cpmk": "CPMK 8-1"
+    },
+    {
+      "kode": "IK 8-2",
+      "pernyataan": "Melakukan integrasi subsistem, debugging, dan menyusun laporan praktikum teknis secara kolaboratif sesuai CPMK 8-2",
+      "mapping_cpl": "CPL 8",
+      "mapping_cpmk": "CPMK 8-2"
+    }
+  ],
+  "cpmk": [
+    {
+      "kode": "CPMK 3-1",
+      "pernyataan": "Mahasiswa mampu mengenal dan menjelaskan fungsi komponen dasar mekatronika (sensor, aktuator, mikrokontroler) serta prinsip kerjanya dalam sistem otomasi",
+      "mapping_cpl": "CPL 3",
+      "N1": 6,
+      "N2": 9,
+      "N3": 3,
+      "N4": 6,
+      "N5": 6,
+      "N_cpmk": 30
+    },
+    {
+      "kode": "CPMK 3-2",
+      "pernyataan": "Mahasiswa mampu merancang dan mengimplementasikan rangkaian interfacing sensor-aktuator dengan mikrokontroler serta melakukan pengujian praktis",
+      "mapping_cpl": "CPL 3",
+      "N1": 5,
+      "N2": 8,
+      "N3": 2,
+      "N4": 5,
+      "N5": 5,
+      "N_cpmk": 25
+    },
+    {
+      "kode": "CPMK 8-1",
+      "pernyataan": "Mahasiswa mampu memprogram kontrol dasar robot (pergerakan, penghindaran rintangan) dan menguji performa sistem secara eksperimental",
+      "mapping_cpl": "CPL 8",
+      "N1": 5,
+      "N2": 6,
+      "N3": 3,
+      "N4": 5,
+      "N5": 6,
+      "N_cpmk": 25
+    },
+    {
+      "kode": "CPMK 8-2",
+      "pernyataan": "Mahasiswa mampu mengintegrasikan subsistem mekatronika, melakukan debugging, dokumentasi, dan presentasi hasil praktikum secara kelompok",
+      "mapping_cpl": "CPL 8",
+      "N1": 4,
+      "N2": 7,
+      "N3": 2,
+      "N4": 4,
+      "N5": 3,
+      "N_cpmk": 20
+    }
+  ],
+  "minggu": [
+    {
+      "mingguKe": 1,
+      "kemampuanAkhir": "CPMK 3-1",
+      "bahanKajian": "Pengenalan laboratorium mekatronika, keselamatan, dan pengenalan komponen sensor-aktuator",
+      "metodePembelajaran": {
+        "metode": "PjBL",
+        "deskripsi": "Dosen memfasilitasi orientasi laboratorium dan demonstrasi instrumen praktikum mekatronika",
+        "aktivitas": "Mahasiswa mengamati, mencatat, dan mengevaluasi fungsi komponen perangkat mekatronika"
+      },
+      "waktu": "Praktikum 2x170', Praktikum Hands-on, Laporan Praktikum",
+      "pengalamanBelajar": "Pengalaman pengenalan alat laboratorium, keselamatan kerja, dan identifikasi komponen mekatronika",
+      "penilaian": {
+        "kriteria": "Kehadiran, keselamatan kerja, dan laporan observasi komponen dijelaskan dengan jelas",
+        "bobotMateri": 8
+      }
+    },
+    {
+      "mingguKe": 2,
+      "kemampuanAkhir": "CPMK 3-1",
+      "bahanKajian": "Pengukuran listrik dasar dan pengenalan osiloskop serta multimeter pada sensor",
+      "metodePembelajaran": {
+        "metode": "PjBL",
+        "deskripsi": "Dosen memberikan demonstrasi pengukuran sinyal dan supervisi pengukuran mahasiswa secara langsung",
+        "aktivitas": "Mahasiswa melakukan pengukuran tegangan dan sinyal sensor secara langsung dan independen"
+      },
+      "waktu": "Praktikum 2x170', Praktikum Hands-on, Laporan Praktikum",
+      "pengalamanBelajar": "Praktik pengukuran sinyal elektronik dan interpretasi hasil pengukuran dengan alat ukur profesional",
+      "penilaian": {
+        "kriteria": "Ketepatan pengukuran, analisis data pengukuran, dan kelengkapan laporan praktikum terstruktur",
+        "bobotMateri": 7
+      }
+    },
+    {
+      "mingguKe": 3,
+      "kemampuanAkhir": "CPMK 3-1",
+      "bahanKajian": "Karakteristik dan kalibrasi sensor jarak (ultrasonik/IR) serta pengukuran respons sensor",
+      "metodePembelajaran": {
+        "metode": "PjBL",
+        "deskripsi": "Dosen membimbing prosedur kalibrasi sensor dan teknik validasi data praktikum mekatronika",
+        "aktivitas": "Mahasiswa melakukan kalibrasi sensor dan dokumentasi lengkap hasil kalibrasi terstruktur"
+      },
+      "waktu": "Praktikum 2x170', Praktikum Hands-on, Laporan Praktikum",
+      "pengalamanBelajar": "Pengalaman kalibrasi sensor dan validasi akurasi sensor untuk aplikasi robotika otomasi",
+      "penilaian": {
+        "kriteria": "Akurasi kalibrasi sensor, metodologi uji standar, dan kualitas laporan praktikum komprehensif",
+        "bobotMateri": 7
+      }
+    },
+    {
+      "mingguKe": 4,
+      "kemampuanAkhir": "CPMK 3-1",
+      "bahanKajian": "Pengenalan aktuator (motor DC, servo, stepper) dan driver serta pengujian torsi/kecepatan",
+      "metodePembelajaran": {
+        "metode": "PjBL",
+        "deskripsi": "Dosen menjelaskan teori praktis aktuator dan memantau eksperimen pengujian aktuator mahasiswa",
+        "aktivitas": "Mahasiswa menguji aktuator dan mencatat performa torsi-kecepatan dengan presisi tinggi"
+      },
+      "waktu": "Praktikum 2x170', Praktikum Hands-on, Laporan Praktikum",
+      "pengalamanBelajar": "Pengalaman pengujian aktuator mekanik dan memahami karakteristik performa aktuator",
+      "penilaian": {
+        "kriteria": "Pengujian performa aktuator tepat, analisis data lengkap, dan dokumentasi teknis profesional",
+        "bobotMateri": 8
+      }
+    },
+    {
+      "mingguKe": 5,
+      "kemampuanAkhir": "CPMK 3-2",
+      "bahanKajian": "Dasar mikrokontroler (Arduino/ESP) dan interfacing digital/analog sensor terhadap mikrokontroler",
+      "metodePembelajaran": {
+        "metode": "PjBL",
+        "deskripsi": "Dosen memandu setup mikrokontroler dan memberikan contoh kode dasar interfacing sensor",
+        "aktivitas": "Mahasiswa menyusun dan mengunggah program interfacing sensor ke mikrokontroler dengan debugging"
+      },
+      "waktu": "Praktikum 2x170', Praktikum Hands-on, Laporan Praktikum",
+      "pengalamanBelajar": "Praktik pemrograman mikrokontroler Arduino dan membaca sinyal sensor digital maupun analog",
+      "penilaian": {
+        "kriteria": "Fungsi interfacing benar berjalan, kode rapi dan terstruktur, laporan eksperimen lengkap",
+        "bobotMateri": 6
+      }
+    },
+    {
+      "mingguKe": 6,
+      "kemampuanAkhir": "CPMK 3-2",
+      "bahanKajian": "Interfacing aktuator dengan driver dan kendali PWM pada mikrokontroler Arduino",
+      "metodePembelajaran": {
+        "metode": "PjBL",
+        "deskripsi": "Dosen mengawasi pengkabelan driver aktuator dan evaluasi sinyal PWM dari praktik",
+        "aktivitas": "Mahasiswa mengimplementasikan kontrol PWM dan mengukur respons aktuator secara eksperimental"
+      },
+      "waktu": "Praktikum 2x170', Praktikum Hands-on, Laporan Praktikum",
+      "pengalamanBelajar": "Kemampuan mengaplikasikan kendali PWM pada aktuator dan analisis respons sistem kendali",
+      "penilaian": {
+        "kriteria": "Implementasi PWM benar dan responsif, keselamatan eksperimen, dokumentasi praktikum detail",
+        "bobotMateri": 6
+      }
+    },
+    {
+      "mingguKe": 7,
+      "kemampuanAkhir": "CPMK 3-2",
+      "bahanKajian": "Komunikasi serial, protokol I2C/SPI dan integrasi beberapa sensor ke satu mikrokontroler",
+      "metodePembelajaran": {
+        "metode": "PjBL",
+        "deskripsi": "Dosen mencontohkan konfigurasi protokol I2C/SPI dan memeriksa troubleshooting komunikasi",
+        "aktivitas": "Mahasiswa mengintegrasikan multi-sensor dan menguji komunikasi protokol dengan debugging"
+      },
+      "waktu": "Praktikum 2x170', Praktikum Hands-on, Laporan Praktikum",
+      "pengalamanBelajar": "Pengalaman integrasi multi-sensor dan debugging protokol komunikasi serial I2C dan SPI",
+      "penilaian": {
+        "kriteria": "Keberhasilan integrasi sensor, stabilitas komunikasi protokol, laporan praktikum lengkap",
+        "bobotMateri": 6
+      }
+    },
+    {
+      "mingguKe": 8,
+      "kemampuanAkhir": "UTS"
+    },
+    {
+      "mingguKe": 9,
+      "kemampuanAkhir": "CPMK 3-2",
+      "bahanKajian": "Analisis sinyal dan filter digital dasar untuk aplikasi sensor-aktuator mekatronika",
+      "metodePembelajaran": {
+        "metode": "PjBL",
+        "deskripsi": "Dosen memfasilitasi eksperimen penerapan filter digital dan penjelasan teori filtering",
+        "aktivitas": "Mahasiswa menerapkan filter digital lowpass dan membandingkan hasil sinyal sebelum-sesudah"
+      },
+      "waktu": "Praktikum 2x170', Praktikum Hands-on, Laporan Praktikum",
+      "pengalamanBelajar": "Praktik pemrosesan sinyal digital sederhana dan evaluasi reduksi noise pada sensor",
+      "penilaian": {
+        "kriteria": "Relevansi filter terhadap masalah, analisis hasil pengurangan noise, kelengkapan laporan",
+        "bobotMateri": 7
+      }
+    },
+    {
+      "mingguKe": 10,
+      "kemampuanAkhir": "CPMK 8-1",
+      "bahanKajian": "Kontrol terbuka dan umpan balik sederhana: PID dasar untuk motor DC mekatronika",
+      "metodePembelajaran": {
+        "metode": "PjBL",
+        "deskripsi": "Dosen menunjukkan tuning PID dan mengarahkan eksperimen parameter kontrol proporsional",
+        "aktivitas": "Mahasiswa mengimplementasikan kontrol PID dan melakukan tuning praktis parameter Kp Ki Kd"
+      },
+      "waktu": "Praktikum 2x170', Praktikum Hands-on, Laporan Praktikum",
+      "pengalamanBelajar": "Pengalaman tuning kontrol feedback dan mengevaluasi respons sistem mekanik dinamis",
+      "penilaian": {
+        "kriteria": "Kinerja kontrol PID stabil, penyesuaian parameter optimal, dokumentasi pengujian detail",
+        "bobotMateri": 8
+      }
+    },
+    {
+      "mingguKe": 11,
+      "kemampuanAkhir": "CPMK 8-1",
+      "bahanKajian": "Algoritma navigasi sederhana dan penghindaran rintangan berbasis sensor jarak",
+      "metodePembelajaran": {
+        "metode": "PjBL",
+        "deskripsi": "Dosen membimbing strategi navigasi robot dan skenario pengujian di lapangan laboratorium",
+        "aktivitas": "Mahasiswa mengembangkan algoritma penghindaran rintangan dan menguji robot mobile"
+      },
+      "waktu": "Praktikum 2x170', Praktikum Hands-on, Laporan Praktikum",
+      "pengalamanBelajar": "Praktik implementasi algoritma navigasi robot dan evaluasi kinerja di lapangan laboratorium",
+      "penilaian": {
+        "kriteria": "Keberhasilan navigasi mencapai target, efektivitas penghindaran rintangan, laporan pengujian",
+        "bobotMateri": 8
+      }
+    },
+    {
+      "mingguKe": 12,
+      "kemampuanAkhir": "CPMK 8-1",
+      "bahanKajian": "Pengenalan visi mesin sederhana: akuisisi gambar dan deteksi tepi untuk tugas robot",
+      "metodePembelajaran": {
+        "metode": "PjBL",
+        "deskripsi": "Dosen memfasilitasi setup kamera dan demonstrasi pemrosesan gambar dengan OpenCV",
+        "aktivitas": "Mahasiswa mengimplementasikan deteksi tepi Canny dan menguji integrasi dengan sistem robot"
+      },
+      "waktu": "Praktikum 2x170', Praktikum Hands-on, Laporan Praktikum",
+      "pengalamanBelajar": "Pengalaman dasar visi mesin komputer dan integrasi hasil citra ke sistem kendali robot",
+      "penilaian": {
+        "kriteria": "Keberhasilan deteksi tepi akurat, integrasi data citra ke kendali, dokumentasi lengkap",
+        "bobotMateri": 9
+      }
+    },
+    {
+      "mingguKe": 13,
+      "kemampuanAkhir": "CPMK 8-2",
+      "bahanKajian": "Integrasi subsistem: penggabungan sensor, aktuator, dan kontrol pada platform robotika",
+      "metodePembelajaran": {
+        "metode": "PjBL",
+        "deskripsi": "Dosen memantau integrasi sistem multi-subsistem dan memberi masukan debugging teknis",
+        "aktivitas": "Mahasiswa bekerja kelompok mengintegrasikan subsistem dan menguji fungsionalitas overall"
+      },
+      "waktu": "Praktikum 2x170', Praktikum Hands-on, Laporan Praktikum",
+      "pengalamanBelajar": "Pengalaman integrasi multi-disiplin mekatronika dan pemecahan masalah praktis tim kolaboratif",
+      "penilaian": {
+        "kriteria": "Fungsionalitas integrasi subsistem, kerja sama tim, dokumentasi proyek komprehensif",
+        "bobotMateri": 7
+      }
+    },
+    {
+      "mingguKe": 14,
+      "kemampuanAkhir": "CPMK 8-2",
+      "bahanKajian": "Debugging sistem, manajemen kesalahan, dan perbaikan performa pada sistem mekatronika",
+      "metodePembelajaran": {
+        "metode": "PjBL",
+        "deskripsi": "Dosen mengarahkan teknik debugging sistematis dan evaluasi perbaikan performa sistem",
+        "aktivitas": "Mahasiswa melakukan debugging terstruktur dan mencatat solusi masalah dengan dokumentasi"
+      },
+      "waktu": "Praktikum 2x170', Praktikum Hands-on, Laporan Praktikum",
+      "pengalamanBelajar": "Pengalaman teknik debugging sistematis dan peningkatan stabilitas performa sistem",
+      "penilaian": {
+        "kriteria": "Kemampuan menemukan dan memperbaiki bug sistematis, kelengkapan laporan debug terstruktur",
+        "bobotMateri": 7
+      }
+    },
+    {
+      "mingguKe": 15,
+      "kemampuanAkhir": "CPMK 8-2",
+      "bahanKajian": "Presentasi akhir proyek praktikum: demonstrasi, evaluasi, dan laporan akhir kelompok",
+      "metodePembelajaran": {
+        "metode": "PjBL",
+        "deskripsi": "Dosen mengevaluasi presentasi demonstrasi live dan memberikan umpan balik laporan akhir",
+        "aktivitas": "Mahasiswa menyusun laporan akhir komprehensif dan mempresentasikan hasil proyek kelompok"
+      },
+      "waktu": "Praktikum 2x170', Praktikum Hands-on, Laporan Praktikum",
+      "pengalamanBelajar": "Pengalaman dokumentasi ilmiah lengkap dan komunikasi hasil teknis dalam presentasi tim",
+      "penilaian": {
+        "kriteria": "Kualitas demonstrasi live, laporan akhir profesional, kerja sama tim dalam presentasi",
+        "bobotMateri": 6
+      }
+    },
+    {
+      "mingguKe": 16,
+      "kemampuanAkhir": "UAS"
+    }
+  ],
+  "referensi": [
+    "Craig, J. J. (2018). Introduction to Robotics: Mechanics and Control (4th ed.). Addison-Wesley",
+    "Supriyanto, A. (2019). Mekatronika: Prinsip dan Aplikasi. ANDI Publishers",
+    "Rahardjo, B., & Santoso, B. (2020). Robotika dan Sistem Otomasi Industri. Erlangga",
+    "Smith, P., Johnson, M., & Lee, C. (2017). Sensor Fusion and Control for Robotics. IEEE Transactions on Robotics, 33(5), 1025-1042",
+    "Lee, S. H., & Park, J. B. (2016). Embedded Control in Mechatronic Systems. Journal of Control Engineering and Applied Informatics, 18(2), 45-58",
+    "Sari, D., Wijaya, B., & Santoso, R. (2021). Implementasi Sistem Robotika Mobile Berbasis Arduino di Industri Otomasi. Indonesian Journal of Mechatronics and Automation, 4(1), 12-28",
+    "Wijaya, H., Kusuma, A., & Pratama, S. (2019). Pemrograman Mikrokontroler untuk Sistem Otomasi dan Robotika. Journal Teknik Elektro Indonesia, 8(3), 156-172",
+    "Quigley, M., Conley, K., Gerkey, B., et al. (2022). ROS: an open-source Robot Operating System. In ICRA Workshop on Open Source Software (pp. 1-6). Retrieved from https://www.ros.org/documentation"
+  ],
+  "cplMappings": [
+    {
+      "kodeCPL": "CPL 3",
+      "kodeIK": [
+        "IK 3-1",
+        "IK 3-2"
+      ],
+      "kodeCPMK": [
+        "CPMK 3-1",
+        "CPMK 3-2"
+      ],
+      "bobotCPL": "55%",
+      "mediaAsesmen": "Laporan Praktikum, PRS, Proyek, UTS, UAS",
+      "distribusi": {
+        "partisipatif": 11,
+        "proyek": 17,
+        "kuis": 5,
+        "uts": 11,
+        "uas": 11
+      }
+    },
+    {
+      "kodeCPL": "CPL 8",
+      "kodeIK": [
+        "IK 8-1",
+        "IK 8-2"
+      ],
+      "kodeCPMK": [
+        "CPMK 8-1",
+        "CPMK 8-2"
+      ],
+      "bobotCPL": "45%",
+      "mediaAsesmen": "Laporan Praktikum, PRO, Proyek, UTS, UAS",
+      "distribusi": {
+        "partisipatif": 9,
+        "proyek": 13,
+        "kuis": 5,
+        "uts": 9,
+        "uas": 9
+      }
+    }
+  ],
+  "assessmentMethods": {
+    "N1_partisipatif": {
+      "persentase": 20,
+      "kriteria": "Kehadiran, keaktifan, dan partisipasi dalam setiap sesi praktikum laboratorium",
+      "distribusiCPMK": {
+        "CPMK 3-1": 6,
+        "CPMK 3-2": 5,
+        "CPMK 8-1": 5,
+        "CPMK 8-2": 4
+      }
+    },
+    "N2_proyek": {
+      "persentase": 30,
+      "kriteria": "Laporan praktikum, proyek mini, dan presentasi hasil eksperimen mekatronika",
+      "distribusiCPMK": {
+        "CPMK 3-1": 9,
+        "CPMK 3-2": 8,
+        "CPMK 8-1": 6,
+        "CPMK 8-2": 7
+      }
+    },
+    "N3_kuis": {
+      "persentase": 10,
+      "kriteria": "Kuis mingguan dan tes singkat tentang konsep mekatronika dan robotika",
+      "distribusiCPMK": {
+        "CPMK 3-1": 3,
+        "CPMK 3-2": 2,
+        "CPMK 8-1": 3,
+        "CPMK 8-2": 2
+      }
+    },
+    "N4_uts": {
+      "persentase": 20,
+      "kriteria": "Ujian Tengah Semester: tes praktikum dan penulisan laporan terstruktur minggu 1-7",
+      "distribusiCPMK": {
+        "CPMK 3-1": 6,
+        "CPMK 3-2": 5,
+        "CPMK 8-1": 5,
+        "CPMK 8-2": 4
+      }
+    },
+    "N5_uas": {
+      "persentase": 20,
+      "kriteria": "Ujian Akhir Semester: Presentasi proyek akhir, demonstrasi sistem robotika, dan laporan komprehensif",
+      "distribusiCPMK": {
+        "CPMK 3-1": 6,
+        "CPMK 3-2": 5,
+        "CPMK 8-1": 6,
+        "CPMK 8-2": 3
+      }
+    }
+  },
+  "integrasi_capaian_pembelajaran": [
+    {
+      "mingguKe": "1-4",
+      "kodeCPL": "CPL 3",
+      "kodeIK": [
+        "IK 3-1"
+      ],
+      "kodeCPMK": "CPMK 3-1",
+      "pernyataanCPMK": "Mengenal dan menjelaskan komponen dasar mekatronika",
+      "bahanKajian": "Pengenalan komponen sensor, aktuator, dan mikrokontroler",
+      "bobotCPMK": 30,
+      "mediaAsesmen": "Laporan praktikum, observasi, kuis",
+      "distribusi": {
+        "partisipatif_N1": 6,
+        "proyek_N2": 9,
+        "kuis_N3": 3,
+        "uts_N4": 6,
+        "uas_N5": 6
+      }
+    },
+    {
+      "mingguKe": "5-9",
+      "kodeCPL": "CPL 3",
+      "kodeIK": [
+        "IK 3-2"
+      ],
+      "kodeCPMK": "CPMK 3-2",
+      "pernyataanCPMK": "Merancang dan implementasi interfacing sensor-aktuator",
+      "bahanKajian": "Interfacing, PWM, protokol komunikasi I2C/SPI, filter sinyal",
+      "bobotCPMK": 25,
+      "mediaAsesmen": "Laporan praktikum, proyek interfacing, kuis",
+      "distribusi": {
+        "partisipatif_N1": 5,
+        "proyek_N2": 8,
+        "kuis_N3": 2,
+        "uts_N4": 5,
+        "uas_N5": 5
+      }
+    },
+    {
+      "mingguKe": "10-12",
+      "kodeCPL": "CPL 8",
+      "kodeIK": [
+        "IK 8-1"
+      ],
+      "kodeCPMK": "CPMK 8-1",
+      "pernyataanCPMK": "Memprogram kontrol dasar dan algoritma navigasi robot",
+      "bahanKajian": "Kontrol PID, navigasi, penghindaran rintangan, visi mesin dasar",
+      "bobotCPMK": 25,
+      "mediaAsesmen": "Laporan praktikum, proyek navigasi robot, kuis, demonstrasi",
+      "distribusi": {
+        "partisipatif_N1": 5,
+        "proyek_N2": 6,
+        "kuis_N3": 3,
+        "uts_N4": 5,
+        "uas_N5": 6
+      }
+    },
+    {
+      "mingguKe": "13-15",
+      "kodeCPL": "CPL 8",
+      "kodeIK": [
+        "IK 8-2"
+      ],
+      "kodeCPMK": "CPMK 8-2",
+      "pernyataanCPMK": "Integrasi subsistem, debugging, dan dokumentasi proyek kelompok",
+      "bahanKajian": "Integrasi sistem, debugging, troubleshooting, dokumentasi dan presentasi",
+      "bobotCPMK": 20,
+      "mediaAsesmen": "Laporan akhir, presentasi proyek, dokumentasi teknis, kinerja tim",
+      "distribusi": {
+        "partisipatif_N1": 4,
+        "proyek_N2": 7,
+        "kuis_N3": 2,
+        "uts_N4": 4,
+        "uas_N5": 3
+      }
+    }
+  ]
+}

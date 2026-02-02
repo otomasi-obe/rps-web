@@ -165,10 +165,10 @@ Buatkan RPS dalam format JSON dengan struktur PERSIS seperti berikut. PENTING: H
      * CBL (Case Based Learning)
      * PBL (Problem Based Learning)
      * PjBL (untuk mata kuliah Praktikum)
-   - "metodePembelajaran.deskripsi": minimal 15 kata menjelaskan peran dosen dalam metode pembelajaran
-   - "metodePembelajaran.aktivitas": minimal 15 kata menjelaskan aktivitas mahasiswa
-   - "pengalamanBelajar": minimal 25 kata pengalaman belajar yang didapat mahasiswa
-   - "penilaian.kriteria": minimal 20 kata kriteria penilaian yang jelas
+   - "metodePembelajaran.deskripsi": minimal 5 kata menjelaskan peran dosen dalam metode pembelajaran
+   - "metodePembelajaran.aktivitas": minimal 5 kata menjelaskan aktivitas mahasiswa
+   - "pengalamanBelajar": minimal 5 kata pengalaman belajar yang didapat mahasiswa
+   - "penilaian.kriteria": minimal 5 kata kriteria penilaian yang jelas
    - "penilaian.bobotMateri": setiap bobotMateri dari beberapa minggu untuk satu CPMK dijumlahkan harus sesuai N_cpmk
    - "bahanKajian": sesuai dengan course_name dan relevan dengan CPMK yang dituju
    - "waktu": 

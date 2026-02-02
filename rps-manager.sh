@@ -13,7 +13,7 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Paths
-APP_DIR="/root/rps-web"
+APP_DIR="/root/otomasi/rps-web"
 PYTHON_DIR="$APP_DIR/python"
 PYTHON_LOG="/tmp/python_api.log"
 
@@ -38,20 +38,32 @@ check_status() {
         echo -e "   ${RED}✗${NC} Nginx:          ${RED}STOPPED${NC}"
     fi
     
-    # Check Next.js via systemd
-    if systemctl is-active --quiet rps-nextjs 2>/dev/null; then
+    # Check Next.js (PM2, systemd, or manual)
+    if pm2 id rps-web-frontend >/dev/null 2>&1 && pm2 list | grep -q "rps-web-frontend.*online"; then
+        NEXT_PID=$(pm2 pid rps-web-frontend 2>/dev/null)
+        echo -e "   ${GREEN}✓${NC} Next.js (PM2):     ${GREEN}RUNNING${NC} (PID: ${NEXT_PID})"
+    elif systemctl is-active --quiet rps-nextjs 2>/dev/null; then
         NEXT_PID=$(systemctl show -p MainPID --value rps-nextjs 2>/dev/null)
         echo -e "   ${GREEN}✓${NC} Next.js (systemd): ${GREEN}RUNNING${NC} (PID: ${NEXT_PID:-unknown})"
+    elif pgrep -f "next.*server" > /dev/null; then
+        NEXT_PID=$(pgrep -f "next.*server" | head -1)
+        echo -e "   ${GREEN}✓${NC} Next.js (manual):  ${GREEN}RUNNING${NC} (PID: ${NEXT_PID})"
     else
-        echo -e "   ${RED}✗${NC} Next.js (systemd): ${RED}STOPPED${NC}"
+        echo -e "   ${RED}✗${NC} Next.js:          ${RED}STOPPED${NC}"
     fi
     
-    # Check Python API
-    if systemctl is-active --quiet rps-python 2>/dev/null; then
+    # Check Python API (PM2, systemd, or manual)
+    if pm2 id rps-web-backend >/dev/null 2>&1 && pm2 list | grep -q "rps-web-backend.*online"; then
+        PYTHON_PID=$(pm2 pid rps-web-backend 2>/dev/null)
+        echo -e "   ${GREEN}✓${NC} Python API (PM2):     ${GREEN}RUNNING${NC} (PID: ${PYTHON_PID})"
+    elif systemctl is-active --quiet rps-python 2>/dev/null; then
         PYTHON_PID=$(systemctl show -p MainPID --value rps-python 2>/dev/null)
-        echo -e "   ${GREEN}✓${NC} Python API:     ${GREEN}RUNNING${NC} (PID: ${PYTHON_PID:-unknown})"
+        echo -e "   ${GREEN}✓${NC} Python API (systemd): ${GREEN}RUNNING${NC} (PID: ${PYTHON_PID:-unknown})"
+    elif pgrep -f "python.*api_server" > /dev/null; then
+        PYTHON_PID=$(pgrep -f "python.*api_server" | head -1)
+        echo -e "   ${GREEN}✓${NC} Python API (manual):  ${GREEN}RUNNING${NC} (PID: ${PYTHON_PID})"
     else
-        echo -e "   ${RED}✗${NC} Python API:     ${RED}STOPPED${NC}"
+        echo -e "   ${RED}✗${NC} Python API:          ${RED}STOPPED${NC}"
     fi
     
     # Check ports
@@ -102,11 +114,11 @@ check_status() {
     echo ""
     echo -e "${YELLOW}🌐 API Health:${NC}"
     
-    WEB_STATUS=$(timeout 2 curl -s -o /dev/null -w "%{http_code}" http://localhost:80 2>/dev/null)
+    WEB_STATUS=$(timeout 2 curl -s -o /dev/null -w "%{http_code}" http://localhost:3000 2>/dev/null)
     if [ "$WEB_STATUS" = "200" ]; then
-        echo -e "   ${GREEN}✓${NC} Website (port 80): OK"
+        echo -e "   ${GREEN}✓${NC} Next.js Website: OK (HTTP $WEB_STATUS)"
     else
-        echo -e "   ${RED}✗${NC} Website (port 80): Error ($WEB_STATUS)"
+        echo -e "   ${RED}✗${NC} Next.js Website: Error (HTTP $WEB_STATUS)"
     fi
     
     API_HEALTH=$(timeout 2 curl -s http://localhost:5000/health 2>/dev/null)
@@ -171,11 +183,33 @@ start_services() {
 stop_services() {
     echo -e "${YELLOW}🛑 Stopping Services...${NC}"
     
-    sudo systemctl stop rps-nextjs
-    echo -e "   ${GREEN}✓${NC} Next.js stopped (systemctl)"
+    # Stop Next.js (PM2, systemd, or manual)
+    if pm2 id rps-web-frontend >/dev/null 2>&1 && pm2 list | grep -q "rps-web-frontend.*online"; then
+        pm2 stop rps-web-frontend >/dev/null 2>&1
+        echo -e "   ${GREEN}✓${NC} Next.js stopped (PM2)"
+    elif systemctl is-active --quiet rps-nextjs 2>/dev/null; then
+        sudo systemctl stop rps-nextjs
+        echo -e "   ${GREEN}✓${NC} Next.js stopped (systemctl)"
+    elif pgrep -f "next.*server" > /dev/null; then
+        pkill -9 -f "next.*server"
+        echo -e "   ${GREEN}✓${NC} Next.js stopped (manual processes killed)"
+    else
+        echo -e "   ${YELLOW}ℹ${NC}  Next.js already stopped"
+    fi
     
-    sudo systemctl stop rps-python
-    echo -e "   ${GREEN}✓${NC} Python API stopped (systemctl)"
+    # Stop Python API (PM2, systemd, or manual)
+    if pm2 id rps-web-backend >/dev/null 2>&1 && pm2 list | grep -q "rps-web-backend.*online"; then
+        pm2 stop rps-web-backend >/dev/null 2>&1
+        echo -e "   ${GREEN}✓${NC} Python API stopped (PM2)"
+    elif systemctl is-active --quiet rps-python 2>/dev/null; then
+        sudo systemctl stop rps-python
+        echo -e "   ${GREEN}✓${NC} Python API stopped (systemctl)"
+    elif pgrep -f "python.*api_server" > /dev/null; then
+        pkill -9 -f "python.*api_server"
+        echo -e "   ${GREEN}✓${NC} Python API stopped (manual processes killed)"
+    else
+        echo -e "   ${YELLOW}ℹ${NC}  Python API already stopped"
+    fi
     
     echo -e "   ${YELLOW}ℹ${NC}  Nginx left running (use sudo systemctl stop nginx to stop)"
     echo ""
@@ -184,20 +218,78 @@ stop_services() {
 restart_services() {
     echo -e "${YELLOW}🔄 Restarting Services...${NC}"
     
-    sudo systemctl restart rps-nextjs
-    sleep 2
-    if systemctl is-active --quiet rps-nextjs; then
-        echo -e "   ${GREEN}✓${NC} Next.js restarted (systemctl)"
+    # Restart Next.js
+    if pm2 id rps-web-frontend >/dev/null 2>&1; then
+        # PM2 process exists
+        pm2 restart rps-web-frontend >/dev/null 2>&1
+        sleep 2
+        if pm2 list | grep -q "rps-web-frontend.*online"; then
+            echo -e "   ${GREEN}✓${NC} Next.js restarted (PM2)"
+        else
+            echo -e "   ${RED}✗${NC} Next.js failed to restart"
+        fi
+    elif systemctl list-unit-files rps-nextjs.service &>/dev/null; then
+        # Systemd service exists
+        if systemctl is-active --quiet rps-nextjs 2>/dev/null; then
+            sudo systemctl restart rps-nextjs
+        else
+            # Service exists but not running, kill manual and start systemd
+            pkill -9 -f "next.*server" 2>/dev/null
+            sudo systemctl start rps-nextjs
+        fi
+        sleep 2
+        if systemctl is-active --quiet rps-nextjs; then
+            echo -e "   ${GREEN}✓${NC} Next.js restarted (systemctl)"
+        else
+            echo -e "   ${RED}✗${NC} Next.js failed to restart"
+        fi
     else
-        echo -e "   ${RED}✗${NC} Next.js failed to restart"
+        # No systemd, restart manual process
+        pkill -9 -f "next.*server" 2>/dev/null
+        cd "$APP_DIR" && nohup npm start > /tmp/nextjs.log 2>&1 &
+        sleep 3
+        if pgrep -f "next.*server" > /dev/null; then
+            echo -e "   ${GREEN}✓${NC} Next.js restarted (manual)"
+        else
+            echo -e "   ${RED}✗${NC} Next.js failed to restart"
+        fi
     fi
     
-    sudo systemctl restart rps-python
-    sleep 2
-    if systemctl is-active --quiet rps-python; then
-        echo -e "   ${GREEN}✓${NC} Python API restarted (systemctl)"
+    # Restart Python API
+    if pm2 id rps-web-backend >/dev/null 2>&1; then
+        # PM2 process exists
+        pm2 restart rps-web-backend >/dev/null 2>&1
+        sleep 2
+        if pm2 list | grep -q "rps-web-backend.*online"; then
+            echo -e "   ${GREEN}✓${NC} Python API restarted (PM2)"
+        else
+            echo -e "   ${RED}✗${NC} Python API failed to restart"
+        fi
+    elif systemctl list-unit-files rps-python.service &>/dev/null; then
+        # Systemd service exists
+        if systemctl is-active --quiet rps-python 2>/dev/null; then
+            sudo systemctl restart rps-python
+        else
+            # Service exists but not running, kill manual and start systemd
+            pkill -9 -f "python.*api_server" 2>/dev/null
+            sudo systemctl start rps-python
+        fi
+        sleep 2
+        if systemctl is-active --quiet rps-python; then
+            echo -e "   ${GREEN}✓${NC} Python API restarted (systemctl)"
+        else
+            echo -e "   ${RED}✗${NC} Python API failed to restart"
+        fi
     else
-        echo -e "   ${RED}✗${NC} Python API failed to restart"
+        # No systemd, restart manual process
+        pkill -9 -f "python.*api_server" 2>/dev/null
+        cd "$PYTHON_DIR" && source venv/bin/activate && nohup python api_server.py --port 5000 > /tmp/python_api.log 2>&1 &
+        sleep 3
+        if pgrep -f "python.*api_server" > /dev/null; then
+            echo -e "   ${GREEN}✓${NC} Python API restarted (manual)"
+        else
+            echo -e "   ${RED}✗${NC} Python API failed to restart"
+        fi
     fi
     
     read -p "Restart Nginx too? [y/N]: " restart_nginx
