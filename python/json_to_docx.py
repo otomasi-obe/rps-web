@@ -505,12 +505,12 @@ class JSONToDocx:
                 cpl_obj_lookup = {item['kode']: item for item in cpl_list}
                 
                 for ik_item in ik_list:
-                    # IK mapping ke CPMK
-                    cpmk_code = ik_item.get('mapping_cpmk', '')  # CPMK code
+                    # IK mapping ke CPMK (prioritas dari IK sendiri)
+                    cpmk_code = ik_item.get('mapping_cpmk', '')
                     cpmk_data = cpmk_obj_lookup.get(cpmk_code, {})
                     
-                    # CPMK mapping ke CPL
-                    cpl_code = cpmk_data.get('mapping_cpl', '')
+                    # IK mapping ke CPL (prioritas dari IK sendiri, fallback ke CPMK)
+                    cpl_code = ik_item.get('mapping_cpl', '') or cpmk_data.get('mapping_cpl', '')
                     cpl_data = cpl_obj_lookup.get(cpl_code, {})
                     
                     ma_val = generate_media_asesmen_string(cpmk_data)

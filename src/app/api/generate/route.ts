@@ -123,6 +123,7 @@ export async function POST(request: NextRequest) {
           .map((c: any) => ({
             kode: c.ik_kode,
             mapping_cpl: c.kode,
+            mapping_cpmk: c.ik_mapping_cpmk || '',
             pernyataan: c.ik_pernyataan,
           }));
         
@@ -142,7 +143,8 @@ export async function POST(request: NextRequest) {
         // Extract IK from CPMK if available
         const ik = data.cpmk.map((c: any, index: number) => ({
           kode: c.ik_kode || `IK ${index + 1}`,
-          mapping_cpl: c.kode || '',
+          mapping_cpl: c.mapping_cpl || '',
+          mapping_cpmk: c.kode || '',
           pernyataan: c.ik_pernyataan || '',
         }));
         
@@ -211,6 +213,7 @@ export async function POST(request: NextRequest) {
         ik = data.ik.map((i: any) => ({
           kode: i.kode,
           mapping_cpl: i.mapping_cpl || '',
+          mapping_cpmk: i.mapping_cpmk || '',
           pernyataan: i.pernyataan || '',
         }));
       } else if (data.cpl) {
@@ -219,6 +222,7 @@ export async function POST(request: NextRequest) {
           .map((c: any) => ({
             kode: c.ik_kode,
             mapping_cpl: c.kode,
+            mapping_cpmk: c.ik_mapping_cpmk || '',
             pernyataan: c.ik_pernyataan,
           }));
         if (ikFromCPL.length > 0) {
@@ -230,7 +234,8 @@ export async function POST(request: NextRequest) {
       if (ik.length === 0 && data.cpmk) {
         ik = data.cpmk.map((c: any, index: number) => ({
           kode: c.ik_kode || `IK ${index + 1}`,
-          mapping_cpl: c.kode || '',
+          mapping_cpl: c.mapping_cpl || '',
+          mapping_cpmk: c.kode || '',
           pernyataan: c.ik_pernyataan || '',
         }));
       }

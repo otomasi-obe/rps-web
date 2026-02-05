@@ -49,24 +49,27 @@ export default function RPSEditor() {
     // Normalize IK with backward compatibility
     const ikSourceRaw = Array.isArray(data.ik) ? data.ik : Array.isArray(data.indikatorKinerjaList) ? data.indikatorKinerjaList : base.ik;
     const ikSource = ikSourceRaw.map((ik: any, idx: number) => {
-      // Handle old format with kodeCPL -> find matching CPMK for that CPL
+      // Prioritize existing mapping_cpl and mapping_cpmk from data
       let mapping_cpl = ik.mapping_cpl || '';
       let mapping_cpmk = ik.mapping_cpmk || '';
       
-      // If using old format with kodeCPL, find the first CPMK that maps to this CPL
-      if (!mapping_cpl && ik.kodeCPL && Array.isArray(cpmkSource)) {
-        const matchingCpmk = cpmkSource.find((c: any) => c.mapping_cpl === ik.kodeCPL);
-        if (matchingCpmk) {
-          mapping_cpl = matchingCpmk.mapping_cpl;
-          mapping_cpmk = matchingCpmk.kode;
+      // Only auto-fill for backward compatibility if BOTH are empty
+      if (!mapping_cpl && !mapping_cpmk) {
+        // Handle old format with kodeCPL -> find matching CPMK for that CPL
+        if (ik.kodeCPL && Array.isArray(cpmkSource)) {
+          const matchingCpmk = cpmkSource.find((c: any) => c.mapping_cpl === ik.kodeCPL);
+          if (matchingCpmk) {
+            mapping_cpl = matchingCpmk.mapping_cpl;
+            mapping_cpmk = matchingCpmk.kode;
+          }
         }
-      }
-      
-      // Fallback: auto-assign to CPMK by index
-      if (!mapping_cpmk && cpmkSource[idx]) {
-        mapping_cpmk = cpmkSource[idx].kode;
-        // Get CPL from CPMK's mapping
-        mapping_cpl = cpmkSource[idx].mapping_cpl || '';
+        
+        // Fallback: auto-assign to CPMK by index only if still empty
+        if (!mapping_cpmk && cpmkSource[idx]) {
+          mapping_cpmk = cpmkSource[idx].kode;
+          // Get CPL from CPMK's mapping
+          mapping_cpl = cpmkSource[idx].mapping_cpl || '';
+        }
       }
       
       return {

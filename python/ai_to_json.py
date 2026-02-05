@@ -117,12 +117,12 @@ Buatkan RPS dalam format JSON dengan struktur PERSIS seperti berikut. PENTING: H
 		"pernyataan": "Indikator kinerja spesifik untuk CPL 1 dan CPMK 1-1", 
 		"mapping_cpl": "CPL 1",
 		"mapping_cpmk": "CPMK 1-1"
-    }},
+    }}
   ],
 
   "cpmk": [
 	{{"kode": "CPMK 1-1", "pernyataan": "Mahasiswa mampu [capaian spesifik 1-1]", 
-		"mapping_cpl": "CPL1", "N1": 5,N2: 5,"N3": 5,"N4": 5,"N5": 0,"N_cpmk": 30}},
+		"mapping_cpl": "CPL 1", "N1": 5,"N2": 5,"N3": 5,"N4": 5,"N5": 0,"N_cpmk": 30}},
   ],
 
   "minggu": [
