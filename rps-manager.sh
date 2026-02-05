@@ -45,8 +45,8 @@ check_status() {
     elif systemctl is-active --quiet rps-nextjs 2>/dev/null; then
         NEXT_PID=$(systemctl show -p MainPID --value rps-nextjs 2>/dev/null)
         echo -e "   ${GREEN}✓${NC} Next.js (systemd): ${GREEN}RUNNING${NC} (PID: ${NEXT_PID:-unknown})"
-    elif pgrep -f "next.*server" > /dev/null; then
-        NEXT_PID=$(pgrep -f "next.*server" | head -1)
+    elif pgrep -f "next-server \(v" > /dev/null; then
+        NEXT_PID=$(pgrep -f "next-server \(v" | head -1)
         echo -e "   ${GREEN}✓${NC} Next.js (manual):  ${GREEN}RUNNING${NC} (PID: ${NEXT_PID})"
     else
         echo -e "   ${RED}✗${NC} Next.js:          ${RED}STOPPED${NC}"
@@ -190,8 +190,8 @@ stop_services() {
     elif systemctl is-active --quiet rps-nextjs 2>/dev/null; then
         sudo systemctl stop rps-nextjs
         echo -e "   ${GREEN}✓${NC} Next.js stopped (systemctl)"
-    elif pgrep -f "next.*server" > /dev/null; then
-        pkill -9 -f "next.*server"
+    elif pgrep -f "next-server \(v" > /dev/null; then
+        pkill -9 -f "next-server \(v"
         echo -e "   ${GREEN}✓${NC} Next.js stopped (manual processes killed)"
     else
         echo -e "   ${YELLOW}ℹ${NC}  Next.js already stopped"
@@ -245,7 +245,7 @@ restart_services() {
         fi
     else
         # No systemd, restart manual process
-        pkill -9 -f "next.*server" 2>/dev/null
+        pkill -9 -f "next-server \(v" 2>/dev/null
         cd "$APP_DIR" && nohup npm start > /tmp/nextjs.log 2>&1 &
         sleep 3
         if pgrep -f "next.*server" > /dev/null; then
