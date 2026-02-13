@@ -6,13 +6,14 @@
 - **Path**: `/etc/systemd/system/rps-nextjs.service`
 - **Description**: Next.js application service
 - **Auto-start**: Enabled (starts on boot)
-- **Logs**: `/root/rps-web/logs/nextjs.log` & `nextjs-error.log`
+- **Logs**: View with `sudo journalctl -u rps-nextjs -f`
+- **Node Version**: v18.20.8
 
 ### 2. **rps-python.service**
 - **Path**: `/etc/systemd/system/rps-python.service`
 - **Description**: Python API server service
 - **Auto-start**: Enabled (starts on boot)
-- **Logs**: `/root/rps-web/logs/python.log` & `python-error.log`
+- **Logs**: View with `sudo journalctl -u rps-python -f`
 
 ## Perintah SystemCTL
 

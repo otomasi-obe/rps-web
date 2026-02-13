@@ -237,8 +237,8 @@ function Setup-Firewall {
         New-NetFirewallRule -DisplayName "RPS Next.js" -Direction Inbound -Protocol TCP -LocalPort 3000 -Action Allow -Profile Any | Out-Null
         Write-Host "   OK - Port 3000 opened" -ForegroundColor Green
         
-        New-NetFirewallRule -DisplayName "RPS Python API" -Direction Inbound -Protocol TCP -LocalPort 5001 -Action Allow -Profile Any | Out-Null
-        Write-Host "   OK - Port 5001 opened" -ForegroundColor Green
+        New-NetFirewallRule -DisplayName "RPS Python API" -Direction Inbound -Protocol TCP -LocalPort 5000 -Action Allow -Profile Any | Out-Null
+        Write-Host "   OK - Port 5000 opened" -ForegroundColor Green
         
         Write-Host ""
         Write-Host "Firewall configured!" -ForegroundColor Green
