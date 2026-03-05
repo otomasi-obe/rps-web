@@ -1,314 +1,281 @@
-# RPS-WEB Manager for Windows
-# PowerShell script untuk mengelola RPS-WEB Server
+# RPS-WEB Server Manager for Windows (PowerShell)
+# ─────────────────────────────────────────────
+# 1 - Start Backend Python + Frontend
+# 2 - Start Backend Java   + Frontend
+# 3 - Stop Kill All
+# 4 - Stop Graceful
+#
+# Frontend  → port 1000
+# Backend   → port 1001 (Java atau Python)
 
 param([string]$Command = "")
 
-# Configuration
-$AppDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$PythonDir = Join-Path $AppDir "python"
-$VenvDir = Join-Path $AppDir "venv"
-$PythonExe = "python.exe"
+$AppDir      = Split-Path -Parent $MyInvocation.MyCommand.Path
+$FrontendDir = Join-Path $AppDir "frontend"
+$PythonDir   = Join-Path $AppDir "backendPython"
+$JavaDir     = Join-Path $AppDir "backendJava"
+$JavaJar     = Join-Path $JavaDir "target\java-1.jar"
 
+$FrontendPort = 2000
+$BackendPort  = 2001
+
+$FrontendLog = "$env:TEMP\rps_frontend.log"
+$PythonLog   = "$env:TEMP\rps_python.log"
+$JavaLog     = "$env:TEMP\rps_java.log"
+
+# ─────────────────────────────────────────────
 function Write-Header {
     Write-Host ""
-    Write-Host "============================================" -ForegroundColor Blue
-    Write-Host "       RPS-WEB Server Manager" -ForegroundColor Blue
-    Write-Host "     Next.js + Python API (Windows)" -ForegroundColor Blue
-    Write-Host "============================================" -ForegroundColor Blue
+    Write-Host "================================================" -ForegroundColor Blue
+    Write-Host "          RPS-WEB Server Manager               " -ForegroundColor Blue
+    Write-Host "   Frontend :2000  |  Backend :2001       " -ForegroundColor Blue
+    Write-Host "================================================" -ForegroundColor Blue
     Write-Host ""
 }
 
-function Get-ProcessByPort {
+function Get-PortProcess {
     param([int]$Port)
     try {
         $conn = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
-        if ($conn) {
-            return Get-Process -Id $conn.OwningProcess -ErrorAction SilentlyContinue
-        }
+        if ($conn) { return Get-Process -Id $conn.OwningProcess -ErrorAction SilentlyContinue }
     } catch {}
     return $null
 }
 
-function Check-Status {
-    Write-Host "Checking Server Status..." -ForegroundColor Yellow
+function Wait-ForPort {
+    param([int]$Port, [string]$Service)
+    $max = 40; $i = 0
+    Write-Host -NoNewline "   Menunggu $Service pada :$Port" -ForegroundColor Yellow
+    while (-not (Get-PortProcess $Port)) {
+        Start-Sleep -Seconds 1
+        Write-Host -NoNewline "."
+        $i++
+        if ($i -ge $max) { Write-Host " TIMEOUT" -ForegroundColor Red; return $false }
+    }
+    Write-Host " OK" -ForegroundColor Green
+    return $true
+}
+
+function Check-HealthUrl {
+    param([string]$Url)
+    try {
+        $r = Invoke-WebRequest -Uri $Url -TimeoutSec 3 -UseBasicParsing -ErrorAction Stop
+        return $r.StatusCode -eq 200
+    } catch { return $false }
+}
+
+# ─────────────────────────────────────────────
+function Start-Frontend {
+    if (Get-PortProcess $FrontendPort) {
+        Write-Host "   INFO - Frontend sudah running di :$FrontendPort" -ForegroundColor Yellow
+        return
+    }
+    Write-Host "   > Starting Frontend Next.js (port $FrontendPort)..." -ForegroundColor Cyan
+
+    if (-not (Test-Path (Join-Path $FrontendDir "node_modules"))) {
+        Write-Host "   Installing npm dependencies..." -ForegroundColor Yellow
+        Push-Location $FrontendDir; npm install --silent; Pop-Location
+    }
+
+    if (-not (Test-Path (Join-Path $FrontendDir ".next"))) {
+        Write-Host "   Building Next.js..." -ForegroundColor Yellow
+        Push-Location $FrontendDir
+        $env:BACKEND_API_URL = "http://127.0.0.1:$BackendPort"
+        $env:PORT = $FrontendPort
+        npm run build
+        Pop-Location
+    }
+
+    $cmd = "Set-Location '$FrontendDir'; `$env:BACKEND_API_URL='http://127.0.0.1:$BackendPort'; `$env:PYTHON_API_URL='http://127.0.0.1:$BackendPort'; `$env:PORT='$FrontendPort'; npm start -- --port $FrontendPort *> '$FrontendLog'"
+    Start-Process powershell -ArgumentList "-NoExit", "-Command", $cmd
+
+    Wait-ForPort $FrontendPort "Frontend"
+}
+
+function Start-PythonBackend {
+    if (Get-PortProcess $BackendPort) {
+        Write-Host "   INFO - Backend sudah running di :$BackendPort" -ForegroundColor Yellow
+        return
+    }
+    Write-Host "   > Starting Python Backend (port $BackendPort)..." -ForegroundColor Cyan
+
+    $cmd = "Set-Location '$PythonDir'; python api_server.py --port $BackendPort *> '$PythonLog'"
+    Start-Process powershell -ArgumentList "-NoExit", "-Command", $cmd
+
+    Wait-ForPort $BackendPort "Python Backend"
+}
+
+function Start-JavaBackend {
+    if (Get-PortProcess $BackendPort) {
+        Write-Host "   INFO - Backend sudah running di :$BackendPort" -ForegroundColor Yellow
+        return
+    }
+    if (-not (Test-Path $JavaJar)) {
+        Write-Host "   ERROR - Java JAR tidak ditemukan: $JavaJar" -ForegroundColor Red
+        Write-Host "   Build dulu: cd $JavaDir && mvn package -DskipTests" -ForegroundColor Red
+        return
+    }
+    Write-Host "   > Starting Java Backend (port $BackendPort)..." -ForegroundColor Cyan
+
+    $cmd = "Set-Location '$JavaDir'; java -jar '$JavaJar' --server.port=$BackendPort *> '$JavaLog'"
+    Start-Process powershell -ArgumentList "-NoExit", "-Command", $cmd
+
+    Wait-ForPort $BackendPort "Java Backend"
+}
+
+# ─────────────────────────────────────────────
+function Check-Health {
     Write-Host ""
-    
-    # Check Next.js
-    $nextProcess = Get-ProcessByPort 3000
-    if ($nextProcess) {
-        Write-Host "   OK - Next.js: RUNNING (PID: $($nextProcess.Id))" -ForegroundColor Green
+    Write-Host "Health Check:" -ForegroundColor Yellow
+
+    if (Check-HealthUrl "http://localhost:$FrontendPort") {
+        Write-Host "   OK - Frontend   http://localhost:$FrontendPort" -ForegroundColor Green
     } else {
-        Write-Host "   NO - Next.js: STOPPED" -ForegroundColor Red
+        Write-Host "   NO - Frontend   http://localhost:$FrontendPort  (not responding)" -ForegroundColor Red
     }
-    
-    # Check Python API
-    $pythonProcess = Get-ProcessByPort 5000
-    if ($pythonProcess) {
-        Write-Host "   OK - Python API: RUNNING (PID: $($pythonProcess.Id))" -ForegroundColor Green
+
+    if (Check-HealthUrl "http://localhost:$BackendPort/health") {
+        $resp = (Invoke-WebRequest -Uri "http://localhost:$BackendPort/health" -UseBasicParsing -TimeoutSec 3).Content
+        Write-Host "   OK - Backend    http://localhost:$BackendPort/health  -> $resp" -ForegroundColor Green
     } else {
-        Write-Host "   NO - Python API: STOPPED" -ForegroundColor Red
+        Write-Host "   NO - Backend    http://localhost:$BackendPort/health  (not responding)" -ForegroundColor Red
     }
-    
-    # Check Ports
-    Write-Host ""
-    Write-Host "Port Status:" -ForegroundColor Yellow
-    
-    if (Test-NetConnection -ComputerName localhost -Port 3000 -InformationLevel Quiet -WarningAction SilentlyContinue) {
-        Write-Host "   OK - Port 3000: LISTENING" -ForegroundColor Green
-    } else {
-        Write-Host "   NO - Port 3000: NOT LISTENING" -ForegroundColor Red
-    }
-    
-    if (Test-NetConnection -ComputerName localhost -Port 5000 -InformationLevel Quiet -WarningAction SilentlyContinue) {
-        Write-Host "   OK - Port 5000:      LISTENING" -ForegroundColor Green
-    } else {
-        Write-Host "   NO - Port 5000:      NOT LISTENING" -ForegroundColor Red
-    }
-    
-    # Dependencies
-    Write-Host ""
-    Write-Host "Dependencies:" -ForegroundColor Yellow
-    if (Get-Command node -ErrorAction SilentlyContinue) {
-        Write-Host "   OK - Node.js: $(node -v)" -ForegroundColor Green
-    } else {
-        Write-Host "   NO - Node.js: Not installed" -ForegroundColor Red
-    }
-    
-    if (Get-Command python -ErrorAction SilentlyContinue) {
-        $pythonVersion = & python --version 2>&1
-        Write-Host "   OK - Python: $pythonVersion" -ForegroundColor Green
-    } else {
-        Write-Host "   NO - Python: Not installed" -ForegroundColor Red
-    }
-    
-    # Access URLs
-    Write-Host ""
-    Write-Host "Access URLs:" -ForegroundColor Cyan
-    Write-Host "   http://localhost:3000"
-    
-    $localIP = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notlike "127.*" -and $_.IPAddress -notlike "169.*" } | Select-Object -First 1).IPAddress
-    if ($localIP) {
-        Write-Host "   http://$localIP:3000 (local network)"
-    }
-    
     Write-Host ""
 }
 
-function Start-Services {
-    Write-Host "Starting Services..." -ForegroundColor Yellow
+function Check-Status {
+    Write-Host "Status Server:" -ForegroundColor Yellow
     Write-Host ""
-    
-    $nextjsStarted = $false
-    $pythonStarted = $false
-    
-    # Start Next.js
-    if (!(Get-ProcessByPort 3000)) {
-        Write-Host "   Starting Next.js..." -ForegroundColor Gray
-        $nextCmd = "Set-Location '$AppDir'; npm run dev"
-        Start-Process powershell -ArgumentList "-NoExit", "-Command", $nextCmd
-        $nextjsStarted = $true
+
+    $fp = Get-PortProcess $FrontendPort
+    if ($fp) {
+        Write-Host "   OK - Frontend  :$FrontendPort   RUNNING (PID: $($fp.Id))" -ForegroundColor Green
     } else {
-        Write-Host "   SKIP - Next.js already running" -ForegroundColor Yellow
+        Write-Host "   NO - Frontend  :$FrontendPort   STOPPED" -ForegroundColor Red
     }
-    
-    # Start Python API
-    if (!(Get-ProcessByPort 5000)) {
-        Write-Host "   Starting Python API..." -ForegroundColor Gray
-        $pythonCmd = "Set-Location '$PythonDir'; & python api_server.py"
-        Start-Process powershell -ArgumentList "-NoExit", "-Command", $pythonCmd
-        $pythonStarted = $true
+
+    $bp = Get-PortProcess $BackendPort
+    if ($bp) {
+        $btype = "Backend"
+        if (Get-Process java -ErrorAction SilentlyContinue) { $btype = "Java Backend" }
+        if (Get-Process python -ErrorAction SilentlyContinue) { $btype = "Python Backend" }
+        Write-Host "   OK - $btype  :$BackendPort  RUNNING (PID: $($bp.Id))" -ForegroundColor Green
     } else {
-        Write-Host "   SKIP - Python API already running" -ForegroundColor Yellow
+        Write-Host "   NO - Backend   :$BackendPort  STOPPED" -ForegroundColor Red
     }
-    
-    # Wait for services to be ready (check ports)
-    if ($nextjsStarted -or $pythonStarted) {
-        Write-Host "   Waiting for services to start..." -ForegroundColor Gray
-        $timeout = 0
-        while ($timeout -lt 30) {
-            $nextOk = Get-ProcessByPort 3000
-            $pythonOk = Get-ProcessByPort 5000
-            
-            if (($nextjsStarted -and $nextOk) -or !$nextjsStarted) {
-                Write-Host "   OK - Next.js started" -ForegroundColor Green
-            }
-            if (($pythonStarted -and $pythonOk) -or !$pythonStarted) {
-                Write-Host "   OK - Python API started" -ForegroundColor Green
-            }
-            
-            if ((!$nextjsStarted -or $nextOk) -and (!$pythonStarted -or $pythonOk)) {
-                break
-            }
-            
-            Start-Sleep -Seconds 1
-            $timeout++
+
+    Check-Health
+
+    Write-Host "URL Akses:" -ForegroundColor Cyan
+    Write-Host "   http://localhost:$FrontendPort"
+    Write-Host "   https://otomasi.app"
+    Write-Host ""
+}
+
+# ─────────────────────────────────────────────
+function Do-KillAll {
+    Write-Host "Opsi 3: Kill All (Force)" -ForegroundColor Yellow
+    Write-Host ""
+
+    foreach ($port in @($FrontendPort, $BackendPort)) {
+        $proc = Get-PortProcess $port
+        if ($proc) {
+            Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+            Write-Host "   OK - Port $port killed (PID: $($proc.Id))" -ForegroundColor Green
+        } else {
+            Write-Host "   INFO - Port $port tidak ada proses" -ForegroundColor Yellow
         }
     }
-    
+
+    Get-Process node   -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like "*next*" } | Stop-Process -Force -ErrorAction SilentlyContinue
+    Get-Process python -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like "*api_server*" } | Stop-Process -Force -ErrorAction SilentlyContinue
+    Get-Process java   -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like "*java-1.jar*" } | Stop-Process -Force -ErrorAction SilentlyContinue
+
     Write-Host ""
-    Write-Host "Services started!" -ForegroundColor Green
+    Write-Host "Semua proses dihentikan (Force Kill)." -ForegroundColor Green
     Write-Host ""
 }
 
-function Stop-Services {
-    Write-Host "Stopping Services..." -ForegroundColor Yellow
+function Do-Stop {
+    Write-Host "Opsi 4: Stop Graceful" -ForegroundColor Yellow
     Write-Host ""
-    
-    # Stop both services concurrently
-    $nextProcess = Get-ProcessByPort 3000
-    $pythonProcess = Get-ProcessByPort 5000
-    
-    if ($nextProcess) {
-        Stop-Process -Id $nextProcess.Id -Force -ErrorAction SilentlyContinue
-        Write-Host "   OK - Next.js stopped" -ForegroundColor Green
-    } else {
-        Write-Host "   SKIP - Next.js not running" -ForegroundColor Yellow
+
+    foreach ($port in @($FrontendPort, $BackendPort)) {
+        $proc = Get-PortProcess $port
+        if ($proc) {
+            Stop-Process -Id $proc.Id -ErrorAction SilentlyContinue
+            Write-Host "   OK - Port $port stopped (PID: $($proc.Id))" -ForegroundColor Green
+        } else {
+            Write-Host "   INFO - Port $port tidak ada proses" -ForegroundColor Yellow
+        }
     }
-    
-    if ($pythonProcess) {
-        Stop-Process -Id $pythonProcess.Id -Force -ErrorAction SilentlyContinue
-        Write-Host "   OK - Python API stopped" -ForegroundColor Green
-    } else {
-        Write-Host "   SKIP - Python API not running" -ForegroundColor Yellow
-    }
-    
+
     Write-Host ""
-    Write-Host "Services stopped!" -ForegroundColor Green
+    Write-Host "Selesai." -ForegroundColor Green
     Write-Host ""
 }
 
-function Restart-Services {
-    Write-Host "Restarting Services..." -ForegroundColor Yellow
+function Do-StartPython {
+    Write-Host "Opsi 1: Python Backend + Frontend" -ForegroundColor Yellow
     Write-Host ""
-    Stop-Services
-    Start-Sleep -Seconds 1
-    Start-Services
+    Start-PythonBackend
+    Start-Frontend
+    Check-Status
 }
 
-function Show-Logs {
-    Write-Host "Process Information:" -ForegroundColor Yellow
+function Do-StartJava {
+    Write-Host "Opsi 2: Java Backend + Frontend" -ForegroundColor Yellow
     Write-Host ""
-    
-    $nextProcess = Get-ProcessByPort 3000
-    if ($nextProcess) {
-        Write-Host "Next.js (PID: $($nextProcess.Id))" -ForegroundColor Green
-        Write-Host "  Started: $($nextProcess.StartTime)" -ForegroundColor Gray
-        Write-Host "  Memory:  $([math]::Round($nextProcess.WorkingSet64/1MB, 2)) MB" -ForegroundColor Gray
-    }
-    
-    Write-Host ""
-    $pythonProcess = Get-ProcessByPort 5000
-    if ($pythonProcess) {
-        Write-Host "Python API (PID: $($pythonProcess.Id))" -ForegroundColor Green
-        Write-Host "  Started: $($pythonProcess.StartTime)" -ForegroundColor Gray
-        Write-Host "  Memory:  $([math]::Round($pythonProcess.WorkingSet64/1MB, 2)) MB" -ForegroundColor Gray
-    }
-    
-    Write-Host ""
+    Start-JavaBackend
+    Start-Frontend
+    Check-Status
 }
 
-function Rebuild-App {
-    Write-Host "Rebuilding..." -ForegroundColor Yellow
-    Write-Host ""
-    
-    Stop-Services
-    Set-Location $AppDir
-    
-    Write-Host "   Building Next.js..." -ForegroundColor Gray
-    npm run build
-    
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "   OK - Build successful" -ForegroundColor Green
-        Start-Services
-    } else {
-        Write-Host "   ERROR - Build failed" -ForegroundColor Red
-    }
-    Write-Host ""
-}
-
-function Setup-Firewall {
-    Write-Host "Setting Up Firewall..." -ForegroundColor Yellow
-    Write-Host ""
-    
-    try {
-        Remove-NetFirewallRule -DisplayName "RPS Next.js*" -ErrorAction SilentlyContinue
-        Remove-NetFirewallRule -DisplayName "RPS Python*" -ErrorAction SilentlyContinue
-        
-        New-NetFirewallRule -DisplayName "RPS Next.js" -Direction Inbound -Protocol TCP -LocalPort 3000 -Action Allow -Profile Any | Out-Null
-        Write-Host "   OK - Port 3000 opened" -ForegroundColor Green
-        
-        New-NetFirewallRule -DisplayName "RPS Python API" -Direction Inbound -Protocol TCP -LocalPort 5000 -Action Allow -Profile Any | Out-Null
-        Write-Host "   OK - Port 5000 opened" -ForegroundColor Green
-        
-        Write-Host ""
-        Write-Host "Firewall configured!" -ForegroundColor Green
-    } catch {
-        Write-Host "   ERROR - Run as Administrator!" -ForegroundColor Red
-    }
-    Write-Host ""
-}
-
-function Show-Help {
-    Write-Host "Usage: .\rps-manager.ps1 <command>"
-    Write-Host ""
-    Write-Host "Commands:"
-    Write-Host "  start    - Start all services"
-    Write-Host "  stop     - Stop all services"
-    Write-Host "  restart  - Restart all services"
-    Write-Host "  status   - Check status"
-    Write-Host "  logs     - Show process info"
-    Write-Host "  rebuild  - Rebuild application"
-    Write-Host "  firewall - Setup firewall (admin)"
-    Write-Host "  help     - Show this help"
-    Write-Host ""
-}
-
+# ─────────────────────────────────────────────
 function Show-Menu {
-    Write-Host "Select an option:" -ForegroundColor Cyan
-    Write-Host "  1 - Start services"
-    Write-Host "  2 - Stop services"
-    Write-Host "  3 - Restart services"
-    Write-Host "  4 - Check status"
-    Write-Host "  5 - Show logs"
-    Write-Host "  6 - Rebuild"
-    Write-Host "  7 - Setup firewall"
-    Write-Host "  8 - Exit"
+    Write-Header
+    Write-Host "Pilih opsi:" -ForegroundColor Cyan
     Write-Host ""
-    
-    $choice = Read-Host "Enter choice (1-8)"
-    
+    Write-Host "  1  Start Backend Python + Frontend  [:$FrontendPort / :$BackendPort]" -ForegroundColor Green
+    Write-Host "  2  Start Backend Java   + Frontend  [:$FrontendPort / :$BackendPort]" -ForegroundColor Green
+    Write-Host "  3  Stop Kill All (Force)"            -ForegroundColor Red
+    Write-Host "  4  Stop Graceful"                    -ForegroundColor Yellow
+    Write-Host "  5  Status & Health Check"            -ForegroundColor Blue
+    Write-Host "  0  Keluar"                           -ForegroundColor Blue
+    Write-Host ""
+
+    $choice = Read-Host "Pilihan [0-5]"
+    Write-Host ""
+
     switch ($choice) {
-        "1" { Start-Services }
-        "2" { Stop-Services }
-        "3" { Restart-Services }
-        "4" { Check-Status }
-        "5" { Show-Logs }
-        "6" { Rebuild-App }
-        "7" { Setup-Firewall }
-        "8" { exit 0 }
-        default { Write-Host "Invalid choice" -ForegroundColor Red }
+        "1" { Do-StartPython }
+        "2" { Do-StartJava }
+        "3" { Do-KillAll }
+        "4" { Do-Stop }
+        "5" { Check-Status }
+        "0" { exit 0 }
+        default { Write-Host "Pilihan tidak valid." -ForegroundColor Red }
     }
 }
 
-# Main
+# ─────────────────────────────────────────────
+# Entry point
+# ─────────────────────────────────────────────
 Write-Header
 
 switch ($Command) {
-    "start" { Start-Services }
-    "stop" { Stop-Services }
-    "restart" { Restart-Services }
-    "status" { Check-Status }
-    "logs" { Show-Logs }
-    "rebuild" { Rebuild-App }
-    "firewall" { Setup-Firewall }
-    { $_ -in @("help", "-h", "--help") } { Show-Help }
+    { $_ -in @("1","python") }  { Do-StartPython }
+    { $_ -in @("2","java") }    { Do-StartJava }
+    { $_ -in @("3","killall") } { Do-KillAll }
+    { $_ -in @("4","stop") }    { Do-Stop }
+    { $_ -in @("5","status") }  { Check-Status }
+    "" { Show-Menu }
     default {
-        if ([string]::IsNullOrEmpty($Command)) {
-            Show-Menu
-        } else {
-            Write-Host "Unknown command: $Command" -ForegroundColor Red
-            Write-Host ""
-            Show-Help
-        }
+        Write-Host "Usage: .\server.ps1 [1|2|3|4|5]"
+        Write-Host "  1 / python  - Start Python backend + Frontend"
+        Write-Host "  2 / java    - Start Java backend   + Frontend"
+        Write-Host "  3 / killall - Kill all (Force)"
+        Write-Host "  4 / stop    - Stop graceful"
+        Write-Host "  5 / status  - Status & health check"
     }
 }

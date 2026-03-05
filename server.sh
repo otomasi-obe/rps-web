@@ -1,7 +1,15 @@
 #!/bin/bash
 #
-# RPS-WEB Manager
-# Script untuk mengelola RPS-WEB Server dengan PM2 & Nginx
+# RPS-WEB Server Manager (PM2)
+# ─────────────────────────────────────────────
+# 1 - Start Python Backend + Frontend
+# 2 - Start Java Backend   + Frontend
+# 3 - Stop Kill All
+# 4 - Stop Graceful
+# 5 - Status & Health Check
+#
+# Frontend  → port 2000  (PM2: rps-frontend)
+# Backend   → port 2001  (PM2: rps-python | rps-java)
 #
 
 # Colors
@@ -10,396 +18,293 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Paths
-APP_DIR="/root/otomasi/rps-web"
-PYTHON_DIR="$APP_DIR/python"
-PYTHON_LOG="/tmp/python_api.log"
+APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+FRONTEND_DIR="$APP_DIR/frontend"
+PYTHON_DIR="$APP_DIR/backendPython"
+JAVA_DIR="$APP_DIR/backendJava"
+JAVA_JAR="$JAVA_DIR/target/java-1.jar"
 
-# Functions
+FRONTEND_PORT=2000
+BACKEND_PORT=2001
+
+# Load environment variables from .env
+if [ -f "$APP_DIR/.env" ]; then
+    set -a
+    # shellcheck disable=SC1090
+    source "$APP_DIR/.env"
+    set +a
+fi
+
+NODEJS="$(command -v node | xargs dirname 2>/dev/null)/npm"
+NODE_BIN="$(dirname $(command -v node 2>/dev/null))"
+
+# ─────────────────────────────────────────────
 print_header() {
     echo ""
-    echo -e "${BLUE}╔════════════════════════════════════════╗${NC}"
-    echo -e "${BLUE}║       RPS-WEB Server Manager           ║${NC}"
-    echo -e "${BLUE}║   Systemd + Nginx + Python API         ║${NC}"
-    echo -e "${BLUE}╚════════════════════════════════════════╝${NC}"
+    echo -e "${BLUE}╔══════════════════════════════════════════════╗${NC}"
+    echo -e "${BLUE}║          RPS-WEB Server Manager (PM2)        ║${NC}"
+    echo -e "${BLUE}║   Frontend :2000  |  Backend :2001           ║${NC}"
+    echo -e "${BLUE}╚══════════════════════════════════════════════╝${NC}"
     echo ""
+}
+
+check_health_url() {
+    local code
+    code=$(timeout 3 curl -s -o /dev/null -w "%{http_code}" "$1" 2>/dev/null)
+    [ "$code" = "200" ]
+}
+
+pm2_running() {
+    pm2 list 2>/dev/null | grep -q "$1.*online"
+}
+
+# ─────────────────────────────────────────────
+build_frontend_if_needed() {
+    if [ ! -d "$FRONTEND_DIR/.next" ] || [ ! -f "$FRONTEND_DIR/.next/BUILD_ID" ]; then
+        echo -e "   ${YELLOW}🔨 Building Next.js...${NC}"
+        if [ ! -d "$FRONTEND_DIR/node_modules" ]; then
+            cd "$FRONTEND_DIR" && npm install --silent
+        fi
+        cd "$FRONTEND_DIR" && \
+            BACKEND_API_URL="http://127.0.0.1:$BACKEND_PORT" \
+            PORT=$FRONTEND_PORT \
+            npm run build
+    fi
+}
+
+start_frontend_pm2() {
+    if pm2_running "rps-frontend"; then
+        echo -e "   ${YELLOW}ℹ${NC}  rps-frontend sudah running"
+        return 0
+    fi
+    build_frontend_if_needed
+    echo -e "   ${CYAN}▶${NC} Starting rps-frontend (port $FRONTEND_PORT)..."
+    cd "$FRONTEND_DIR" && \
+        BACKEND_API_URL="http://127.0.0.1:$BACKEND_PORT" \
+        PYTHON_API_URL="http://127.0.0.1:$BACKEND_PORT" \
+        PORT=$FRONTEND_PORT \
+        pm2 start npm \
+            --name "rps-frontend" \
+            --interpreter none \
+            -- start -- --port $FRONTEND_PORT
+    sleep 3
+    if pm2_running "rps-frontend"; then
+        echo -e "   ${GREEN}✓${NC} rps-frontend started"
+    else
+        echo -e "   ${RED}✗${NC} rps-frontend FAILED - check: pm2 logs rps-frontend"
+        return 1
+    fi
+}
+
+stop_frontend_pm2() {
+    if pm2_running "rps-frontend"; then
+        pm2 delete rps-frontend 2>/dev/null
+        echo -e "   ${GREEN}✓${NC} rps-frontend stopped"
+    else
+        echo -e "   ${YELLOW}ℹ${NC}  rps-frontend tidak running"
+    fi
+}
+
+start_python_pm2() {
+    if pm2_running "rps-backend"; then
+        echo -e "   ${YELLOW}ℹ${NC}  rps-backend sudah running"
+        return 0
+    fi
+    echo -e "   ${CYAN}▶${NC} Starting rps-backend Python (port $BACKEND_PORT)..."
+
+    local python_exec="python3"
+    if [ -f "$PYTHON_DIR/venv/bin/python" ]; then
+        python_exec="$PYTHON_DIR/venv/bin/python"
+    fi
+
+    OPENAI_API_KEY="$OPENAI_API_KEY" pm2 start "$python_exec" \
+        --name "rps-backend" \
+        --interpreter none \
+        -- "$PYTHON_DIR/api_server.py" --port "$BACKEND_PORT"
+    sleep 4
+    if pm2_running "rps-backend"; then
+        echo -e "   ${GREEN}✓${NC} rps-backend (Python) started"
+    else
+        echo -e "   ${RED}✗${NC} rps-backend FAILED - check: pm2 logs rps-backend"
+        return 1
+    fi
+}
+
+start_java_pm2() {
+    if pm2_running "rps-backend"; then
+        echo -e "   ${YELLOW}ℹ${NC}  rps-backend sudah running"
+        return 0
+    fi
+    if [ ! -f "$JAVA_JAR" ]; then
+        echo -e "   ${RED}✗${NC} Java JAR tidak ditemukan: $JAVA_JAR"
+        echo -e "   Build dulu: cd $JAVA_DIR && mvn package -DskipTests"
+        return 1
+    fi
+    echo -e "   ${CYAN}▶${NC} Starting rps-backend Java (port $BACKEND_PORT)..."
+    OPENAI_API_KEY="$OPENAI_API_KEY" pm2 start java \
+        --name "rps-backend" \
+        --interpreter none \
+        -- -jar "$JAVA_JAR" --server.port="$BACKEND_PORT"
+    sleep 8
+    if pm2_running "rps-backend"; then
+        echo -e "   ${GREEN}✓${NC} rps-backend (Java) started"
+    else
+        echo -e "   ${RED}✗${NC} rps-backend FAILED - check: pm2 logs rps-backend"
+        return 1
+    fi
+}
+
+stop_backend_pm2() {
+    if pm2_running "rps-backend"; then
+        pm2 delete rps-backend 2>/dev/null
+        echo -e "   ${GREEN}✓${NC} rps-backend stopped"
+    else
+        echo -e "   ${YELLOW}ℹ${NC}  rps-backend tidak running"
+    fi
+}
+
+# ─────────────────────────────────────────────
+check_health() {
+    echo ""
+    echo -e "${YELLOW}🌐 Health Check:${NC}"
+    local ok=0
+
+    if check_health_url "http://localhost:$FRONTEND_PORT"; then
+        echo -e "   ${GREEN}✓${NC} Frontend   http://localhost:$FRONTEND_PORT"
+    else
+        echo -e "   ${RED}✗${NC} Frontend   http://localhost:$FRONTEND_PORT  (not responding)"
+        ok=1
+    fi
+
+    if check_health_url "http://localhost:$BACKEND_PORT/health"; then
+        local resp
+        resp=$(timeout 3 curl -s "http://localhost:$BACKEND_PORT/health" 2>/dev/null)
+        echo -e "   ${GREEN}✓${NC} Backend    http://localhost:$BACKEND_PORT/health → $resp"
+    else
+        echo -e "   ${RED}✗${NC} Backend    http://localhost:$BACKEND_PORT/health  (not responding)"
+        ok=1
+    fi
+
+    if check_health_url "https://otomasi.app"; then
+        echo -e "   ${GREEN}✓${NC} Public     https://otomasi.app"
+    else
+        echo -e "   ${RED}✗${NC} Public     https://otomasi.app  (not responding)"
+    fi
+
+    echo ""
+    return $ok
 }
 
 check_status() {
-    echo -e "${YELLOW}📊 Checking Server Status...${NC}"
+    echo -e "${YELLOW}📊 Status PM2:${NC}"
     echo ""
-    
-    # Check Nginx
-    if systemctl is-active --quiet nginx 2>/dev/null; then
-        echo -e "   ${GREEN}✓${NC} Nginx:          ${GREEN}RUNNING${NC}"
-    else
-        echo -e "   ${RED}✗${NC} Nginx:          ${RED}STOPPED${NC}"
-    fi
-    
-    # Check Next.js (PM2, systemd, or manual)
-    if pm2 id rps-web-frontend >/dev/null 2>&1 && pm2 list | grep -q "rps-web-frontend.*online"; then
-        NEXT_PID=$(pm2 pid rps-web-frontend 2>/dev/null)
-        echo -e "   ${GREEN}✓${NC} Next.js (PM2):     ${GREEN}RUNNING${NC} (PID: ${NEXT_PID})"
-    elif systemctl is-active --quiet rps-nextjs 2>/dev/null; then
-        NEXT_PID=$(systemctl show -p MainPID --value rps-nextjs 2>/dev/null)
-        echo -e "   ${GREEN}✓${NC} Next.js (systemd): ${GREEN}RUNNING${NC} (PID: ${NEXT_PID:-unknown})"
-    elif pgrep -f "next-server \(v" > /dev/null; then
-        NEXT_PID=$(pgrep -f "next-server \(v" | head -1)
-        echo -e "   ${GREEN}✓${NC} Next.js (manual):  ${GREEN}RUNNING${NC} (PID: ${NEXT_PID})"
-    else
-        echo -e "   ${RED}✗${NC} Next.js:          ${RED}STOPPED${NC}"
-    fi
-    
-    # Check Python API (PM2, systemd, or manual)
-    if pm2 id rps-web-backend >/dev/null 2>&1 && pm2 list | grep -q "rps-web-backend.*online"; then
-        PYTHON_PID=$(pm2 pid rps-web-backend 2>/dev/null)
-        echo -e "   ${GREEN}✓${NC} Python API (PM2):     ${GREEN}RUNNING${NC} (PID: ${PYTHON_PID})"
-    elif systemctl is-active --quiet rps-python 2>/dev/null; then
-        PYTHON_PID=$(systemctl show -p MainPID --value rps-python 2>/dev/null)
-        echo -e "   ${GREEN}✓${NC} Python API (systemd): ${GREEN}RUNNING${NC} (PID: ${PYTHON_PID:-unknown})"
-    elif pgrep -f "python.*api_server" > /dev/null; then
-        PYTHON_PID=$(pgrep -f "python.*api_server" | head -1)
-        echo -e "   ${GREEN}✓${NC} Python API (manual):  ${GREEN}RUNNING${NC} (PID: ${PYTHON_PID})"
-    else
-        echo -e "   ${RED}✗${NC} Python API:          ${RED}STOPPED${NC}"
-    fi
-    
-    # Check ports
+    pm2 list 2>/dev/null | grep -E "rps-|Name|─|App"
     echo ""
-    echo -e "${YELLOW}📡 Port Status:${NC}"
-    if ss -tlnp 2>/dev/null | grep -q ":80 "; then
-        echo -e "   ${GREEN}✓${NC} Port 80 (Nginx):    ${GREEN}LISTENING${NC}"
-    else
-        echo -e "   ${RED}✗${NC} Port 80 (Nginx):    ${RED}NOT LISTENING${NC}"
-    fi
-    
-    if ss -tlnp 2>/dev/null | grep -q ":3000 "; then
-        echo -e "   ${GREEN}✓${NC} Port 3000 (Next.js): ${GREEN}LISTENING${NC}"
-    else
-        echo -e "   ${RED}✗${NC} Port 3000 (Next.js): ${RED}NOT LISTENING${NC}"
-    fi
-    
-    if ss -tlnp 2>/dev/null | grep -q ":5000 "; then
-        echo -e "   ${GREEN}✓${NC} Port 5000 (Python):  ${GREEN}LISTENING${NC}"
-    else
-        echo -e "   ${RED}✗${NC} Port 5000 (Python):  ${RED}NOT LISTENING${NC}"
-    fi
-    
-    if ss -tlnp 2>/dev/null | grep -q ":443 "; then
-        echo -e "   ${GREEN}✓${NC} Port 443 (HTTPS):   ${GREEN}LISTENING${NC}"
-    else
-        echo -e "   ${YELLOW}!${NC} Port 443 (HTTPS):   ${YELLOW}NOT LISTENING${NC}"
-    fi
-    
-    # Check Dependencies
-    echo ""
-    echo -e "${YELLOW}🔧 Dependencies:${NC}"
-    if command -v node &> /dev/null; then
-        NODE_VER=$(node -v)
-        echo -e "   ${GREEN}✓${NC} Node.js: $NODE_VER"
-    else
-        echo -e "   ${RED}✗${NC} Node.js: Not installed"
-    fi
-    
-    if command -v python3 &> /dev/null; then
-        PYTHON_VER=$(python3 --version)
-        echo -e "   ${GREEN}✓${NC} $PYTHON_VER"
-    else
-        echo -e "   ${RED}✗${NC} Python3: Not installed"
-    fi
-    
-    # Check API health
-    echo ""
-    echo -e "${YELLOW}🌐 API Health:${NC}"
-    
-    WEB_STATUS=$(timeout 2 curl -s -o /dev/null -w "%{http_code}" http://localhost:3000 2>/dev/null)
-    if [ "$WEB_STATUS" = "200" ]; then
-        echo -e "   ${GREEN}✓${NC} Next.js Website: OK (HTTP $WEB_STATUS)"
-    else
-        echo -e "   ${RED}✗${NC} Next.js Website: Error (HTTP $WEB_STATUS)"
-    fi
-    
-    API_HEALTH=$(timeout 2 curl -s http://localhost:5000/health 2>/dev/null)
-    if [ -n "$API_HEALTH" ]; then
-        echo -e "   ${GREEN}✓${NC} Python API: $API_HEALTH"
-    else
-        echo -e "   ${RED}✗${NC} Python API: Not responding"
-    fi
-    
-    # Check SSL
-    echo ""
-    echo -e "${YELLOW}🔒 SSL Status:${NC}"
-    if [ -f "/etc/letsencrypt/live/otomasi.app/fullchain.pem" ]; then
-        EXPIRY=$(openssl x509 -enddate -noout -in /etc/letsencrypt/live/otomasi.app/fullchain.pem 2>/dev/null | cut -d= -f2)
-        echo -e "   ${GREEN}✓${NC} SSL Certificate: Valid until $EXPIRY"
-    else
-        echo -e "   ${YELLOW}!${NC} SSL Certificate: Not found"
-    fi
-    
-    echo ""
-    echo -e "${CYAN}🌍 Access URLs:${NC}"
+
+    echo -e "${YELLOW}📡 Ports:${NC}"
+    for port in $FRONTEND_PORT $BACKEND_PORT 80 443; do
+        if ss -tlnp 2>/dev/null | grep -q ":$port "; then
+            echo -e "   ${GREEN}✓${NC} :$port  LISTENING"
+        else
+            echo -e "   ${RED}✗${NC} :$port  NOT LISTENING"
+        fi
+    done
+
+    check_health
+
+    echo -e "${CYAN}🌍 URL Akses:${NC}"
+    echo -e "   http://localhost:$FRONTEND_PORT"
     echo -e "   https://otomasi.app"
-    echo -e "   https://43.134.63.240/"
     echo ""
 }
 
-start_services() {
-    echo -e "${YELLOW}🚀 Starting Services...${NC}"
-    
-    # Start Next.js with systemd
-    sudo systemctl start rps-nextjs
-    sleep 2
-    if systemctl is-active --quiet rps-nextjs; then
-        echo -e "   ${GREEN}✓${NC} Next.js started (systemctl)"
-    else
-        echo -e "   ${RED}✗${NC} Next.js failed to start"
-        echo -e "   Check logs: sudo journalctl -u rps-nextjs -n 50"
-    fi
-    
-    # Start Python API with systemd
-    sudo systemctl start rps-python
-    sleep 2
-    if systemctl is-active --quiet rps-python; then
-        echo -e "   ${GREEN}✓${NC} Python API started (systemctl)"
-    else
-        echo -e "   ${RED}✗${NC} Python API failed to start"
-        echo -e "   Check logs: sudo journalctl -u rps-python -n 50"
-    fi
-    
-    # Start Nginx
-    if ! systemctl is-active --quiet nginx; then
-        sudo systemctl start nginx
-        echo -e "   ${GREEN}✓${NC} Nginx started"
-    else
-        echo -e "   ${YELLOW}ℹ${NC}  Nginx already running"
-    fi
-    
+# ─────────────────────────────────────────────
+do_start_python() {
+    echo -e "${YELLOW}🚀 Opsi 1: Python Backend + Frontend${NC}"
     echo ""
-    echo -e "${GREEN}✅ All services started!${NC}"
+    # Stop java backend if running
+    pm2_running "rps-backend" && pm2 delete rps-backend 2>/dev/null
+    start_python_pm2 && start_frontend_pm2
+    pm2 save --force 2>/dev/null
+    check_status
 }
 
-stop_services() {
-    echo -e "${YELLOW}🛑 Stopping Services...${NC}"
-    
-    # Stop Next.js (PM2, systemd, or manual)
-    if pm2 id rps-web-frontend >/dev/null 2>&1 && pm2 list | grep -q "rps-web-frontend.*online"; then
-        pm2 stop rps-web-frontend >/dev/null 2>&1
-        echo -e "   ${GREEN}✓${NC} Next.js stopped (PM2)"
-    elif systemctl is-active --quiet rps-nextjs 2>/dev/null; then
-        sudo systemctl stop rps-nextjs
-        echo -e "   ${GREEN}✓${NC} Next.js stopped (systemctl)"
-    elif pgrep -f "next-server \(v" > /dev/null; then
-        pkill -9 -f "next-server \(v"
-        echo -e "   ${GREEN}✓${NC} Next.js stopped (manual processes killed)"
-    else
-        echo -e "   ${YELLOW}ℹ${NC}  Next.js already stopped"
-    fi
-    
-    # Stop Python API (PM2, systemd, or manual)
-    if pm2 id rps-web-backend >/dev/null 2>&1 && pm2 list | grep -q "rps-web-backend.*online"; then
-        pm2 stop rps-web-backend >/dev/null 2>&1
-        echo -e "   ${GREEN}✓${NC} Python API stopped (PM2)"
-    elif systemctl is-active --quiet rps-python 2>/dev/null; then
-        sudo systemctl stop rps-python
-        echo -e "   ${GREEN}✓${NC} Python API stopped (systemctl)"
-    elif pgrep -f "python.*api_server" > /dev/null; then
-        pkill -9 -f "python.*api_server"
-        echo -e "   ${GREEN}✓${NC} Python API stopped (manual processes killed)"
-    else
-        echo -e "   ${YELLOW}ℹ${NC}  Python API already stopped"
-    fi
-    
-    echo -e "   ${YELLOW}ℹ${NC}  Nginx left running (use sudo systemctl stop nginx to stop)"
+do_start_java() {
+    echo -e "${YELLOW}🚀 Opsi 2: Java Backend + Frontend${NC}"
+    echo ""
+    # Stop python backend if running
+    pm2_running "rps-backend" && pm2 delete rps-backend 2>/dev/null
+    start_java_pm2 && start_frontend_pm2
+    pm2 save --force 2>/dev/null
+    check_status
+}
+
+do_kill_all() {
+    echo -e "${YELLOW}⚡ Opsi 3: Kill All (Force)${NC}"
+    echo ""
+    pm2 delete rps-frontend rps-backend 2>/dev/null
+    # Kill by port as fallback
+    for port in $FRONTEND_PORT $BACKEND_PORT; do
+        local pids
+        pids=$(fuser "$port/tcp" 2>/dev/null)
+        [ -n "$pids" ] && kill -9 $pids 2>/dev/null && echo -e "   ${GREEN}✓${NC} Port $port: killed"
+    done
+    pm2 save --force 2>/dev/null
+    echo -e "${GREEN}✅ Semua proses RPS dihentikan.${NC}"
     echo ""
 }
 
-restart_services() {
-    echo -e "${YELLOW}🔄 Restarting Services...${NC}"
-    
-    # Restart Next.js
-    if pm2 id rps-web-frontend >/dev/null 2>&1; then
-        # PM2 process exists
-        pm2 restart rps-web-frontend >/dev/null 2>&1
-        sleep 2
-        if pm2 list | grep -q "rps-web-frontend.*online"; then
-            echo -e "   ${GREEN}✓${NC} Next.js restarted (PM2)"
-        else
-            echo -e "   ${RED}✗${NC} Next.js failed to restart"
-        fi
-    elif systemctl list-unit-files rps-nextjs.service &>/dev/null; then
-        # Systemd service exists
-        if systemctl is-active --quiet rps-nextjs 2>/dev/null; then
-            sudo systemctl restart rps-nextjs
-        else
-            # Service exists but not running, kill manual and start systemd
-            pkill -9 -f "next.*server" 2>/dev/null
-            sudo systemctl start rps-nextjs
-        fi
-        sleep 2
-        if systemctl is-active --quiet rps-nextjs; then
-            echo -e "   ${GREEN}✓${NC} Next.js restarted (systemctl)"
-        else
-            echo -e "   ${RED}✗${NC} Next.js failed to restart"
-        fi
-    else
-        # No systemd, restart manual process
-        pkill -9 -f "next-server \(v" 2>/dev/null
-        cd "$APP_DIR" && nohup npm start > /tmp/nextjs.log 2>&1 &
-        sleep 3
-        if pgrep -f "next.*server" > /dev/null; then
-            echo -e "   ${GREEN}✓${NC} Next.js restarted (manual)"
-        else
-            echo -e "   ${RED}✗${NC} Next.js failed to restart"
-        fi
-    fi
-    
-    # Restart Python API
-    if pm2 id rps-web-backend >/dev/null 2>&1; then
-        # PM2 process exists
-        pm2 restart rps-web-backend >/dev/null 2>&1
-        sleep 2
-        if pm2 list | grep -q "rps-web-backend.*online"; then
-            echo -e "   ${GREEN}✓${NC} Python API restarted (PM2)"
-        else
-            echo -e "   ${RED}✗${NC} Python API failed to restart"
-        fi
-    elif systemctl list-unit-files rps-python.service &>/dev/null; then
-        # Systemd service exists
-        if systemctl is-active --quiet rps-python 2>/dev/null; then
-            sudo systemctl restart rps-python
-        else
-            # Service exists but not running, kill manual and start systemd
-            pkill -9 -f "python.*api_server" 2>/dev/null
-            sudo systemctl start rps-python
-        fi
-        sleep 2
-        if systemctl is-active --quiet rps-python; then
-            echo -e "   ${GREEN}✓${NC} Python API restarted (systemctl)"
-        else
-            echo -e "   ${RED}✗${NC} Python API failed to restart"
-        fi
-    else
-        # No systemd, restart manual process
-        pkill -9 -f "python.*api_server" 2>/dev/null
-        cd "$PYTHON_DIR" && source venv/bin/activate && nohup python api_server.py --port 5000 > /tmp/python_api.log 2>&1 &
-        sleep 3
-        if pgrep -f "python.*api_server" > /dev/null; then
-            echo -e "   ${GREEN}✓${NC} Python API restarted (manual)"
-        else
-            echo -e "   ${RED}✗${NC} Python API failed to restart"
-        fi
-    fi
-    
-    read -p "Restart Nginx too? [y/N]: " restart_nginx
-    if [[ "$restart_nginx" =~ ^[Yy]$ ]]; then
-        sudo systemctl restart nginx
-        echo -e "   ${GREEN}✓${NC} Nginx restarted"
-    fi
-    
+do_stop() {
+    echo -e "${YELLOW}🛑 Opsi 4: Stop Graceful${NC}"
     echo ""
-    echo -e "${GREEN}✅ Services restarted!${NC}"
-}
-
-show_logs() {
-    echo -e "${YELLOW}📋 Recent Logs:${NC}"
-    echo ""
-    echo -e "${BLUE}=== Next.js (systemd) ===${NC}"
-    sudo journalctl -u rps-nextjs -n 20 --no-pager 2>/dev/null || echo "No access to Next.js logs"
-    echo ""
-    echo -e "${BLUE}=== Python API (systemd) ===${NC}"
-    sudo journalctl -u rps-python -n 20 --no-pager 2>/dev/null || echo "No access to Python API logs"
-    echo ""
-    echo -e "${BLUE}=== Nginx Error Log ===${NC}"
-    sudo tail -10 /var/log/nginx/error.log 2>/dev/null || echo "No access to nginx logs"
+    stop_backend_pm2
+    stop_frontend_pm2
+    pm2 save --force 2>/dev/null
+    echo -e "${GREEN}✅ Selesai.${NC}"
     echo ""
 }
 
-rebuild() {
-    echo -e "${YELLOW}🔨 Rebuilding Application...${NC}"
-
-    cd "$APP_DIR"
-    echo -e "   Building Next.js..."
-    npm run build
-    if [ $? -eq 0 ]; then
-        echo -e "   ${GREEN}✓${NC} Build successful"
-    else
-        echo -e "   ${RED}✗${NC} Build failed"
-        return 1
-    fi
-
-    sudo systemctl restart rps-nextjs
-    if systemctl is-active --quiet rps-nextjs; then
-        echo -e "   ${GREEN}✓${NC} Next.js restarted (systemctl)"
-    else
-        echo -e "   ${RED}✗${NC} Next.js failed to restart"
-    fi
+# ─────────────────────────────────────────────
+show_menu() {
+    print_header
+    echo -e "${CYAN}Pilih opsi:${NC}"
     echo ""
+    echo -e "  ${GREEN}1${NC}  Start Backend Python + Frontend  [:$FRONTEND_PORT / :$BACKEND_PORT]"
+    echo -e "  ${GREEN}2${NC}  Start Backend Java   + Frontend  [:$FRONTEND_PORT / :$BACKEND_PORT]"
+    echo -e "  ${RED}3${NC}  Stop Kill All (Force)"
+    echo -e "  ${YELLOW}4${NC}  Stop Graceful"
+    echo -e "  ${BLUE}5${NC}  Status & Health Check"
+    echo -e "  ${BLUE}0${NC}  Keluar"
+    echo ""
+    read -rp "Pilihan [0-5]: " choice
+    echo ""
+    case "$choice" in
+        1) do_start_python ;;
+        2) do_start_java ;;
+        3) do_kill_all ;;
+        4) do_stop ;;
+        5) check_status ;;
+        0) exit 0 ;;
+        *) echo -e "${RED}Pilihan tidak valid.${NC}" ;;
+    esac
 }
 
-renew_ssl() {
-    echo -e "${YELLOW}🔒 Renewing SSL Certificate...${NC}"
-    sudo certbot renew --nginx
-    sudo systemctl reload nginx
-    echo -e "   ${GREEN}✓${NC} SSL renewal complete"
-    echo ""
-}
-
-show_help() {
-    echo "Usage: $0 [command]"
-    echo ""
-    echo "Commands:"
-    echo "  start     - Start all services"
-    echo "  stop      - Stop all services"
-    echo "  restart   - Restart all services"
-    echo "  status    - Check status of all services"
-    echo "  logs      - Show recent logs"
-    echo "  rebuild   - Rebuild and restart"
-    echo "  renew-ssl - Renew SSL certificate"
-    echo "  help      - Show this help message"
-    echo ""
-}
-
-# Main
-print_header
-
-case "$1" in
-    start) start_services ;;
-    stop) stop_services ;;
-    restart) restart_services ;;
-    status) check_status ;;
-    logs) show_logs ;;
-    rebuild) rebuild ;;
-    renew-ssl) renew_ssl ;;
-    help|--help|-h) show_help ;;
+# ─────────────────────────────────────────────
+case "${1:-}" in
+    1|python)  print_header; do_start_python ;;
+    2|java)    print_header; do_start_java ;;
+    3|killall) print_header; do_kill_all ;;
+    4|stop)    print_header; do_stop ;;
+    5|status)  print_header; check_status ;;
+    "")        show_menu ;;
     *)
-        if [ -z "$1" ]; then
-            echo "Select an option:"
-            echo "  1) Start services"
-            echo "  2) Stop services"
-            echo "  3) Restart services"
-            echo "  4) Check status"
-            echo "  5) Show logs"
-            echo "  6) Rebuild"
-            echo "  7) Renew SSL"
-            echo "  8) Exit"
-            echo ""
-            read -p "Enter choice [1-8]: " choice
-            case $choice in
-                1) start_services ;;
-                2) stop_services ;;
-                3) restart_services ;;
-                4) check_status ;;
-                5) show_logs ;;
-                6) rebuild ;;
-                7) renew_ssl ;;
-                8) exit 0 ;;
-                *) echo "Invalid choice" ;;
-            esac
-        else
-            echo "Unknown command: $1"
-            show_help
-        fi
+        echo "Usage: $0 [1|2|3|4|5]"
+        echo "  1 / python  - Start Python backend + Frontend (:$FRONTEND_PORT/:$BACKEND_PORT)"
+        echo "  2 / java    - Start Java backend   + Frontend (:$FRONTEND_PORT/:$BACKEND_PORT)"
+        echo "  3 / killall - Kill all (Force)"
+        echo "  4 / stop    - Stop graceful"
+        echo "  5 / status  - Status & health check"
         ;;
 esac
