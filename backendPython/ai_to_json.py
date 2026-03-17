@@ -159,7 +159,7 @@ Buatkan RPS dalam format JSON dengan struktur PERSIS seperti berikut. PENTING: H
 . N1(Partisipatif 20%),N2(Project/ Problem/ Case Based Learning 30%),N3(Kuis 10%),N4(UTS 20%),N5(UAS 20%)
 . Total N1 dari semua CPMK harus 20%, N2-N5 juga sama sesuai proporsi di atas
 . Total bobot penilaian = 100% dari N_cpmk semua CPMK
-. Sesuaikan jumlah CPL,CPMK,IK sesuai konteks tambahan
+. Sesuaikan jumlah CPL (3-10) dan CPMK (3-10) sesuai kompleksitas mata kuliah dan konteks tambahan
 . Format kode CPL (CPL 3, CPL 8), CPMK (CPMK 3-1, CPMK 8-1), IK (IK 3-1, IK 8-1)
 . Mapping: CPMK memetakan ke CPL (CPMK 3-1 → CPL 3), IK memetakan ke CPMK (IK 3-1 → CPMK 3-1)
 . Setiap minggu (selain UTS/UAS) harus ada semua field lengkap
@@ -205,6 +205,60 @@ Output JSON saja, tanpa markdown formatting atau penjelasan."""
             context_section=context_section
         )
     
+    def _repair_truncated_json(self, text: str) -> str:
+        """
+        Repair truncated/incomplete JSON by:
+        1. Stripping any incomplete string at the end
+        2. Removing trailing commas
+        3. Closing unclosed brackets/braces in reverse order
+        """
+        import re
+        # Step 1: Scan char-by-char to build a bracket stack and detect truncation
+        in_string = False
+        escape_next = False
+        stack = []          # stack of '{' or '['
+        last_close_pos = 0  # position right after the last properly closed bracket
+
+        for i, char in enumerate(text):
+            if escape_next:
+                escape_next = False
+                continue
+            if char == '\\' and in_string:
+                escape_next = True
+                continue
+            if char == '"':
+                in_string = not in_string
+                if not in_string:
+                    last_close_pos = i + 1
+                continue
+            if in_string:
+                continue
+            if char in '{[':
+                stack.append(char)
+            elif char in '}]':
+                if stack:
+                    stack.pop()
+                    last_close_pos = i + 1
+
+        # If we're still inside a string (truncated mid-string), cut back to safe point
+        if in_string:
+            text = text[:last_close_pos]
+
+        # Step 2: Strip trailing garbage after the last meaningful content
+        text = text.rstrip()
+
+        # Step 3: Remove trailing comma (common before truncation)
+        text = re.sub(r',\s*$', '', text)
+
+        # Step 4: Close any unclosed brackets/braces
+        opener_to_closer = {'{': '}', '[': ']'}
+        for opener in reversed(stack):
+            # Before closing an object/array, strip trailing comma again
+            text = re.sub(r',\s*$', '', text.rstrip())
+            text += '\n' + opener_to_closer[opener]
+
+        return text
+
     def parse_json_response(self, response: str) -> dict:
         """Parse JSON from OpenAI response, handle markdown code blocks and common JSON errors."""
         import re
@@ -228,68 +282,30 @@ Output JSON saja, tanpa markdown formatting atau penjelasan."""
             
             original_text = text
             
-            # Fix 1: Remove control characters and normalize whitespace
+            # Fix 1: Remove control characters
             try:
-                text = ''.join(char if ord(char) >= 32 or char in '\n\r\t' else '' for char in text)
-                result = json.loads(text)
+                clean = ''.join(char if ord(char) >= 32 or char in '\n\r\t' else '' for char in text)
+                result = json.loads(clean)
                 print(f"✅ Fixed JSON by removing control characters")
                 return result
             except json.JSONDecodeError:
                 pass
-            
-            # Fix 2: Fix trailing commas before ] or }
+
+            # Fix 2: Remove control chars + trailing commas
             try:
-                text = re.sub(r',(\s*[}\]])', r'\1', text)
-                result = json.loads(text)
-                print(f"✅ Fixed JSON with trailing comma removal")
+                clean = ''.join(char if ord(char) >= 32 or char in '\n\r\t' else '' for char in text)
+                clean = re.sub(r',(\s*[}\]])', r'\1', clean)
+                result = json.loads(clean)
+                print(f"✅ Fixed JSON with control char removal + trailing comma removal")
                 return result
             except json.JSONDecodeError as e2:
                 print(f"⚠️ Trailing comma fix failed: {e2}")
-            
-            # Fix 3: Fix single quotes to double quotes (more comprehensive)
+
+            # Fix 3: Find first complete JSON object/array
             try:
-                text = original_text
-                # Replace single quotes with double quotes, being careful about escapes
-                # This is a simplified approach that works for most cases
-                result_chars = []
-                in_single_quote = False
-                in_double_quote = False
-                escape_next = False
-                
-                for char in text:
-                    if escape_next:
-                        result_chars.append(char)
-                        escape_next = False
-                        continue
-                    
-                    if char == '\\':
-                        result_chars.append(char)
-                        escape_next = True
-                        continue
-                    
-                    if char == '"' and not in_single_quote:
-                        in_double_quote = not in_double_quote
-                        result_chars.append(char)
-                    elif char == "'" and not in_double_quote:
-                        in_single_quote = not in_single_quote
-                        result_chars.append('"')  # Replace single quote with double quote
-                    else:
-                        result_chars.append(char)
-                
-                text = ''.join(result_chars)
-                result = json.loads(text)
-                print(f"✅ Fixed JSON by converting single quotes to double quotes")
-                return result
-            except json.JSONDecodeError:
-                pass
-            
-            # Fix 4: Try to extract JSON object/array manually
-            try:
-                text = original_text
-                # Find first { or [
                 start_idx = -1
                 start_char = None
-                for i, char in enumerate(text):
+                for i, char in enumerate(original_text):
                     if char in '{[':
                         start_idx = i
                         start_char = char
@@ -298,28 +314,23 @@ Output JSON saja, tanpa markdown formatting atau penjelasan."""
                 if start_idx == -1:
                     raise ValueError("No JSON object or array found in response")
                 
-                # Find matching closing bracket
                 end_char = '}' if start_char == '{' else ']'
                 bracket_count = 0
                 end_idx = -1
                 in_string = False
                 escape_next = False
                 
-                for i in range(start_idx, len(text)):
-                    char = text[i]
-                    
+                for i in range(start_idx, len(original_text)):
+                    char = original_text[i]
                     if escape_next:
                         escape_next = False
                         continue
-                    
                     if char == '\\':
                         escape_next = True
                         continue
-                    
                     if char == '"':
                         in_string = not in_string
                         continue
-                    
                     if not in_string:
                         if char == start_char:
                             bracket_count += 1
@@ -329,30 +340,46 @@ Output JSON saja, tanpa markdown formatting atau penjelasan."""
                                 end_idx = i
                                 break
                 
-                if end_idx == -1:
-                    raise ValueError("Could not find matching closing bracket")
+                if end_idx != -1:
+                    json_str = original_text[start_idx:end_idx+1]
+                    json_str = re.sub(r',(\s*[}\]])', r'\1', json_str)
+                    result = json.loads(json_str)
+                    print(f"✅ Fixed JSON by extracting valid JSON substring")
+                    return result
+            except (ValueError, json.JSONDecodeError) as e3:
+                print(f"⚠️ JSON extraction failed: {e3}")
+
+            # Fix 4: Repair truncated JSON (AI cut off mid-response)
+            try:
+                # Start from the first { or [
+                start_idx = -1
+                for i, char in enumerate(original_text):
+                    if char in '{[':
+                        start_idx = i
+                        break
+                if start_idx == -1:
+                    raise ValueError("No JSON start found")
                 
-                json_str = text[start_idx:end_idx+1]
-                result = json.loads(json_str)
-                print(f"✅ Fixed JSON by extracting valid JSON substring")
+                truncated = original_text[start_idx:]
+                # Remove control characters first
+                truncated = ''.join(char if ord(char) >= 32 or char in '\n\r\t' else '' for char in truncated)
+                repaired = self._repair_truncated_json(truncated)
+                result = json.loads(repaired)
+                print(f"✅ Fixed truncated JSON by repairing unclosed brackets")
                 return result
-                
-            except Exception as e3:
-                print(f"❌ Could not extract valid JSON: {e3}")
-                # Show the problematic area around line 134 if applicable
-                lines = original_text.split('\n')
-                if len(lines) > 130:
-                    print(f"   Context around line 134:")
-                    for i in range(max(0, 130-3), min(len(lines), 134+3)):
-                        print(f"   Line {i+1}: {lines[i][:100]}")
-                else:
-                    print(f"   Response preview (first 1000 chars):")
-                    print(f"   {original_text[:1000]}")
-                raise json.JSONDecodeError(
-                    f"Failed to parse JSON after multiple fix attempts: {e.msg}",
-                    original_text[:100],
-                    0
-                )
+            except Exception as e4:
+                print(f"⚠️ Truncation repair failed: {e4}")
+
+            # All fixes failed
+            lines = original_text.split('\n')
+            print(f"❌ All JSON repair attempts failed. Response length: {len(original_text)} chars")
+            print(f"   Response preview (first 500 chars):")
+            print(f"   {original_text[:500]}")
+            raise json.JSONDecodeError(
+                f"Failed to parse JSON after multiple fix attempts: {e.msg}",
+                original_text[:100],
+                0
+            )
     
     def send_message(self, prompt: str, max_retries: int = 3) -> Optional[str]:
         """
@@ -381,15 +408,18 @@ Output JSON saja, tanpa markdown formatting atau penjelasan."""
                 response = self.client.chat.completions.create(
                     model=self.model,
                     messages=[
-                        {"role": "system", "content": "You are an expert in Indonesian higher education curriculum design."},
+                        {"role": "system", "content": "You are an expert in Indonesian higher education curriculum design. Always output complete, valid JSON without truncation."},
                         {"role": "user", "content": prompt}
                     ]
                 )
                 
                 if response.choices and len(response.choices) > 0:
                     content = response.choices[0].message.content
+                    finish_reason = response.choices[0].finish_reason
                     if content:
-                        print(f"✅ Received response from OpenAI ({len(content)} chars)")
+                        print(f"✅ Received response from OpenAI ({len(content)} chars, finish_reason={finish_reason})")
+                        if finish_reason == 'length':
+                            print(f"⚠️ Response was truncated by token limit! Will attempt JSON repair.")
                         return content
                 
                 print("⚠️ Empty response from OpenAI")
@@ -484,7 +514,7 @@ Format output JSON murni tanpa markdown:
     {{"kode": "CPL10", "pernyataan": "Mampu bekerja sama dalam tim..."}}
 ]
 
-Buatkan 3-5 CPL yang spesifik dan relevan. Output JSON saja."""
+Buatkan 3-10 CPL yang spesifik dan relevan sesuai kompleksitas dan konteks mata kuliah. Output JSON saja."""
         
         response = self.send_message(prompt)
         if not response:
@@ -523,10 +553,10 @@ Buatkan 3-5 CPL yang spesifik dan relevan. Output JSON saja."""
 
 Buatkan daftar CPMK (Capaian Pembelajaran Mata Kuliah) yang spesifik untuk mata kuliah ini. CPMK adalah kompetensi yang diharapkan dikuasai mahasiswa setelah menyelesaikan mata kuliah ini.
 
-PENTING: Jumlah CPMK harus FLEKSIBEL antara 1-4 items berdasarkan kompleksitas mata kuliah dan CPL yang ada:
-- Mata kuliah sederhana: 1-2 CPMK
-- Mata kuliah standar: 2-3 CPMK  
-- Mata kuliah kompleks: 3-4 CPMK
+PENTING: Jumlah CPMK harus FLEKSIBEL antara 1-10 items berdasarkan kompleksitas mata kuliah dan CPL yang ada:
+- Mata kuliah sederhana: 2-3 CPMK
+- Mata kuliah standar: 3-5 CPMK  
+- Mata kuliah kompleks: 5-10 CPMK
 
 Format output JSON murni tanpa markdown:
 [

@@ -117,6 +117,8 @@ start_python_pm2() {
     local python_exec="python3"
     if [ -f "$PYTHON_DIR/venv/bin/python" ]; then
         python_exec="$PYTHON_DIR/venv/bin/python"
+    elif [ -f "/home/ubuntu/.venv/bin/python3" ]; then
+        python_exec="/home/ubuntu/.venv/bin/python3"
     fi
 
     OPENAI_API_KEY="$OPENAI_API_KEY" pm2 start "$python_exec" \

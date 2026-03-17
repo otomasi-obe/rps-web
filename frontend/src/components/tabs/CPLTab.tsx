@@ -135,7 +135,7 @@ export default function CPLTab({ data, onUpdate, onGenerate, isGenerating, conte
           <li>CPL harus selaras dengan profil lulusan program studi</li>
           <li>Gunakan kata kerja operasional yang terukur (mampu, menguasai, memiliki)</li>
           <li>Cakup aspek pengetahuan, keterampilan, dan sikap</li>
-          <li>Biasanya 3-5 CPL yang dibebankan pada satu mata kuliah</li>
+          <li>Biasanya 3-10 CPL yang dibebankan pada satu mata kuliah</li>
         </ul>
       </div>
     </div>

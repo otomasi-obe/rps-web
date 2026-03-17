@@ -29,6 +29,7 @@ from urllib.parse import parse_qs, urlparse
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     """Handle requests in a separate thread."""
     daemon_threads = True
+    allow_reuse_address = True  # Allow port reuse immediately after restart
 
 # Add current directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))

@@ -68,8 +68,8 @@ def prune_unused_cpmk_columns(table, total_cpmk_json):
             if c_idx_num and c_idx_num > total_cpmk_json:
                 cols_to_delete.add(c_idx)
             
-            # Cek juga placeholder
-            for i in range(total_cpmk_json + 1, 10):
+            # Cek juga placeholder (support up to 12 CPMK max)
+            for i in range(total_cpmk_json + 1, 13):
                 if f"cpmk{i}" in cell.text or f"cpmk {i}" in cell.text.lower():
                     cols_to_delete.add(c_idx)
 
@@ -83,31 +83,15 @@ def prune_unused_cpmk_columns(table, total_cpmk_json):
 
 
 def duplicate_table_row(table, row_idx):
-    """Duplikasi baris tabel dengan mempertahankan formatting."""
+    """Duplikasi baris tabel dengan mempertahankan formatting dan merged cells (gridSpan)."""
+    import copy
     row = table.rows[row_idx]
-    new_row = table.add_row()
-    row._tr.addnext(new_row._tr)
-    
-    for i, cell in enumerate(row.cells):
-        new_cell = new_row.cells[i]
-        # Clear default
-        for p in new_cell.paragraphs:
-            p._element.getparent().remove(p._element)
-        # Copy content
-        for p in cell.paragraphs:
-            new_p = new_cell.add_paragraph()
-            new_p.style = p.style
-            new_p.alignment = p.alignment
-            for r in p.runs:
-                new_r = new_p.add_run(r.text)
-                new_r.bold = r.bold
-                new_r.italic = r.italic
-                new_r.underline = r.underline
-                new_r.font.name = r.font.name
-                new_r.font.size = r.font.size
-                if r.font.color and r.font.color.rgb:
-                    new_r.font.color.rgb = r.font.color.rgb
-    return new_row
+    # Deep-copy the raw XML element so gridSpan / vMerge attributes are preserved
+    new_tr = copy.deepcopy(row._tr)
+    row._tr.addnext(new_tr)
+    # Return the newly inserted Row object
+    from docx.table import _Row
+    return _Row(new_tr, table)
 
 
 def remove_row_xml(table, row_obj):

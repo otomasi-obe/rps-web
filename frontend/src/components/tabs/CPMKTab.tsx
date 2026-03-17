@@ -190,7 +190,7 @@ export default function CPMKTab({ data, onUpdate, onGenerate, isGenerating, cont
           <li>CPMK harus spesifik, terukur, dan dapat dicapai dalam satu semester</li>
           <li>Gunakan kata kerja operasional Taksonomi Bloom (menganalisis, menerapkan, mengevaluasi, dll.)</li>
           <li>Setiap CPMK harus terhubung dengan minimal satu CPL</li>
-          <li>Biasanya 3-6 CPMK per mata kuliah</li>
+          <li>Biasanya 3-10 CPMK per mata kuliah</li>
         </ul>
       </div>
     </div>
