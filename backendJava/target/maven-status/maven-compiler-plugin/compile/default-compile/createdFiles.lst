@@ -1,6 +1,0 @@
-com/example/openaitest/LoggerUtil.class
-com/example/openaitest/JsonToDocxService.class
-com/example/openaitest/AiToJsonService.class
-com/example/openaitest/RpsController.class
-com/example/openaitest/RpsPromptBuilder.class
-com/example/openaitest/OpenAiTestApplication.class
