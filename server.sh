@@ -2,14 +2,13 @@
 #
 # RPS-WEB Server Manager (PM2)
 # ─────────────────────────────────────────────
-# 1 - Start Python Backend + Frontend
-# 2 - Start Java Backend   + Frontend
-# 3 - Stop Kill All
-# 4 - Stop Graceful
-# 5 - Status & Health Check
+# 1 - Start NPM Backend + Frontend
+# 2 - Stop Kill All
+# 3 - Stop Graceful
+# 4 - Status & Health Check
 #
 # Frontend  → port 2000  (PM2: rps-frontend)
-# Backend   → port 2001  (PM2: rps-python | rps-java)
+# Backend   → port 2001  (PM2: rps-backend)  [NPM/Node.js]
 #
 
 # Colors
@@ -22,9 +21,7 @@ NC='\033[0m'
 
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FRONTEND_DIR="$APP_DIR/frontend"
-PYTHON_DIR="$APP_DIR/backendPython"
-JAVA_DIR="$APP_DIR/backendJava"
-JAVA_JAR="$JAVA_DIR/target/java-1.jar"
+NPM_DIR="$APP_DIR/backendNpm"
 
 FRONTEND_PORT=2000
 BACKEND_PORT=2001
@@ -44,8 +41,8 @@ NODE_BIN="$(dirname $(command -v node 2>/dev/null))"
 print_header() {
     echo ""
     echo -e "${BLUE}╔══════════════════════════════════════════════╗${NC}"
-    echo -e "${BLUE}║          RPS-WEB Server Manager (PM2)        ║${NC}"
-    echo -e "${BLUE}║   Frontend :2000  |  Backend :2001           ║${NC}"
+    echo -e "${BLUE}║     RPS-WEB Server Manager (NPM + PM2)      ║${NC}"
+    echo -e "${BLUE}║   Frontend :2000  |  Backend NPM :2001      ║${NC}"
     echo -e "${BLUE}╚══════════════════════════════════════════════╝${NC}"
     echo ""
 }
@@ -107,51 +104,32 @@ stop_frontend_pm2() {
     fi
 }
 
-start_python_pm2() {
+start_npm_pm2() {
     if pm2_running "rps-backend"; then
         echo -e "   ${YELLOW}ℹ${NC}  rps-backend sudah running"
         return 0
     fi
-    echo -e "   ${CYAN}▶${NC} Starting rps-backend Python (port $BACKEND_PORT)..."
+    echo -e "   ${CYAN}▶${NC} Starting rps-backend NPM (port $BACKEND_PORT)..."
 
-    local python_exec="python3"
-    if [ -f "$PYTHON_DIR/venv/bin/python" ]; then
-        python_exec="$PYTHON_DIR/venv/bin/python"
-    elif [ -f "/home/ubuntu/.venv/bin/python3" ]; then
-        python_exec="/home/ubuntu/.venv/bin/python3"
+    if [ ! -d "$NPM_DIR/node_modules" ]; then
+        echo -e "   ${YELLOW}📦 Installing npm dependencies...${NC}"
+        cd "$NPM_DIR" && npm install --silent
     fi
 
-    OPENAI_API_KEY="$OPENAI_API_KEY" pm2 start "$python_exec" \
+    if [ ! -d "$NPM_DIR/dist" ]; then
+        echo -e "   ${YELLOW}🔨 Building TypeScript...${NC}"
+        cd "$NPM_DIR" && npm run build
+    fi
+
+    OPENAI_API_KEY="$OPENAI_API_KEY" pm2 start npm \
         --name "rps-backend" \
+        --cwd "$NPM_DIR" \
         --interpreter none \
-        -- "$PYTHON_DIR/api_server.py" --port "$BACKEND_PORT"
-    sleep 4
+        -- start
+    
+    sleep 3
     if pm2_running "rps-backend"; then
-        echo -e "   ${GREEN}✓${NC} rps-backend (Python) started"
-    else
-        echo -e "   ${RED}✗${NC} rps-backend FAILED - check: pm2 logs rps-backend"
-        return 1
-    fi
-}
-
-start_java_pm2() {
-    if pm2_running "rps-backend"; then
-        echo -e "   ${YELLOW}ℹ${NC}  rps-backend sudah running"
-        return 0
-    fi
-    if [ ! -f "$JAVA_JAR" ]; then
-        echo -e "   ${RED}✗${NC} Java JAR tidak ditemukan: $JAVA_JAR"
-        echo -e "   Build dulu: cd $JAVA_DIR && mvn package -DskipTests"
-        return 1
-    fi
-    echo -e "   ${CYAN}▶${NC} Starting rps-backend Java (port $BACKEND_PORT)..."
-    OPENAI_API_KEY="$OPENAI_API_KEY" pm2 start java \
-        --name "rps-backend" \
-        --interpreter none \
-        -- -jar "$JAVA_JAR" --server.port="$BACKEND_PORT"
-    sleep 8
-    if pm2_running "rps-backend"; then
-        echo -e "   ${GREEN}✓${NC} rps-backend (Java) started"
+        echo -e "   ${GREEN}✓${NC} rps-backend (NPM) started"
     else
         echo -e "   ${RED}✗${NC} rps-backend FAILED - check: pm2 logs rps-backend"
         return 1
@@ -223,22 +201,12 @@ check_status() {
 }
 
 # ─────────────────────────────────────────────
-do_start_python() {
-    echo -e "${YELLOW}🚀 Opsi 1: Python Backend + Frontend${NC}"
+do_start_npm() {
+    echo -e "${YELLOW}🚀 Starting Frontend + NPM Backend${NC}"
     echo ""
-    # Stop java backend if running
+    # Stop any running backend first
     pm2_running "rps-backend" && pm2 delete rps-backend 2>/dev/null
-    start_python_pm2 && start_frontend_pm2
-    pm2 save --force 2>/dev/null
-    check_status
-}
-
-do_start_java() {
-    echo -e "${YELLOW}🚀 Opsi 2: Java Backend + Frontend${NC}"
-    echo ""
-    # Stop python backend if running
-    pm2_running "rps-backend" && pm2 delete rps-backend 2>/dev/null
-    start_java_pm2 && start_frontend_pm2
+    start_npm_pm2 && start_frontend_pm2
     pm2 save --force 2>/dev/null
     check_status
 }
@@ -273,21 +241,19 @@ show_menu() {
     print_header
     echo -e "${CYAN}Pilih opsi:${NC}"
     echo ""
-    echo -e "  ${GREEN}1${NC}  Start Backend Python + Frontend  [:$FRONTEND_PORT / :$BACKEND_PORT]"
-    echo -e "  ${GREEN}2${NC}  Start Backend Java   + Frontend  [:$FRONTEND_PORT / :$BACKEND_PORT]"
-    echo -e "  ${RED}3${NC}  Stop Kill All (Force)"
-    echo -e "  ${YELLOW}4${NC}  Stop Graceful"
-    echo -e "  ${BLUE}5${NC}  Status & Health Check"
+    echo -e "  ${GREEN}1${NC}  Start Frontend + NPM Backend  [:$FRONTEND_PORT / :$BACKEND_PORT]"
+    echo -e "  ${RED}2${NC}  Stop Kill All (Force)"
+    echo -e "  ${YELLOW}3${NC}  Stop Graceful"
+    echo -e "  ${BLUE}4${NC}  Status & Health Check"
     echo -e "  ${BLUE}0${NC}  Keluar"
     echo ""
-    read -rp "Pilihan [0-5]: " choice
+    read -rp "Pilihan [0-4]: " choice
     echo ""
     case "$choice" in
-        1) do_start_python ;;
-        2) do_start_java ;;
-        3) do_kill_all ;;
-        4) do_stop ;;
-        5) check_status ;;
+        1) do_start_npm ;;
+        2) do_kill_all ;;
+        3) do_stop ;;
+        4) check_status ;;
         0) exit 0 ;;
         *) echo -e "${RED}Pilihan tidak valid.${NC}" ;;
     esac
@@ -295,18 +261,16 @@ show_menu() {
 
 # ─────────────────────────────────────────────
 case "${1:-}" in
-    1|python)  print_header; do_start_python ;;
-    2|java)    print_header; do_start_java ;;
-    3|killall) print_header; do_kill_all ;;
-    4|stop)    print_header; do_stop ;;
-    5|status)  print_header; check_status ;;
-    "")        show_menu ;;
+    1|npm|start)   print_header; do_start_npm ;;
+    2|killall)     print_header; do_kill_all ;;
+    3|stop)        print_header; do_stop ;;
+    4|status)      print_header; check_status ;;
+    "")            show_menu ;;
     *)
-        echo "Usage: $0 [1|2|3|4|5]"
-        echo "  1 / python  - Start Python backend + Frontend (:$FRONTEND_PORT/:$BACKEND_PORT)"
-        echo "  2 / java    - Start Java backend   + Frontend (:$FRONTEND_PORT/:$BACKEND_PORT)"
-        echo "  3 / killall - Kill all (Force)"
-        echo "  4 / stop    - Stop graceful"
-        echo "  5 / status  - Status & health check"
+        echo "Usage: $0 [1|2|3|4]"
+        echo "  1 / npm / start - Start NPM backend + Frontend (:$FRONTEND_PORT/:$BACKEND_PORT)"
+        echo "  2 / killall     - Kill all (Force)"
+        echo "  3 / stop        - Stop graceful"
+        echo "  4 / status      - Status & health check"
         ;;
 esac

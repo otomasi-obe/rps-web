@@ -16,10 +16,12 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@xmldom/xmldom": "^0.7.13",
     "cors": "^2.8.5",
     "docx": "^8.5.0",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
+    "jszip": "^3.10.1",
     "openai": "^4.52.0"
   },
   "devDependencies": {

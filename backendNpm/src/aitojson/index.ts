@@ -27,12 +27,15 @@ export interface RequestMetadata {
 export class AIToJSON {
   private apiKey: string | null = null;
   private client: OpenAI | null = null;
-  private model: string = 'gpt-4-mini-2025-08-07';
+  private model: string;
 
   constructor(apiKey?: string) {
     // Load environment variables from .env files
     dotenv.config();
     dotenv.config({ path: '.env.local' });
+
+    // Load model from environment or use default
+    this.model = (process.env.MODEL || 'gpt-5-mini-2025-08-07').trim();
 
     if (apiKey) {
       this.apiKey = apiKey;
@@ -126,7 +129,7 @@ export class AIToJSON {
     additionalContext: string = ''
   ): string {
     const contextSection =
-      additionalContext.trim() && `## Konteks Tambahan:\n${additionalContext}\n`;
+      additionalContext.trim() ? `## Konteks Tambahan:\n${additionalContext}\n` : '';
 
     return `Anda adalah ahli kurikulum pendidikan tinggi Indonesia. Buatkan Rencana Pembelajaran Semester (RPS) lengkap untuk mata kuliah berikut:
 
@@ -137,7 +140,8 @@ export class AIToJSON {
 - Semester: ${semester}
 - Status: ${status}
 - Prasyarat: ${prereq}
-${contextSection || ''}
+- konteks tambahan:
+${contextSection}
 
 ## Instruksi:
 Buatkan RPS dalam format JSON dengan struktur PERSIS seperti berikut. PENTING: Hanya output JSON murni tanpa markdown code block.
@@ -173,7 +177,7 @@ Buatkan RPS dalam format JSON dengan struktur PERSIS seperti berikut. PENTING: H
 . Konten harus relevan dengan "${courseName}"
 . Pastikan semua 16 minggu terisi lengkap (14 pertemuan + UTS minggu 8 + UAS minggu 16)
 . Minggu 8 = UTS, Minggu 16 = UAS (hanya ada field mingguKe dan kemampuanAkhir)
-. N1(Partisipatif 20%), N2(Project/Problem/Case Based Learning 30%), N3(Kuis 10%), N4(UTS 20%), N5(UAS 20%)
+. N1(Partisipatif 20%),N2(Project/ Problem/ Case Based Learning 30%),N3(Kuis 10%),N4(UTS 20%),N5(UAS 20%)
 . Total N1 dari semua CPMK harus 20%, N2-N5 juga sama sesuai proporsi di atas
 . Total bobot penilaian = 100% dari N_cpmk semua CPMK
 . Sesuaikan jumlah CPL (3-10) dan CPMK (3-10) sesuai kompleksitas mata kuliah dan konteks tambahan
@@ -182,21 +186,34 @@ Buatkan RPS dalam format JSON dengan struktur PERSIS seperti berikut. PENTING: H
 . Setiap minggu (selain UTS/UAS) harus ada semua field lengkap
 . Total bobotMateri dari semua minggu (14 pertemuan) harus 100%
 . WAJIB untuk setiap minggu (selain UTS/UAS):
-   - "metodePembelajaran.metode": pilih 1 dari: TM SCL, CBL (Case Based Learning), PBL (Problem Based Learning), PjBL
+   - "metodePembelajaran.metode": pilih 1 dari: 
+     * TM SCL (untuk mata kuliah teori)
+     * CBL (Case Based Learning)
+     * PBL (Problem Based Learning)
+     * PjBL (untuk mata kuliah Praktikum)
    - "metodePembelajaran.deskripsi": minimal 5 kata menjelaskan peran dosen dalam metode pembelajaran
    - "metodePembelajaran.aktivitas": minimal 5 kata menjelaskan aktivitas mahasiswa
    - "pengalamanBelajar": minimal 5 kata pengalaman belajar yang didapat mahasiswa
    - "penilaian.kriteria": minimal 5 kata kriteria penilaian yang jelas
    - "penilaian.bobotMateri": setiap bobotMateri dari beberapa minggu untuk satu CPMK dijumlahkan harus sesuai N_cpmk
    - "bahanKajian": sesuai dengan course_name dan relevan dengan CPMK yang dituju
-. Variasikan metode pembelajaran di berbagai minggu
+   - "waktu": 
+     * Untuk mata kuliah teori (non-Praktikum):
+       - TM SCL: "TM Ceramah ${sks}x50', Kuis, Tugas Mandiri"
+       - CBL: "CBL ${sks}x50', Diskusi Kelompok, Studi Kasus"
+       - PBL: "PBL ${sks}x50', Diskusi Kelompok, Tugas Mandiri"
+       - PjBL: "PjBL ${sks}x50', Proyek Mini, Presentasi"
+     * Untuk mata kuliah Praktikum (nama dimulai "Praktikum"):
+       - PjBL: "Praktikum ${sks}x170', Praktikum Hands-on, Laporan Praktikum"
+. Untuk mata kuliah Praktikum, gunakan metode PjBL dengan deskripsi tentang praktikum
+. Variasikan metode pembelajaran di berbagai minggu (TM SCL, CBL, PBL, PjBL)
 . bahanKajian harus spesifik dan bervariasi setiap minggu, tidak generik
-. Referensi harus mengikuti format (Penulis, Tahun, Judul, Penerbit):
-  1. Buku internasional
-  2-3. Buku nasional
-  4-5. Jurnal internasional
-  6-7. Jurnal nasional
-  8. Website/Dokumentasi resmi
+. Referensi harus mengikuti format (Penulis,Tahun,Judul,Penerbit):
+  1. Buku internasional 
+  2-3. Buku nasional 
+  4-5. Jurnal internasional 
+  6-7. Jurnal nasional 
+  8. Website/Dokumentasi resmi (Penulis,Tahun,Judul,alamat URL)
 Output JSON saja, tanpa markdown formatting atau penjelasan.`;
   }
 
@@ -204,7 +221,7 @@ Output JSON saja, tanpa markdown formatting atau penjelasan.`;
     let inString = false;
     let escapeNext = false;
     const stack: string[] = [];
-    let lastClosePos = 0;
+    let lastCompletePos = 0;
 
     for (let i = 0; i < text.length; i++) {
       const char = text[i];
@@ -222,7 +239,7 @@ Output JSON saja, tanpa markdown formatting atau penjelasan.`;
       if (char === '"') {
         inString = !inString;
         if (!inString) {
-          lastClosePos = i + 1;
+          lastCompletePos = i + 1;
         }
         continue;
       }
@@ -234,26 +251,42 @@ Output JSON saja, tanpa markdown formatting atau penjelasan.`;
       } else if (char === '}' || char === ']') {
         if (stack.length > 0) {
           stack.pop();
-          lastClosePos = i + 1;
+          lastCompletePos = i + 1;
         }
       }
     }
 
+    // If we're in a string, close it and go back to last complete position
     if (inString) {
-      text = text.slice(0, lastClosePos);
+      // Find the last complete value before the incomplete string
+      let result = text.substring(0, lastCompletePos);
+      
+      // Check if we need to remove trailing comma before the incomplete string
+      result = result.replace(/,\s*$/, '');
+      
+      // Add closing brackets
+      const openerToCloser: Record<string, string> = { '{': '}', '[': ']' };
+      for (let i = stack.length - 1; i >= 0; i--) {
+        const opener = stack[i];
+        result = result.replace(/,\s*$/, '').trim();
+        result += '\n' + openerToCloser[opener];
+      }
+      
+      return result;
+    } else {
+      // JSON was properly closed but might be incomplete
+      text = text.trim();
+      text = text.replace(/,\s*$/, '');
+
+      const openerToCloser: Record<string, string> = { '{': '}', '[': ']' };
+      for (let i = stack.length - 1; i >= 0; i--) {
+        const opener = stack[i];
+        text = text.replace(/,\s*$/, '').trim();
+        text += '\n' + openerToCloser[opener];
+      }
+
+      return text;
     }
-
-    text = text.trim();
-    text = text.replace(/,\s*$/, '');
-
-    const openerToCloser: Record<string, string> = { '{': '}', '[': ']' };
-    for (let i = stack.length - 1; i >= 0; i--) {
-      const opener = stack[i];
-      text = text.replace(/,\s*$/, '').trim();
-      text += '\n' + openerToCloser[opener];
-    }
-
-    return text;
   }
 
   public parseJsonResponse(response: string): any {
@@ -510,6 +543,228 @@ Output JSON saja, tanpa markdown formatting atau penjelasan.`;
       console.log(`   - Minggu: ${(rpsData.minggu || []).length} weeks`);
       console.log(`   - Referensi: ${(rpsData.referensi || []).length} items`);
       return rpsData;
+    } catch (error) {
+      console.log(`❌ Failed to parse JSON: ${error}`);
+      return null;
+    }
+  }
+
+  public async generateCplJson(
+    courseName: string,
+    courseCode: string,
+    sks: number,
+    semester: number,
+    deskripsi: string = '',
+    additionalContext: string = ''
+  ): Promise<any[] | null> {
+    console.log(`\n🎯 Generating CPL for: ${courseName}`);
+
+    const contextSection =
+      additionalContext.trim() ? `## Konteks Tambahan:\n${additionalContext}\n` : '';
+
+    const prompt = `Anda adalah ahli kurikulum pendidikan tinggi Indonesia. 
+
+## Mata Kuliah:
+- Nama: ${courseName}
+- Kode: ${courseCode}
+- SKS: ${sks}
+- Semester: ${semester}
+${deskripsi ? `- Deskripsi: ${deskripsi}` : ''}
+
+${contextSection}
+
+Buatkan daftar CPL (Capaian Pembelajaran Lulusan) yang relevan untuk mata kuliah ini. CPL adalah kompetensi yang diharapkan dimiliki mahasiswa setelah lulus dari program studi.
+
+Format output JSON murni tanpa markdown:
+[
+    {"kode": "CPL3", "pernyataan": "Mampu menerapkan pengetahuan..."},
+    {"kode": "CPL4", "pernyataan": "Mampu merancang solusi..."},
+    {"kode": "CPL10", "pernyataan": "Mampu bekerja sama dalam tim..."}
+]
+
+Buatkan 3-10 CPL yang spesifik dan relevan sesuai kompleksitas dan konteks mata kuliah. Output JSON saja.`;
+
+    const response = await this.sendMessage(prompt);
+    if (!response) {
+      return null;
+    }
+
+    try {
+      const cplData = this.parseJsonResponse(response);
+      console.log(`✅ Generated ${cplData.length} CPL items`);
+      return cplData;
+    } catch (error) {
+      console.log(`❌ Failed to parse JSON: ${error}`);
+      return null;
+    }
+  }
+
+  public async generateCpmkJson(
+    courseName: string,
+    courseCode: string,
+    sks: number,
+    semester: number,
+    deskripsi: string = '',
+    cplList: any[] | null = null,
+    additionalContext: string = ''
+  ): Promise<any[] | null> {
+    console.log(`\n📊 Generating CPMK for: ${courseName}`);
+
+    const cplInfo =
+      cplList && cplList.length > 0
+        ? '\n## CPL yang sudah ada:\n' +
+          cplList.map((c) => `- ${c.kode || ''}: ${c.pernyataan || ''}`).join('\n')
+        : '';
+
+    const contextSection =
+      additionalContext.trim() ? `## Konteks Tambahan:\n${additionalContext}\n` : '';
+
+    const prompt = `Anda adalah ahli kurikulum pendidikan tinggi Indonesia.
+
+## Mata Kuliah:
+- Nama: ${courseName}
+- Kode: ${courseCode}
+- SKS: ${sks}
+- Semester: ${semester}
+${deskripsi ? `- Deskripsi: ${deskripsi}` : ''}
+
+${cplInfo}
+
+${contextSection}
+
+Buatkan daftar CPMK (Capaian Pembelajaran Mata Kuliah) yang spesifik untuk mata kuliah ini. CPMK adalah kompetensi yang diharapkan dikuasai mahasiswa setelah menyelesaikan mata kuliah ini.
+
+PENTING: Jumlah CPMK harus FLEKSIBEL antara 1-10 items berdasarkan kompleksitas mata kuliah dan CPL yang ada:
+- Mata kuliah sederhana: 2-3 CPMK
+- Mata kuliah standar: 3-5 CPMK  
+- Mata kuliah kompleks: 5-10 CPMK
+
+Format output JSON murni tanpa markdown:
+[
+    {"kode": "CPMK 1", "pernyataan": "Mahasiswa mampu menjelaskan...", "mapping_cpl": "CPL3"},
+    {"kode": "CPMK 2", "pernyataan": "Mahasiswa mampu menerapkan...", "mapping_cpl": "CPL4"},
+    {"kode": "CPMK 3", "pernyataan": "Mahasiswa mampu menganalisis...", "mapping_cpl": "CPL4"}
+]
+
+Buatkan CPMK yang terukur dan spesifik. Pastikan mapping_cpl sesuai dengan CPL yang ada. Output JSON saja.`;
+
+    const response = await this.sendMessage(prompt);
+    if (!response) {
+      return null;
+    }
+
+    try {
+      const cpmkData = this.parseJsonResponse(response);
+      console.log(`✅ Generated ${cpmkData.length} CPMK items`);
+      return cpmkData;
+    } catch (error) {
+      console.log(`❌ Failed to parse JSON: ${error}`);
+      return null;
+    }
+  }
+
+  public async generateWeeklyPlanJson(
+    courseName: string,
+    courseCode: string,
+    sks: number,
+    semester: number,
+    deskripsi: string = '',
+    cpmkList: any[] | null = null,
+    additionalContext: string = ''
+  ): Promise<any[] | null> {
+    console.log(`\n📅 Generating Weekly Plan for: ${courseName}`);
+
+    const cpmkInfo =
+      cpmkList && cpmkList.length > 0
+        ? '\n## CPMK yang sudah ada:\n' +
+          cpmkList.map((c) => `- ${c.kode || ''}: ${c.pernyataan || ''}`).join('\n')
+        : '';
+
+    const contextSection =
+      additionalContext.trim() ? `## Konteks Tambahan:\n${additionalContext}\n` : '';
+
+    const prompt = `Anda adalah ahli kurikulum pendidikan tinggi Indonesia.
+
+## Mata Kuliah:
+- Nama: ${courseName}
+- Kode: ${courseCode}
+- SKS: ${sks}
+- Semester: ${semester}
+${deskripsi ? `- Deskripsi: ${deskripsi}` : ''}
+
+${cpmkInfo}
+
+${contextSection}
+
+Buatkan rencana pembelajaran mingguan untuk 16 minggu. Minggu 8 adalah UTS dan Minggu 16 adalah UAS.
+
+WAJIB (selain UTS/UAS):
+- "metodePembelajaran.metode": pilih 1 dari: Ceramah, Diskusi, Kuis, Tugas, Presentasi, Praktikum
+- "metodePembelajaran.deskripsi": HARUS 20 kata penjelasan metode pembelajaran
+- "metodePembelajaran.aktivitas": HARUS 20 kata penjelasan aktivitas pembelajaran
+- "pengalamanBelajar": HARUS 20 kata pengalaman belajar mahasiswa
+- "penilaian.kriteria": HARUS 20 kata kriteria indikator pencapaian
+
+Format JSON murni (EXACT field names: mingguKe, kemampuanAkhir, bahanKajian):
+[{"mingguKe": 1, "kemampuanAkhir": "CPMK 1", "bahanKajian": "Pengenalan dan konsep dasar", "metodePembelajaran": {"metode": "Ceramah", "deskripsi": "Penyampaian konsep fundamental melalui presentasi interaktif dengan melibatkan mahasiswa dalam diskusi materi", "aktivitas": "Mendengarkan penjelasan konsep dasar dan diskusi mendalam tentang prinsip fundamental mata kuliah"}, "waktu": "3x50'", "pengalamanBelajar": "Memahami terminologi dasar mengingat definisi konsep fundamental mengikuti presentasi diskusi kelas", "penilaian": {"kriteria": "Pemahaman konsep dasar ketepatan definisi keterlibatan dalam diskusi kelas penerimaan nilai", "bobot": 5}},{"mingguKe": 2, "kemampuanAkhir": "CPMK 1", "bahanKajian": "Praktik hands-on topik 1", "metodePembelajaran": {"metode": "Praktikum", "deskripsi": "Kegiatan praktik langsung di laboratorium untuk mengaplikasikan teori dan mengembangkan keterampilan hands-on", "aktivitas": "Melaksanakan praktikum hands-on mengaplikasikan teori mengerjakan tugas praktis melakukan observasi mencatat hasil"}, "waktu": "3x50'", "pengalamanBelajar": "Mengerjakan praktikum melakukan observasi mencatat data menganalisis hasil eksperimen melaporkan temuan", "penilaian": {"kriteria": "Ketepatan praktikum kualitas data kualitas laporan kedalaman analisis ketepatan kesimpulan hasil", "bobot": 5}},{"mingguKe": 8, "kemampuanAkhir": "UTS", "bahanKajian": "Ujian Tengah Semester: evaluasi materi minggu 1-7", "metodePembelajaran": {"metode": "Ujian", "deskripsi": "Penilaian tertulis atau praktik komprehensif mencakup seluruh materi semester untuk mengukur kompetensi", "aktivitas": "Pelaksanaan ujian tulis atau praktik sesuai jadwal akademik evaluasi penguasaan materi"}, "waktu": "3x50'", "pengalamanBelajar": "UTS", "penilaian": {"kriteria": "UTS", "bobot": 15}},{"mingguKe": 16, "kemampuanAkhir": "UAS", "bahanKajian": "Ujian Akhir Semester: demo proyek dan evaluasi keseluruhan", "metodePembelajaran": {"metode": "Ujian", "deskripsi": "Penilaian akhir semester melalui demo proyek integrasi dan presentasi hasil pembelajaran keseluruhan", "aktivitas": "Pelaksanaan ujian akhir semester termasuk demo proyek dan presentasi hasil pembelajaran akhir"}, "waktu": "3x50'", "pengalamanBelajar": "UAS", "penilaian": {"kriteria": "UAS", "bobot": 20}}]
+
+Total bobot harus 100%. Pastikan konten relevan dengan "${courseName}". Output JSON saja.`;
+
+    const response = await this.sendMessage(prompt);
+    if (!response) {
+      return null;
+    }
+
+    try {
+      const weeklyData = this.parseJsonResponse(response);
+      console.log(`✅ Generated ${weeklyData.length} weeks of content`);
+      return weeklyData;
+    } catch (error) {
+      console.log(`❌ Failed to parse JSON: ${error}`);
+      return null;
+    }
+  }
+
+  public async generateReferencesJson(
+    courseName: string,
+    courseCode: string,
+    additionalContext: string = ''
+  ): Promise<any[] | null> {
+    console.log(`\n📚 Generating References for: ${courseName}`);
+
+    const contextSection =
+      additionalContext.trim() ? `## Konteks Tambahan:\n${additionalContext}\n` : '';
+
+    const prompt = `Anda adalah ahli kurikulum pendidikan tinggi Indonesia.
+
+## Mata Kuliah:
+- Nama: ${courseName}
+- Kode: ${courseCode}
+
+${contextSection}
+
+Buatkan daftar referensi (buku, jurnal, dokumentasi) yang relevan untuk mata kuliah ini. Berikan referensi yang nyata dan dapat diakses.
+
+Format output JSON murni tanpa markdown:
+[
+    "Judul Buku 1, Penulis, Penerbit, Tahun",
+    "Judul Buku 2, Penulis, Penerbit, Tahun",
+    "Judul Jurnal/Paper, Penulis, Journal Name, Tahun",
+    "Dokumentasi/Website: URL atau nama resource",
+    "Referensi tambahan yang relevan"
+]
+
+Buatkan 5-8 referensi yang berkualitas dan relevan dengan "${courseName}". Output JSON saja.`;
+
+    const response = await this.sendMessage(prompt);
+    if (!response) {
+      return null;
+    }
+
+    try {
+      const referencesData = this.parseJsonResponse(response);
+      console.log(`✅ Generated ${referencesData.length} references`);
+      return referencesData;
     } catch (error) {
       console.log(`❌ Failed to parse JSON: ${error}`);
       return null;

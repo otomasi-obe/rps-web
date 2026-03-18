@@ -23,7 +23,9 @@ export interface GenerateRequest extends Request {
     additionalContext?: string;
     deskripsi?: string;
     cpl?: any[];
+    cplList?: any[];
     cpmk?: any[];
+    cpmkList?: any[];
   };
 }
 
@@ -138,7 +140,7 @@ export class RPSAPIServer {
       const response = {
         status: 'ok',
         backend: 'nodejs',
-        model: 'gpt-4-mini-2025-08-07',
+        model: process.env.MODEL || 'gpt-5-mini-2025-08-07',
         timestamp: new Date().toISOString(),
       };
       res.json(response);
@@ -156,11 +158,15 @@ export class RPSAPIServer {
         const status = req.body.status || 'Mata Kuliah Wajib';
         const prereq = req.body.prereq || '-';
         const additionalContext = req.body.additionalContext || '';
+        
+        // Additional data for partial generation
+        const deskripsi = req.body.deskripsi || '';
+        const cplList = req.body.cpl || req.body.cplList || [];
+        const cpmkList = req.body.cpmk || req.body.cpmkList || [];
 
         console.log(`\n📝 Generating ${generateType.toUpperCase()} for: ${courseName}`);
 
         const generator = getGenerator();
-
         let result: any;
 
         if (generateType === 'full') {
@@ -173,20 +179,68 @@ export class RPSAPIServer {
             prereq,
             additionalContext
           );
-
           if (!result) {
             throw new Error('Failed to generate RPS content');
           }
-
           res.json({ success: true, data: result });
-        } else {
-          // For partial generation, we'd implement other types here
-          res.json({
-            success: true,
-            data: {
-              message: `Generation type '${generateType}' not yet implemented in Node.js version`,
-            },
-          });
+        } 
+        else if (generateType === 'cpl') {
+          result = await generator.generateCplJson(
+            courseName,
+            courseCode,
+            sks,
+            semester,
+            deskripsi,
+            additionalContext
+          );
+          if (!result) {
+            throw new Error('Failed to generate CPL');
+          }
+          res.json({ success: true, data: { cpl: result } });
+        } 
+        else if (generateType === 'cpmk') {
+          result = await generator.generateCpmkJson(
+            courseName,
+            courseCode,
+            sks,
+            semester,
+            deskripsi,
+            cplList.length > 0 ? cplList : null,
+            additionalContext
+          );
+          if (!result) {
+            throw new Error('Failed to generate CPMK');
+          }
+          res.json({ success: true, data: { cpmk: result } });
+        } 
+        else if (generateType === 'weeklyPlan') {
+          result = await generator.generateWeeklyPlanJson(
+            courseName,
+            courseCode,
+            sks,
+            semester,
+            deskripsi,
+            cpmkList.length > 0 ? cpmkList : null,
+            additionalContext
+          );
+          if (!result) {
+            throw new Error('Failed to generate Weekly Plan');
+          }
+          res.json({ success: true, data: { minggu: result } });
+        } 
+        else if (generateType === 'references') {
+          result = await generator.generateReferencesJson(
+            courseName,
+            courseCode,
+            additionalContext
+          );
+          if (!result) {
+            throw new Error('Failed to generate References');
+          }
+          res.json({ success: true, data: { referensi: result } });
+        } 
+        else {
+          throw new Error(`Unknown generation type: ${generateType}. Supported types: full, cpl, cpmk, weeklyPlan, references`);
         }
 
         const duration = Date.now() - startTime;
@@ -197,16 +251,49 @@ export class RPSAPIServer {
       }
     });
 
-    // Export to DOCX
+    // Export to DOCX (supports both nested and flat data structures)
     this.app.post('/export', async (req: ExportRequest, res: Response) => {
       try {
         const startTime = Date.now();
         console.log('\n📄 Starting DOCX export...');
 
-        const rpsData = req.body.rpsData || {};
-        const meta = req.body.meta || {};
+        const body = req.body as any;
+        console.log(`📋 Received data keys: ${Object.keys(body).join(', ')}`);
 
-        console.log(`📋 Received data keys: ${Object.keys(req.body).join(', ')}`);
+        // Support both nested (rpsData/meta) and flat structures
+        let rpsData: any = {};
+        let meta: any = {};
+
+        if (body.rpsData && Object.keys(body.rpsData).length > 0) {
+          // Nested structure: {rpsData: {...}, meta: {...}}
+          rpsData = body.rpsData || {};
+          meta = body.meta || {};
+        } else if (body.identitas) {
+          // Flat structure: {identitas: {...}, cpl: [...], cpmk: [...], ...}
+          // Map flat fields to rpsData structure
+          meta = {
+            kode: body.identitas?.kode,
+            nama: body.identitas?.nama,
+            sks: body.identitas?.sks,
+            semester: body.identitas?.semester,
+            status: body.identitas?.status,
+            prasyarat: body.identitas?.prasyarat,
+            ...(body.otoritas || {}),
+            ...body,
+          };
+
+          rpsData = {
+            cpl: body.cpl,
+            cpmk: body.cpmk,
+            minggu: body.minggu,
+            referensi: body.referensi,
+            ...body,
+          };
+        } else {
+          // Default: treat entire body as rpsData
+          rpsData = body || {};
+        }
+
         console.log(`📋 rpsData keys: ${Object.keys(rpsData).join(', ')}`);
         console.log(`📋 meta keys: ${Object.keys(meta).join(', ')}`);
 
