@@ -25,6 +25,7 @@ NPM_DIR="$APP_DIR/backendNpm"
 
 FRONTEND_PORT=2000
 BACKEND_PORT=2001
+PUBLIC_URL="${PUBLIC_URL:-https://rps.otomasi.app}"
 
 # Load environment variables from .env
 if [ -f "$APP_DIR/.env" ]; then
@@ -53,8 +54,110 @@ check_health_url() {
     [ "$code" = "200" ]
 }
 
+check_health_host_header() {
+    local url="$1"
+    local host="$2"
+    local expected_regex="${3:-200}"
+    local code
+    code=$(timeout 5 curl -k -s -o /dev/null -w "%{http_code}" -H "Host: $host" "$url" 2>/dev/null)
+    echo "$code" | grep -Eq "^(${expected_regex})$"
+}
+
 pm2_running() {
     pm2 list 2>/dev/null | grep -q "$1.*online"
+}
+
+check_port_listening() {
+    local port="$1"
+    ss -tln 2>/dev/null | grep -q ":$port "
+}
+
+check_nginx_service() {
+    local active="unknown"
+    local enabled="unknown"
+
+    if command -v systemctl >/dev/null 2>&1; then
+        active=$(systemctl is-active nginx 2>/dev/null || true)
+        enabled=$(systemctl is-enabled nginx 2>/dev/null || true)
+    elif command -v service >/dev/null 2>&1; then
+        if service nginx status >/dev/null 2>&1; then
+            active="active"
+        else
+            active="inactive"
+        fi
+        enabled="n/a"
+    fi
+
+    echo -e "${YELLOW}🌐 Nginx Service:${NC}"
+    if [ "$active" = "active" ]; then
+        echo -e "   ${GREEN}✓${NC} service nginx: active"
+    else
+        echo -e "   ${RED}✗${NC} service nginx: ${active:-unknown}"
+    fi
+    echo -e "   ${CYAN}•${NC} enabled: ${enabled:-unknown}"
+
+    if pgrep -x nginx >/dev/null 2>&1; then
+        echo -e "   ${GREEN}✓${NC} process nginx: running"
+    else
+        echo -e "   ${RED}✗${NC} process nginx: not running"
+    fi
+
+    if check_port_listening 80; then
+        echo -e "   ${GREEN}✓${NC} port 80: listening"
+    else
+        echo -e "   ${RED}✗${NC} port 80: not listening"
+    fi
+
+    if check_port_listening 443; then
+        echo -e "   ${GREEN}✓${NC} port 443: listening"
+    else
+        echo -e "   ${RED}✗${NC} port 443: not listening"
+    fi
+    echo ""
+}
+
+check_public_domain_flow() {
+    echo -e "${YELLOW}🔎 Domain Flow Check (${PUBLIC_URL}):${NC}"
+
+    local domain
+    domain=$(echo "$PUBLIC_URL" | sed -E 's#^https?://##; s#/.*$##')
+
+    local resolved_ips
+    resolved_ips=$(getent ahosts "$domain" 2>/dev/null | awk '{print $1}' | sort -u | tr '\n' ' ')
+    if [ -n "$resolved_ips" ]; then
+        echo -e "   ${GREEN}✓${NC} DNS ${domain} -> ${resolved_ips}"
+    else
+        echo -e "   ${RED}✗${NC} DNS ${domain} tidak resolve"
+    fi
+
+    if check_health_host_header "http://127.0.0.1" "$domain" "200|301|302|307|308"; then
+        echo -e "   ${GREEN}✓${NC} Nginx vhost frontend via Host header -> 127.0.0.1:80"
+    else
+        echo -e "   ${RED}✗${NC} Nginx vhost frontend gagal via Host header (127.0.0.1:80)"
+    fi
+
+    if check_health_host_header "https://127.0.0.1" "$domain" "200|301|302|307|308"; then
+        echo -e "   ${GREEN}✓${NC} Nginx TLS vhost frontend via Host header -> 127.0.0.1:443"
+    else
+        echo -e "   ${YELLOW}ℹ${NC} Nginx TLS vhost frontend tidak merespon 200 di 127.0.0.1:443"
+    fi
+
+    local health_code
+    health_code=$(timeout 5 curl -s -o /dev/null -w "%{http_code}" -H "Host: $domain" "https://127.0.0.1/health" -k 2>/dev/null)
+    if [ "$health_code" = "200" ]; then
+        local resp
+        resp=$(timeout 5 curl -s -H "Host: $domain" "https://127.0.0.1/health" -k 2>/dev/null)
+        echo -e "   ${GREEN}✓${NC} Route /health via Nginx -> $resp"
+    else
+        echo -e "   ${CYAN}•${NC} Route /health via Nginx status: ${health_code:-000}"
+    fi
+
+    if check_health_url "$PUBLIC_URL"; then
+        echo -e "   ${GREEN}✓${NC} Public URL $PUBLIC_URL reachable"
+    else
+        echo -e "   ${RED}✗${NC} Public URL $PUBLIC_URL tidak merespon"
+    fi
+    echo ""
 }
 
 # ─────────────────────────────────────────────
@@ -167,10 +270,10 @@ check_health() {
         ok=1
     fi
 
-    if check_health_url "https://otomasi.app"; then
-        echo -e "   ${GREEN}✓${NC} Public     https://otomasi.app"
+    if check_health_url "$PUBLIC_URL"; then
+        echo -e "   ${GREEN}✓${NC} Public     $PUBLIC_URL"
     else
-        echo -e "   ${RED}✗${NC} Public     https://otomasi.app  (not responding)"
+        echo -e "   ${RED}✗${NC} Public     $PUBLIC_URL  (not responding)"
     fi
 
     echo ""
@@ -178,25 +281,41 @@ check_health() {
 }
 
 check_status() {
-    echo -e "${YELLOW}📊 Status PM2:${NC}"
+    echo -e "${YELLOW}📊 PM2 Services:${NC}"
     echo ""
     pm2 list 2>/dev/null | grep -E "rps-|Name|─|App"
+
+    if pm2_running "rps-frontend"; then
+        echo -e "   ${GREEN}✓${NC} rps-frontend (target port $FRONTEND_PORT) online"
+    else
+        echo -e "   ${RED}✗${NC} rps-frontend tidak online"
+    fi
+
+    if pm2_running "rps-backend"; then
+        echo -e "   ${GREEN}✓${NC} rps-backend (target port $BACKEND_PORT) online"
+    else
+        echo -e "   ${RED}✗${NC} rps-backend tidak online"
+    fi
     echo ""
 
     echo -e "${YELLOW}📡 Ports:${NC}"
     for port in $FRONTEND_PORT $BACKEND_PORT 80 443; do
-        if ss -tlnp 2>/dev/null | grep -q ":$port "; then
+        if check_port_listening "$port"; then
             echo -e "   ${GREEN}✓${NC} :$port  LISTENING"
         else
             echo -e "   ${RED}✗${NC} :$port  NOT LISTENING"
         fi
     done
 
+    echo ""
+    check_nginx_service
+
     check_health
+    check_public_domain_flow
 
     echo -e "${CYAN}🌍 URL Akses:${NC}"
     echo -e "   http://localhost:$FRONTEND_PORT"
-    echo -e "   https://otomasi.app"
+    echo -e "   $PUBLIC_URL"
     echo ""
 }
 

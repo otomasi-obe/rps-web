@@ -185,7 +185,15 @@ function replaceReferencesWithLineBreaks(
 
   try {
     const pElement = paragraph.element;
-    const ns = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+    // Preserve run properties (font size, family, etc.) from the original placeholder run.
+    let runPropsTemplate: any = null;
+    if (paragraph.runs.length > 0) {
+      const firstRun = paragraph.runs[0].element;
+      const firstRunProps = firstRun?.getElementsByTagName('w:rPr');
+      if (firstRunProps && firstRunProps.length > 0) {
+        runPropsTemplate = firstRunProps[0].cloneNode(true);
+      }
+    }
 
     // Format references with numbers
     const formattedRefs = referencesArray.map(
@@ -205,6 +213,11 @@ function replaceReferencesWithLineBreaks(
       // Create <w:r> element
       const run = xmlDoc.createElement('w:r');
 
+      // Re-apply original style so references keep template font (expected size: 10).
+      if (runPropsTemplate) {
+        run.appendChild(runPropsTemplate.cloneNode(true));
+      }
+
       // Create <w:t> element with reference text
       const tElem = xmlDoc.createElement('w:t');
       tElem.setAttribute('xml:space', 'preserve');
@@ -218,6 +231,9 @@ function replaceReferencesWithLineBreaks(
       // Add line break <w:br/> if not last item
       if (i < formattedRefs.length - 1) {
         const brRun = xmlDoc.createElement('w:r');
+        if (runPropsTemplate) {
+          brRun.appendChild(runPropsTemplate.cloneNode(true));
+        }
         const br = xmlDoc.createElement('w:br');
         brRun.appendChild(br);
         pElement.appendChild(brRun);
@@ -471,9 +487,11 @@ function processSmartListTable(
 
       if (rowText.toLowerCase().includes('total bobot')) continue; // Skip total row
 
-      const hasCpmkPattern = /CPMK\s+\d+-\d+/.test(rowText);
-      const hasIkPattern = /IK\s+\d+-\d+/.test(rowText);
-      if (hasCpmkPattern && hasIkPattern) {
+      const hasCplAndIkPattern = /CPL\s+\d+/.test(rowText) && /IK\s+\d+-\d+/.test(rowText);
+      const hasCpmkAndTotalPattern =
+        /CPMK\s+\d+-\d+/.test(rowText) && rowText.includes('Ntotal_cpmk');
+
+      if (hasCplAndIkPattern || hasCpmkAndTotalPattern) {
         isTemplate = true;
       }
     } else {
@@ -545,23 +563,26 @@ function processSmartListTable(
       };
 
       if (row.cells.length >= 12) {
-        setCellTextPreserveFormat(row.cells[colMapping.cpl_kode], String(item.cpl_kode || ''));
-        setCellTextPreserveFormat(row.cells[colMapping.ik_kode], String(item.ik_kode || ''));
-        setCellTextPreserveFormat(row.cells[colMapping.pernyataan], String(item.pernyataan || ''));
-        setCellTextPreserveFormat(row.cells[colMapping.cpmk_kode], String(item.cpmk_kode || ''));
-        setCellTextPreserveFormat(row.cells[colMapping.cpmk_pernyataan], String(item.cpmk_pernyataan || ''));
-        setCellTextPreserveFormat(row.cells[colMapping.N_total], String(item.N_total || ''));
-        setCellTextPreserveFormat(row.cells[colMapping.MA_val], String(item.MA_val || ''));
-        setCellTextPreserveFormat(row.cells[colMapping.N1], String(item.N1 || ''));
-        setCellTextPreserveFormat(row.cells[colMapping.N2], String(item.N2 || ''));
-        setCellTextPreserveFormat(row.cells[colMapping.N3], String(item.N3 || ''));
-        setCellTextPreserveFormat(row.cells[colMapping.N4], String(item.N4 || ''));
-        setCellTextPreserveFormat(row.cells[colMapping.N5], String(item.N5 || ''));
+        setCellTextPreserveFormat(row.cells[colMapping.cpl_kode], String(item.cpl_kode ?? ''));
+        setCellTextPreserveFormat(row.cells[colMapping.ik_kode], String(item.ik_kode ?? ''));
+        setCellTextPreserveFormat(row.cells[colMapping.pernyataan], String(item.pernyataan ?? ''));
+        setCellTextPreserveFormat(row.cells[colMapping.cpmk_kode], String(item.cpmk_kode ?? ''));
+        setCellTextPreserveFormat(
+          row.cells[colMapping.cpmk_pernyataan],
+          String(item.cpmk_pernyataan ?? '')
+        );
+        setCellTextPreserveFormat(row.cells[colMapping.N_total], String(item.N_total ?? ''));
+        setCellTextPreserveFormat(row.cells[colMapping.MA_val], String(item.MA_val ?? ''));
+        setCellTextPreserveFormat(row.cells[colMapping.N1], String(item.N1 ?? ''));
+        setCellTextPreserveFormat(row.cells[colMapping.N2], String(item.N2 ?? ''));
+        setCellTextPreserveFormat(row.cells[colMapping.N3], String(item.N3 ?? ''));
+        setCellTextPreserveFormat(row.cells[colMapping.N4], String(item.N4 ?? ''));
+        setCellTextPreserveFormat(row.cells[colMapping.N5], String(item.N5 ?? ''));
       }
     } else {
       const rowMap: Record<string, any> = {};
       for (const [ph, key] of Object.entries(mappingConfig)) {
-        rowMap[ph] = item[key] || '';
+        rowMap[ph] = item[key] ?? '';
       }
 
       for (const cell of row.cells) {
@@ -916,7 +937,7 @@ export class JSONToDocx {
         }
 
         // G. Referensi
-        const refPlaceholderRegex = /paste[_\s]?referensi(nya)?[_\s]?disini/gi;
+        const refPlaceholderRegex = /paste[_\s]?referensi(nya)?[_\s]?disini/i;
         if (refPlaceholderRegex.test(allText)) {
           console.log(`   [TABLE ${tableIdx}] Processing references with line breaks...`);
           const referencesList = rpsData.references || [];

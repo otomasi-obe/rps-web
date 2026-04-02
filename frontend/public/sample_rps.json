@@ -1,0 +1,396 @@
+{
+  "identitas": {
+    "kode": "TRAO6251",
+    "nama": "Praktikum Mekatronika dan Robotika",
+    "sks": 2,
+    "semester": 5,
+    "status": "Mata Kuliah Wajib",
+    "prasyarat": "Dasar Elektronika, Pemrograman Dasar"
+  },
+  "institusi": {
+    "programStudi": "Sarjana Terapan Teknologi Rekayasa Otomasi",
+    "fakultas": "Sekolah Vokasi",
+    "universitas": "Universitas Diponegoro"
+  },
+  "otoritas": {
+    "koordinatorMK": {
+      "nama": "Dr. Ir. Budi Santoso, M.T.",
+      "nip": "197801012005011001",
+      "jabatan": "Koordinator Mata Kuliah"
+    },
+    "koordinatorGPM": {
+      "nama": "Dr. Agus Widodo, S.T., M.Eng.",
+      "nip": "197503152003121002",
+      "jabatan": "Koordinator GPM"
+    },
+    "ketuaProdi": {
+      "nama": "Prof. Dr. Suharto, S.T., M.T.",
+      "nip": "196801011992031001",
+      "jabatan": "Ketua Program Studi"
+    },
+    "dekan": {
+      "nama": "Prof. Dr. Ir. Retno Wulandari, M.T.",
+      "nip": "196603201990032001",
+      "jabatan": "Dekan Sekolah Vokasi"
+    }
+  },
+  "deskripsi": "Mata kuliah ini memberikan kemampuan kepada mahasiswa untuk merancang, merakit, memprogram, dan mengoperasikan sistem mekatronika dan robot industri. Mahasiswa akan mempelajari integrasi antara mekanik, elektronik, dan pemrograman dalam konteks automasi industri modern. Praktikum dilaksanakan dengan pendekatan Problem-Based Learning (PBL) menggunakan perangkat Arduino, sensor, aktuator, dan robot lengan 6-DOF.",
+  "cpl": [
+    {
+      "kode": "CPL1",
+      "pernyataan": "Mampu menerapkan pengetahuan matematika, ilmu pengetahuan alam, dan rekayasa untuk memecahkan masalah teknik otomasi."
+    },
+    {
+      "kode": "CPL2",
+      "pernyataan": "Mampu merancang dan melaksanakan eksperimen, menganalisis, dan menginterpretasikan data dalam bidang mekatronika dan robotika."
+    },
+    {
+      "kode": "CPL3",
+      "pernyataan": "Mampu merancang sistem, komponen, atau proses untuk memenuhi kebutuhan yang diinginkan dalam batasan realistis bidang otomasi."
+    },
+    {
+      "kode": "CPL4",
+      "pernyataan": "Mampu berkomunikasi secara efektif, bekerja dalam tim multidisiplin, dan bersikap profesional dalam lingkungan kerja industri."
+    }
+  ],
+  "ik": [
+    {
+      "kode": "IK 1-1",
+      "pernyataan": "Mahasiswa dapat menerapkan konsep kinematika dan dinamika robot dalam analisis gerak sistem mekatronika.",
+      "mapping_cpl": "CPL1",
+      "mapping_cpmk": "CPMK 1-1"
+    },
+    {
+      "kode": "IK 2-1",
+      "pernyataan": "Mahasiswa dapat merancang dan mengimplementasikan sistem sensor-aktuator untuk aplikasi robotika.",
+      "mapping_cpl": "CPL2",
+      "mapping_cpmk": "CPMK 2-1"
+    },
+    {
+      "kode": "IK 3-1",
+      "pernyataan": "Mahasiswa dapat merancang sistem kontrol otomatis berbasis mikrokontroler untuk robot mobile dan manipulator.",
+      "mapping_cpl": "CPL3",
+      "mapping_cpmk": "CPMK 3-1"
+    },
+    {
+      "kode": "IK 4-1",
+      "pernyataan": "Mahasiswa dapat mempresentasikan hasil proyek robot dalam laporan teknis dan demo kepada audiens teknik.",
+      "mapping_cpl": "CPL4",
+      "mapping_cpmk": "CPMK 4-1"
+    }
+  ],
+  "cpmk": [
+    {
+      "kode": "CPMK 1-1",
+      "pernyataan": "Mahasiswa mampu memahami dan menganalisis prinsip dasar mekatronika, kinematika robot, dan integrasi sistem mekanikal-elektrikal.",
+      "mapping_cpl": "CPL1",
+      "N1": 5,
+      "N2": 10,
+      "N3": 5,
+      "N4": 10,
+      "N5": 0,
+      "N_cpmk": 30
+    },
+    {
+      "kode": "CPMK 2-1",
+      "pernyataan": "Mahasiswa mampu merancang dan mengimplementasikan sistem sensor, aktuator, dan antarmuka I/O untuk aplikasi mekatronika.",
+      "mapping_cpl": "CPL2",
+      "N1": 5,
+      "N2": 10,
+      "N3": 0,
+      "N4": 5,
+      "N5": 0,
+      "N_cpmk": 20
+    },
+    {
+      "kode": "CPMK 3-1",
+      "pernyataan": "Mahasiswa mampu merancang program kontrol robot berbasis Arduino/mikrokontroler untuk tugas manipulasi dan navigasi.",
+      "mapping_cpl": "CPL3",
+      "N1": 5,
+      "N2": 10,
+      "N3": 5,
+      "N4": 5,
+      "N5": 10,
+      "N_cpmk": 35
+    },
+    {
+      "kode": "CPMK 4-1",
+      "pernyataan": "Mahasiswa mampu mendokumentasikan dan mempresentasikan hasil perancangan serta pengujian sistem robot secara profesional.",
+      "mapping_cpl": "CPL4",
+      "N1": 5,
+      "N2": 0,
+      "N3": 0,
+      "N4": 0,
+      "N5": 10,
+      "N_cpmk": 15
+    }
+  ],
+  "minggu": [
+    {
+      "mingguKe": 1,
+      "kemampuanAkhir": "CPMK 1-1",
+      "bahanKajian": "Pengantar mekatronika dan robotika: definisi, klasifikasi, aplikasi industri, dan komponen dasar sistem robot.",
+      "metodePembelajaran": {
+        "metode": "TM Ceramah + Diskusi",
+        "deskripsi": "Dosen menyampaikan materi pengantar mekatronika dan robotika secara terstruktur disertai tayangan video robot industri dan sesi tanya jawab interaktif.",
+        "aktivitas": "Mahasiswa menyimak penjelasan, mencatat, berdiskusi kelompok tentang penerapan mekatronika di industri, dan mengidentifikasi komponen robot dari gambar teknik."
+      },
+      "waktu": "TM Ceramah 1x100'",
+      "pengalamanBelajar": "Mahasiswa memperoleh pemahaman konseptual tentang sistem mekatronika melalui studi kasus robot industri nyata, diskusi kelompok, dan analisis video demonstrasi robot yang digunakan di manufaktur modern.",
+      "penilaian": {
+        "kriteria": "Ketepatan identifikasi komponen mekatronika, kelengkapan analisis sistem, dan kemampuan menghubungkan konsep dengan aplikasi industri dalam diskusi kelas.",
+        "bobotMateri": 4
+      }
+    },
+    {
+      "mingguKe": 2,
+      "kemampuanAkhir": "CPMK 1-1",
+      "bahanKajian": "Kinematika dasar robot: sistem koordinat, transformasi homogen, forward kinematics, dan parameter Denavit-Hartenberg.",
+      "metodePembelajaran": {
+        "metode": "TM Ceramah + Problem Solving",
+        "deskripsi": "Dosen menyampaikan teori kinematika robot dengan menggunakan metode Denavit-Hartenberg, dilanjutkan latihan menghitung transformasi koordinat secara berkelompok.",
+        "aktivitas": "Mahasiswa mengerjakan soal kinematika, menghitung matriks transformasi homogen, dan mensimulasikan gerak robot lengan 2D menggunakan spreadsheet atau MATLAB online."
+      },
+      "waktu": "TM Ceramah 1x50', Latihan 1x50'",
+      "pengalamanBelajar": "Mahasiswa berlatih menghitung posisi end-effector robot menggunakan metode Denavit-Hartenberg, mengembangkan kemampuan analitis melalui pemecahan soal transformasi koordinat secara mandiri dan kolaboratif.",
+      "penilaian": {
+        "kriteria": "Kebenaran perhitungan kinematika, pemahaman transformasi koordinat, dan kemampuan menyelesaikan soal kinematika forward secara sistematis.",
+        "bobotMateri": 4
+      }
+    },
+    {
+      "mingguKe": 3,
+      "kemampuanAkhir": "CPMK 2-1",
+      "bahanKajian": "Sensor dalam mekatronika: sensor posisi (encoder, potensiometer), sensor jarak (ultrasonic, IR), sensor inertial (accelerometer, gyroscope).",
+      "metodePembelajaran": {
+        "metode": "TM Ceramah + Lab Demo",
+        "deskripsi": "Dosen menjelaskan prinsip kerja berbagai jenis sensor yang digunakan dalam sistem mekatronika, dilanjutkan dengan demonstrasi penggunaan sensor menggunakan kit Arduino di laboratorium.",
+        "aktivitas": "Mahasiswa mengamati demonstrasi, mencoba membaca data sensor dengan kode Arduino sederhana, dan membandingkan karakteristik berbagai sensor dalam lembar kerja praktikum."
+      },
+      "waktu": "TM Ceramah 1x50', Lab Demo 1x50'",
+      "pengalamanBelajar": "Mahasiswa memperoleh pengalaman langsung memanipulasi sensor elektronik, membaca spesifikasi datasheet, dan memahami prinsip konversi besaran fisik menjadi sinyal digital melalui eksperimen terpandu di laboratorium.",
+      "penilaian": {
+        "kriteria": "Kemampuan mengidentifikasi jenis sensor yang tepat untuk aplikasi, pemahaman prinsip kerja sensor, dan keberhasilan membaca data sensor melalui antarmuka Arduino.",
+        "bobotMateri": 5
+      }
+    },
+    {
+      "mingguKe": 4,
+      "kemampuanAkhir": "CPMK 2-1",
+      "bahanKajian": "Aktuator: motor DC, servo motor, stepper motor, pneumatik, dan driver motor (H-Bridge, L298N).",
+      "metodePembelajaran": {
+        "metode": "PBL - Praktikum Terpandu",
+        "deskripsi": "Mahasiswa mengerjakan praktikum kontrol motor secara mandiri menggunakan panduan PBL, dari pemasangan rangkaian hingga pemrograman kontrol kecepatan dan arah putaran.",
+        "aktivitas": "Mahasiswa merakit rangkaian driver motor, menulis kode kontrol PWM untuk motor DC, mengkalibrasi servo, dan menguji stepper motor dengan berbagai mode stepping."
+      },
+      "waktu": "PBL/Praktikum 2x100'",
+      "pengalamanBelajar": "Mahasiswa mengembangkan keterampilan hands-on dalam merakit dan memprogram aktuator elektromekanik, memahami hubungan antara sinyal kontrol digital dan respons fisik motor melalui eksperimen praktikum mandiri.",
+      "penilaian": {
+        "kriteria": "Keberhasilan kontrol motor sesuai spesifikasi, kualitas kode program, kerapian rangkaian, dan kemampuan troubleshooting masalah hardware-software.",
+        "bobotMateri": 5
+      }
+    },
+    {
+      "mingguKe": 5,
+      "kemampuanAkhir": "CPMK 3-1",
+      "bahanKajian": "Pemrograman Arduino untuk robotika: struktur program, I/O digital/analog, serial communication, dan library sensor.",
+      "metodePembelajaran": {
+        "metode": "CBL - Coding Workshop",
+        "deskripsi": "Workshop pemrograman berbasis coding challenge di mana mahasiswa menyelesaikan serangkaian tugas pemrograman Arduino dari level dasar ke menengah secara bertahap.",
+        "aktivitas": "Mahasiswa menyelesaikan 5 tantangan coding Arduino: LED control, sensor reading, servo control, sensor fusion, dan mini project integrasi semua komponen."
+      },
+      "waktu": "CBL/Praktikum 2x100'",
+      "pengalamanBelajar": "Mahasiswa mengasah kemampuan pemrograman mikrokontroler melalui coding challenge bertingkat, belajar debugging kode secara mandiri, dan mengintegrasikan berbagai library sensor dalam satu program terpadu.",
+      "penilaian": {
+        "kriteria": "Kelengkapan penyelesaian tantangan coding, kualitas dan efisiensi kode, kemampuan debugging, serta inovasi pada mini project integrasi.",
+        "bobotMateri": 6
+      }
+    },
+    {
+      "mingguKe": 6,
+      "kemampuanAkhir": "CPMK 3-1",
+      "bahanKajian": "Robot mobile: line follower, obstacle avoidance, PID control dasar untuk navigasi robot.",
+      "metodePembelajaran": {
+        "metode": "PjBL - Project Based",
+        "deskripsi": "Mahasiswa memulai proyek robot line follower dalam tim 3 orang menggunakan pendekatan PjBL, dari tahap perencanaan desain hingga implementasi awal rangkaian dan kode dasar.",
+        "aktivitas": "Tim mahasiswa merancang skematik robot line follower, memilih komponen, merakit chassis, memasang sensor IR array, dan mengimplementasikan algoritma line following dasar."
+      },
+      "waktu": "PjBL/Praktikum 2x100'",
+      "pengalamanBelajar": "Mahasiswa mengembangkan keterampilan kerja tim dalam merancang sistem robot mobile, memahami alur engineering design process dari konsep hingga prototipe fungsional, dan mendokumentasikan progres proyek.",
+      "penilaian": {
+        "kriteria": "Kualitas desain skematik, kemajuan perakitan robot, fungsionalitas kode line following dasar, dan efektivitas koordinasi tim proyek.",
+        "bobotMateri": 6
+      }
+    },
+    {
+      "mingguKe": 7,
+      "kemampuanAkhir": "CPMK 3-1",
+      "bahanKajian": "Implementasi PID control pada robot mobile: tuning parameter Kp, Ki, Kd, pengujian performa, dan optimasi lintasan.",
+      "metodePembelajaran": {
+        "metode": "PjBL - Project Workshop",
+        "deskripsi": "Workshop optimasi PID untuk robot line follower dengan pendampingan dosen, mahasiswa melakukan eksperimen tuning parameter dan menganalisis respons sistem menggunakan Serial Plotter.",
+        "aktivitas": "Tim mahasiswa melakukan eksperimen tuning PID secara sistematis, merekam data respons robot, menganalisis grafik error vs waktu, dan mendokumentasikan nilai PID optimal."
+      },
+      "waktu": "PjBL/Praktikum 2x100'",
+      "pengalamanBelajar": "Mahasiswa memperoleh pengalaman praktis tuning kontroler PID melalui eksperimen empiris, mengembangkan intuisi teknik dalam menganalisis respons sistem kontrol, dan memahami trade-off antara kecepatan dan stabilitas.",
+      "penilaian": {
+        "kriteria": "Performa robot line follower (kecepatan dan akurasi), kualitas dokumentasi eksperimen PID tuning, dan pemahaman terkait pengaruh masing-masing parameter PID.",
+        "bobotMateri": 6
+      }
+    },
+    {
+      "mingguKe": 8,
+      "kemampuanAkhir": "UTS",
+      "bahanKajian": "Ujian Tengah Semester",
+      "metodePembelajaran": {
+        "metode": "Ujian Tertulis + Praktik",
+        "deskripsi": "UTS terdiri dari dua bagian: ujian tertulis 60 menit mencakup teori kinematika, sensor-aktuator, dan pemrograman, serta ujian praktik 60 menit implementasi rangkaian dan kode sederhana.",
+        "aktivitas": "Mahasiswa mengerjakan soal tertulis analisis sistem mekatronika, kinematika robot, dan pemrograman, dilanjutkan ujian praktik merakit rangkaian sensor-aktuator dan memprogram fungsi tertentu."
+      },
+      "waktu": "UTS 2x60'",
+      "pengalamanBelajar": "Mahasiswa mengintegrasikan seluruh pemahaman teoritis dan praktis yang diperoleh selama setengah semester melalui soal analisis komprehensif dan demonstrasi kemampuan praktik mekatronika.",
+      "penilaian": {
+        "kriteria": "Jawaban tertulis mencakup kebenaran konsep, kemampuan analisis kasus, serta performa praktik: keberhasilan merakit rangkaian dan memprogram fungsi yang diminta.",
+        "bobotMateri": 20
+      }
+    },
+    {
+      "mingguKe": 9,
+      "kemampuanAkhir": "CPMK 3-1",
+      "bahanKajian": "Robot manipulator lengan: struktur kinematik, workspace, joint space vs task space, dan kontrol posisi end-effector.",
+      "metodePembelajaran": {
+        "metode": "TM Ceramah + Simulasi",
+        "deskripsi": "Dosen menjelaskan arsitektur robot manipulator lengan industridan mahasiswa melakukan simulasi gerak robot lengan 6-DOF menggunakan software simulasi online seperti ROS2 atau platform web berbasis WebGL.",
+        "aktivitas": "Mahasiswa menganalisis workspace robot lengan, mensimulasikan gerak joint, memprogram trajectory sederhana, dan membandingkan different kinematic configurations menggunakan simulator."
+      },
+      "waktu": "TM Ceramah 1x50', Simulasi 1x50'",
+      "pengalamanBelajar": "Mahasiswa memperoleh pemahaman konseptual dan visual tentang perilaku robot manipulator dalam berbagai konfigurasi joint melalui simulasi interaktif dan analisis workspace grafis.",
+      "penilaian": {
+        "kriteria": "Pemahaman konsep workspace dan kinematika manipulator, kemampuan mensimulasikan trajectory robot, dan analisis perbandingan konfigurasi kinematik dalam laporan singkat.",
+        "bobotMateri": 5
+      }
+    },
+    {
+      "mingguKe": 10,
+      "kemampuanAkhir": "CPMK 3-1",
+      "bahanKajian": "Pemrograman robot lengan 6-DOF: inverse kinematics praktis, servo control, dan pick-and-place task.",
+      "metodePembelajaran": {
+        "metode": "PBL - Lab Praktikum",
+        "deskripsi": "Praktikum pemrograman robot lengan dengan pendekatan PBL, mahasiswa menemukan solusi inverse kinematics praktis dan mengimplementasikan task pick-and-place pada robot lengan fisik di laboratorium.",
+        "aktivitas": "Mahasiswa memprogram gerak joint robot lengan, mengkalibrasi servo, mengimplementasikan sequence pick-and-place, dan menguji akurasi posisi end-effector menggunakan target berbeda."
+      },
+      "waktu": "PBL/Praktikum 2x100'",
+      "pengalamanBelajar": "Mahasiswa mengembangkan keterampilan pemrograman robot manipulator fisik, memahami tantangan implementasi nyata dibandingkan teori, dan merasakan kepuasan teknis ketika robot berhasil melakukan tugas pick-and-place secara autonomi.",
+      "penilaian": {
+        "kriteria": "Keberhasilan pick-and-place task (akurasi posisi dan repeatability), kualitas kode program, kemampuan kalibrasi servo, dan dokumentasi prosedur pengujian.",
+        "bobotMateri": 6
+      }
+    },
+    {
+      "mingguKe": 11,
+      "kemampuanAkhir": "CPMK 3-1",
+      "bahanKajian": "Computer vision dasar untuk robotika: OpenCV dengan Python/Arduino, image processing, object detection sederhana, dan color tracking.",
+      "metodePembelajaran": {
+        "metode": "CBL - Computer Vision Workshop",
+        "deskripsi": "Workshop computer vision dengan pendekatan CBL menggunakan library OpenCV, mahasiswa mengimplementasikan sistem pengenalan objek dan tracking warna untuk diintegrasikan dengan sistem robot.",
+        "aktivitas": "Mahasiswa mengimplementasikan pipeline kamera-deteksi-kontrol: capture frame, preprocessing, deteksi warna/kontur, kalkulasi koordinat objek, dan mengirim sinyal kontrol ke robot via serial."
+      },
+      "waktu": "CBL/Praktikum 2x100'",
+      "pengalamanBelajar": "Mahasiswa memperoleh pengalaman mengintegrasikan computer vision dengan sistem robot, memahami alur data dari kamera hingga sinyal kontrol aktuator, dan mengembangkan keterampilan pemrograman Python untuk aplikasi robotika.",
+      "penilaian": {
+        "kriteria": "Performa sistem deteksi objek (akurasi dan kecepatan), kualitas kode Python-OpenCV, keberhasilan integrasi vision dengan kontrol robot, dan kreativitas aplikasi yang dikembangkan.",
+        "bobotMateri": 6
+      }
+    },
+    {
+      "mingguKe": 12,
+      "kemampuanAkhir": "CPMK 3-1",
+      "bahanKajian": "Integrasi sistem: menggabungkan sensor, aktuator, kontrol, dan computer vision dalam proyek robot terpadu.",
+      "metodePembelajaran": {
+        "metode": "PjBL - Project Integration Sprint",
+        "deskripsi": "Sprint integrasi proyek akhir semester di mana tim mahasiswa menggabungkan seluruh subsistem robot (mekanik, elektronik, kontrol, vision) menjadi sistem robot yang fungsional penuh.",
+        "aktivitas": "Tim mahasiswa melakukan system integration testing, debugging antarmuka antar subsistem, optimasi performa, dan menyiapkan demo scenario untuk presentasi akhir."
+      },
+      "waktu": "PjBL/Praktikum 2x100'",
+      "pengalamanBelajar": "Mahasiswa mengalami tantangan dan pembelajaran otentik dari integrasi sistem kompleks, mengembangkan kemampuan system thinking, debugging lintas subsistem, dan manajemen proyek teknik dalam tim.",
+      "penilaian": {
+        "kriteria": "Tingkat integrasi sistem yang berhasil, fungsionalitas demo scenario, kualitas manajemen proyek tim, dan kemampuan troubleshooting masalah integrasi lintas subsistem.",
+        "bobotMateri": 5
+      }
+    },
+    {
+      "mingguKe": 13,
+      "kemampuanAkhir": "CPMK 4-1",
+      "bahanKajian": "Teknik penulisan laporan teknik dan dokumentasi proyek: struktur laporan, penulisan ilmiah, tabel spesifikasi, dan dokumentasi kode.",
+      "metodePembelajaran": {
+        "metode": "TM Workshop Penulisan",
+        "deskripsi": "Workshop penulisan laporan teknik yang mencakup struktur dokumen standar industri, cara mendokumentasikan desain sistem, menulis analisis data, dan mempersiapkan dokumentasi kode yang baik.",
+        "aktivitas": "Mahasiswa mereview contoh laporan teknik yang baik dan buruk, menyusun outline laporan proyek mereka, menulis bagian metodologi, dan saling mereview draft laporan antar tim."
+      },
+      "waktu": "TM Workshop 2x50'",
+      "pengalamanBelajar": "Mahasiswa mengembangkan kemampuan komunikasi teknis tertulis melalui workshop penulisan kooperatif, memahami standar dokumentasi industri, dan mendapatkan feedback peer-review untuk meningkatkan kualitas laporan.",
+      "penilaian": {
+        "kriteria": "Kualitas outline dan draft laporan, kemampuan mendeskripsikan sistem teknis secara tertulis, dan kontribusi review terhadap laporan tim lain.",
+        "bobotMateri": 3
+      }
+    },
+    {
+      "mingguKe": 14,
+      "kemampuanAkhir": "CPMK 4-1",
+      "bahanKajian": "Presentasi teknik dan demonstrasi proyek: teknik presentasi, persiapan demo, Q&A teknis, dan evaluasi peer.",
+      "metodePembelajaran": {
+        "metode": "PjBL - Presentasi & Demo",
+        "deskripsi": "Sesi presentasi dan demonstrasi proyek robot oleh setiap tim di hadapan dosen penguji dan teman sekelas, dilanjutkan sesi tanya jawab teknis dan evaluasi peer antar tim.",
+        "aktivitas": "Setiap tim mempresentasikan desain, implementasi, dan hasil uji robot selama 15 menit, melakukan demo live robot, menjawab pertanyaan teknis dari penguji, dan memberikan feedback terstruktur kepada tim lain."
+      },
+      "waktu": "PjBL Demo 2x100'",
+      "pengalamanBelajar": "Mahasiswa mengembangkan kemampuan komunikasi teknis verbal, kepercayaan diri dalam presentasi di hadapan audiens teknis, dan kemampuan memberikan serta menerima feedback konstruktif dalam lingkungan akademik profesional.",
+      "penilaian": {
+        "kriteria": "Kualitas presentasi (kejelasan, struktur, visual), performa demo robot (fungsionalitas, keandalan), kemampuan menjawab pertanyaan teknis, dan kontribusi feedback peer evaluation.",
+        "bobotMateri": 5
+      }
+    },
+    {
+      "mingguKe": 15,
+      "kemampuanAkhir": "CPMK 4-1",
+      "bahanKajian": "Review semester, refleksi pembelajaran, update teknologi robotika terkini, dan orientasi karir di bidang otomasi.",
+      "metodePembelajaran": {
+        "metode": "TM Diskusi + Guest Lecture",
+        "deskripsi": "Sesi review dan refleksi semester dengan diskusi pencapaian pembelajaran, dilanjutkan guest lecture dari praktisi industri otomasi tentang penerapan robotika di industri manufaktur Indonesia.",
+        "aktivitas": "Mahasiswa merefleksikan learning journey semester, berdiskusi tentang gap antara teori akademis dan praktik industri, mengajukan pertanyaan kepada praktisi, dan menyusun rencana pengembangan diri di bidang robotika."
+      },
+      "waktu": "TM Diskusi 1x50', Guest Lecture 1x50'",
+      "pengalamanBelajar": "Mahasiswa memperoleh perspektif industri tentang robotika modern dari praktisi berpengalaman, mengkonsolidasikan pemahaman semester, dan mengidentifikasi jalur karir serta skill yang perlu dikembangkan untuk industri otomasi.",
+      "penilaian": {
+        "kriteria": "Partisipasi aktif dalam diskusi refleksi, kualitas pertanyaan kepada guest lecturer, dan kelengkapan rencana pengembangan diri yang disusun.",
+        "bobotMateri": 3
+      }
+    },
+    {
+      "mingguKe": 16,
+      "kemampuanAkhir": "UAS",
+      "bahanKajian": "Ujian Akhir Semester",
+      "metodePembelajaran": {
+        "metode": "Ujian Komprehensif + Portfolio",
+        "deskripsi": "UAS terdiri dari ujian tertulis komprehensif mencakup seluruh materi semester dan penilaian portfolio proyek akhir yang merefleksikan seluruh kompetensi yang dicapai mahasiswa.",
+        "aktivitas": "Mahasiswa mengerjakan soal analisis sistem robotika komprehensif, dan menyerahkan laporan akhir proyek beserta kode sumber dan video demo robot yang telah dikembangkan sepanjang semester."
+      },
+      "waktu": "UAS 2x60', Portfolio Submission",
+      "pengalamanBelajar": "Mahasiswa mendemonstrasikan penguasaan komprehensif dalam mekatronika dan robotika melalui soal analisis mendalam dan portfolio proyek nyata yang menunjukkan integrase seluruh kompetensi yang telah dipelajari.",
+      "penilaian": {
+        "kriteria": "Ujian tertulis: kedalaman analisis dan kebenaran konsep; Portfolio: kualitas laporan akhir, kode program yang terdokumentasi baik, performa robot dalam video demo, dan refleksi pembelajaran.",
+        "bobotMateri": 20
+      }
+    }
+  ],
+  "referensi": [
+    "Craig, J.J. (2018). Introduction to Robotics: Mechanics and Control (4th ed.). Pearson Education.",
+    "Spong, M.W., Hutchinson, S., & Vidyasagar, M. (2020). Robot Modeling and Control (2nd ed.). Wiley.",
+    "Nise, N.S. (2019). Control Systems Engineering (8th ed.). Wiley.",
+    "Arduino.cc. (2024). Arduino Reference Manual. https://www.arduino.cc/reference/en/",
+    "Bradski, G., & Kaehler, A. (2019). Learning OpenCV 3: Computer Vision in C++ with the OpenCV Library. O'Reilly Media.",
+    "Siciliano, B., Sciavicco, L., Villani, L., & Oriolo, G. (2016). Robotics: Modelling, Planning and Control. Springer.",
+    "Corke, P. (2017). Robotics, Vision and Control: Fundamental Algorithms in MATLAB (2nd ed.). Springer.",
+    "Direktorat Jenderal Pendidikan Tinggi. (2020). Panduan Penyusunan RPS Berbasis OBE. Kemendikbud RI."
+  ]
+}

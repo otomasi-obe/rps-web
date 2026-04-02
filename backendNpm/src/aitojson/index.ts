@@ -29,6 +29,10 @@ export class AIToJSON {
   private client: OpenAI | null = null;
   private model: string;
 
+  public hasClient(): boolean {
+    return this.client !== null;
+  }
+
   constructor(apiKey?: string) {
     // Load environment variables from .env files
     dotenv.config();
@@ -69,10 +73,8 @@ export class AIToJSON {
           for (const line of lines) {
             const trimmed = line.trim();
             if (trimmed.startsWith('OPENAI_API_KEY=') && !trimmed.startsWith('#')) {
-              this.apiKey = trimmed
-                .split('=', 1)[1]
-                .trim()
-                .replace(/^["']|["']$/g, '');
+              const keyValue = trimmed.split('=').slice(1).join('=');
+              this.apiKey = keyValue.trim().replace(/^["']|["']$/g, '');
               if (this.apiKey) {
                 console.log(`✅ OpenAI API key loaded from ${envName}`);
                 return true;
@@ -541,6 +543,7 @@ Output JSON saja, tanpa markdown formatting atau penjelasan.`;
       console.log(`   - CPL: ${(rpsData.cpl || []).length} items`);
       console.log(`   - CPMK: ${(rpsData.cpmk || []).length} items`);
       console.log(`   - Minggu: ${(rpsData.minggu || []).length} weeks`);
+      console.log(`   - Penilaian: ${(rpsData.penilaian || []).length} components`);
       console.log(`   - Referensi: ${(rpsData.referensi || []).length} items`);
       return rpsData;
     } catch (error) {

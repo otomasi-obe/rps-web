@@ -1,0 +1,924 @@
+================================================================
+  VIOLA-RPS — Kumpulan Flowchart Lengkap (Mermaid)
+  Jenis-jenis Flowchart yang digunakan:
+  ┌───────────────────────────────────────────────────────────┐
+  │ 1. flowchart TD   → Top-Down (arsitektur, alur utama)    │
+  │ 2. flowchart LR   → Left-Right (data model, pipeline)    │
+  │ 3. flowchart TB   → Top-Bottom (sama seperti TD)         │
+  │ 4. sequenceDiagram → Sequence / interaksi antar komponen │
+  │ 5. stateDiagram-v2 → State machine (status generate)     │
+  └───────────────────────────────────────────────────────────┘
+================================================================
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ FLOWCHART 1 — ARSITEKTUR SISTEM KESELURUHAN
+ Jenis: flowchart TD (Top-Down)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+```mermaid
+flowchart TD
+    USER([👤 Pengguna / Dosen])
+
+    subgraph PUBLIC["🌐 PUBLIC ACCESS"]
+        NGINX["Nginx Reverse Proxy\nhttps://rps.otomasi.app"]
+    end
+
+    subgraph FRONTEND["🖥️ FRONTEND — Next.js 15 (Port 2000)"]
+        PAGE["Halaman Utama\n/page.tsx"]
+        EDITOR["RPSEditor Component"]
+        TABS["Tab Components\n(Identity / CPL / CPMK /\nWeeklyPlan / Assessment / References)"]
+        API_GEN["Next.js API Route\n/api/generate"]
+        API_EXP["Next.js API Route\n/api/export"]
+        LS["LocalStorage\nSave / Load JSON"]
+    end
+
+    subgraph BACKEND_NPM["⚙️ BACKEND NODE.JS (Port 2001)"]
+        EXPRESS["Express.js Server\nRPSAPIServer"]
+        MIDDLEWARE["Middleware\n(CORS / JSON / Logger)"]
+        ROUTE_GEN_NPM["POST /generate"]
+        ROUTE_EXP_NPM["POST /export"]
+        ROUTE_HEALTH_NPM["GET /health"]
+        AI2JSON_NPM["AIToJSON Class\n(aitojson/index.ts)"]
+        JSON2DOC_NPM["JSONToDocx Class\n(jsontodoc/converter.ts)"]
+    end
+
+    subgraph BACKEND_PY["🐍 BACKEND PYTHON (Port 2001 / fallback)"]
+        HTTP_PY["ThreadedHTTPServer\nRPSAPIHandler"]
+        ROUTE_GEN_PY["POST /generate"]
+        ROUTE_EXP_PY["POST /export"]
+        ROUTE_HEALTH_PY["GET /health"]
+        AI2JSON_PY["AIToJSON Class\n(ai_to_json.py)"]
+        JSON2DOC_PY["JSONToDocx\n(json_to_docx.py)"]
+    end
+
+    subgraph OPENAI["🤖 OpenAI API"]
+        GPT["GPT Model\ngpt-5-mini-2025-08-07"]
+    end
+
+    subgraph PM2["🔄 PM2 Process Manager"]
+        PM2_FE["rps-frontend\n:2000"]
+        PM2_BE["rps-backend\n:2001"]
+    end
+
+    subgraph STORAGE["💾 Storage"]
+        ENV[".env\nOPENAI_API_KEY"]
+        LOGS["logs/\nRequest & Export Logs"]
+        DOCX_OUT["DOCX Output\n(download buffer)"]
+        JSON_SAVE["JSON Export History\n(logs/)"]
+    end
+
+    USER -->|HTTPS| NGINX
+    NGINX -->|proxy_pass :2000| PM2_FE
+    PM2_FE --> FRONTEND
+    PM2_BE --> BACKEND_NPM
+
+    PAGE --> EDITOR
+    EDITOR --> TABS
+    EDITOR -->|POST /api/generate| API_GEN
+    EDITOR -->|POST /api/export| API_EXP
+    EDITOR <-->|Save/Load| LS
+
+    API_GEN -->|POST /generate| EXPRESS
+    API_EXP -->|POST /export| EXPRESS
+
+    EXPRESS --> MIDDLEWARE
+    MIDDLEWARE --> ROUTE_GEN_NPM
+    MIDDLEWARE --> ROUTE_EXP_NPM
+    MIDDLEWARE --> ROUTE_HEALTH_NPM
+
+    ROUTE_GEN_NPM --> AI2JSON_NPM
+    ROUTE_EXP_NPM --> JSON2DOC_NPM
+
+    AI2JSON_NPM -->|API Call| GPT
+    GPT -->|JSON Response| AI2JSON_NPM
+    AI2JSON_NPM --> ROUTE_GEN_NPM
+
+    JSON2DOC_NPM --> DOCX_OUT
+
+    EXPRESS --> LOGS
+    JSON2DOC_NPM --> JSON_SAVE
+
+    ENV -->|Load API Key| AI2JSON_NPM
+    ENV -->|Load API Key| AI2JSON_PY
+
+    style PUBLIC fill:#e8f4fd,stroke:#2196F3
+    style FRONTEND fill:#e8f5e9,stroke:#4CAF50
+    style BACKEND_NPM fill:#fff3e0,stroke:#FF9800
+    style BACKEND_PY fill:#fce4ec,stroke:#E91E63
+    style OPENAI fill:#f3e5f5,stroke:#9C27B0
+    style PM2 fill:#e0f2f1,stroke:#009688
+    style STORAGE fill:#fafafa,stroke:#9E9E9E
+```
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ FLOWCHART 2 — ALUR PENGGUNA DI FRONTEND (User Journey)
+ Jenis: flowchart TD (Top-Down)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+```mermaid
+flowchart TD
+    START([🚀 Buka Aplikasi\nrps.otomasi.app])
+    LOAD_LS{LocalStorage\nada data tersimpan?}
+    RESTORE["Restore Data dari LocalStorage"]
+    EMPTY["Form Kosong\n(createEmptyRPS)"]
+    EDITOR["Tampil RPSEditor\ndengan 6 Tab"]
+
+    subgraph TABS_UI["📋 Tab Navigasi"]
+        T1["Tab 1: Identitas MK\n(kode, nama, SKS, semester)"]
+        T2["Tab 2: CPL\n(Capaian Pembelajaran Lulusan)"]
+        T3["Tab 3: CPMK\n(Capaian Pembelajaran MK)"]
+        T4["Tab 4: Rencana Mingguan\n(16 minggu)"]
+        T5["Tab 5: Penilaian\n(Assessment)"]
+        T6["Tab 6: Referensi"]
+    end
+
+    subgraph GEN_ACTIONS["🤖 Aksi Generate AI"]
+        GEN_FULL["Generate RPS Penuh\n(1 klik semua field)"]
+        GEN_CPL["Generate CPL Saja"]
+        GEN_CPMK["Generate CPMK Saja"]
+        GEN_WEEKLY["Generate Rencana Mingguan Saja"]
+        GEN_REF["Generate Referensi Saja"]
+    end
+
+    subgraph MANUAL["✏️ Input Manual"]
+        EDIT_TABS["Edit Data di Tiap Tab"]
+    end
+
+    subgraph ACTIONS["💾 Aksi Utama"]
+        SAVE_JSON["Save JSON\n(ke LocalStorage)"]
+        LOAD_JSON["Load JSON\n(dari file / LocalStorage)"]
+        EXPORT_DOCX["Export DOCX\n(Download Word)"]
+    end
+
+    LOADING["⏳ Loading / Progress Bar"]
+    SUCCESS["✅ Success Notification"]
+    ERROR["❌ Error Notification"]
+
+    START --> LOAD_LS
+    LOAD_LS -->|Ya| RESTORE
+    LOAD_LS -->|Tidak| EMPTY
+    RESTORE --> EDITOR
+    EMPTY --> EDITOR
+
+    EDITOR --> T1
+    EDITOR --> T2
+    EDITOR --> T3
+    EDITOR --> T4
+    EDITOR --> T5
+    EDITOR --> T6
+
+    T1 & T2 & T3 & T4 & T5 & T6 --> MANUAL
+    MANUAL --> EDIT_TABS
+
+    EDITOR --> GEN_FULL
+    EDITOR --> GEN_CPL
+    EDITOR --> GEN_CPMK
+    EDITOR --> GEN_WEEKLY
+    EDITOR --> GEN_REF
+
+    GEN_FULL & GEN_CPL & GEN_CPMK & GEN_WEEKLY & GEN_REF --> LOADING
+    LOADING -->|Berhasil| SUCCESS
+    LOADING -->|Gagal| ERROR
+    SUCCESS --> EDITOR
+    ERROR --> EDITOR
+
+    EDITOR --> SAVE_JSON
+    EDITOR --> LOAD_JSON
+    EDITOR --> EXPORT_DOCX
+
+    SAVE_JSON -->|Auto-save tiap perubahan| EDITOR
+    EXPORT_DOCX --> LOADING
+
+    style TABS_UI fill:#e8f5e9,stroke:#4CAF50
+    style GEN_ACTIONS fill:#e3f2fd,stroke:#2196F3
+    style MANUAL fill:#fff8e1,stroke:#FFC107
+    style ACTIONS fill:#f3e5f5,stroke:#9C27B0
+```
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ FLOWCHART 3 — ALUR GENERATE RPS LENGKAP (AI Full Generate)
+ Jenis: flowchart TD (Top-Down)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+```mermaid
+flowchart TD
+    START(["👤 User klik\n'Generate RPS Lengkap'"])
+
+    subgraph FRONTEND_STEP["🖥️ Frontend — RPSEditor.tsx"]
+        VALIDATE_FE{"Nama MK\nterisi?"}
+        ERR_FE["Tampilkan Error:\n'Nama mata kuliah harus diisi'"]
+        SET_LOADING["Set isGenerating = true\nTampilkan ProgressBar"]
+        BUILD_REQ["Bangun Request Body:\n{type:'full', identitas,\njenisMK, additionalContext}"]
+        FETCH_GEN["POST /api/generate\n(max 280 detik timeout)"]
+    end
+
+    subgraph NEXTJS_API["📡 Next.js API Route\n/api/generate/route.ts"]
+        PARSE_REQ["Parse & Validasi Request"]
+        MAP_REQ["Map ke format Backend:\n{courseName, courseCode,\nsks, semester, status,\nprereq, additionalContext}"]
+        FETCH_BE["POST ke Backend\n:2001/generate\n(280s timeout)"]
+        PARSE_RESP["Parse Response JSON"]
+    end
+
+    subgraph BACKEND_GEN["⚙️ Backend Node.js — apiserver/index.ts"]
+        RECV_REQ["Terima POST /generate"]
+        INIT_AI{"AI Generator\nsudah init?"}
+        CREATE_AI["Buat AIToJSON instance\nLoad API Key"]
+        CHECK_KEY{"API Key\ntersedia?"}
+        ERR_KEY["Throw Error:\n'No OpenAI client available'"]
+        DISPATCH{"generateType =?"}
+        GEN_FULL_BE["generateRpsJson()\n→ Full RPS"]
+        GEN_CPL_BE["generateCPL()"]
+        GEN_CPMK_BE["generateCPMK()"]
+        GEN_WEEKLY_BE["generateWeeklyPlan()"]
+        GEN_REF_BE["generateReferences()"]
+    end
+
+    subgraph AI_FLOW["🤖 AIToJSON — aitojson/index.ts"]
+        BUILD_PROMPT["Build Prompt:\n• Nama, Kode, SKS\n• Semester, Status, Prasyarat\n• Konteks Tambahan\n• Format JSON yang diharapkan"]
+        CALL_OPENAI["OpenAI API Call\ngpt-5-mini-2025-08-07\n(timeout 10 menit)"]
+        RECV_AI["Terima Response dari OpenAI"]
+        PARSE_JSON["Parse JSON dari response\n(clean markdown artifacts)"]
+        VALIDATE_JSON{"JSON valid\n& lengkap?"}
+        RETRY["Retry / Log Error"]
+        RETURN_JSON["Return RPSData JSON"]
+    end
+
+    subgraph RESPONSE_STEP["📤 Response ke Frontend"]
+        NORM_DATA["normalizeRpsData()\nMapping fields backward-compat"]
+        UPDATE_STATE["setRpsData(normalizedData)"]
+        SAVE_LS["Auto-save ke LocalStorage"]
+        CLEAR_LOADING["Set isGenerating = false"]
+        SHOW_SUCCESS["Tampilkan: ✅ RPS berhasil digenerate!"]
+    end
+
+    START --> VALIDATE_FE
+    VALIDATE_FE -->|Tidak| ERR_FE
+    VALIDATE_FE -->|Ya| SET_LOADING
+    SET_LOADING --> BUILD_REQ
+    BUILD_REQ --> FETCH_GEN
+
+    FETCH_GEN --> PARSE_REQ
+    PARSE_REQ --> MAP_REQ
+    MAP_REQ --> FETCH_BE
+
+    FETCH_BE --> RECV_REQ
+    RECV_REQ --> INIT_AI
+    INIT_AI -->|Belum| CREATE_AI
+    CREATE_AI --> CHECK_KEY
+    CHECK_KEY -->|Tidak ada| ERR_KEY
+    CHECK_KEY -->|Ada| DISPATCH
+    INIT_AI -->|Sudah| DISPATCH
+
+    DISPATCH -->|full| GEN_FULL_BE
+    DISPATCH -->|cpl| GEN_CPL_BE
+    DISPATCH -->|cpmk| GEN_CPMK_BE
+    DISPATCH -->|weeklyPlan| GEN_WEEKLY_BE
+    DISPATCH -->|references| GEN_REF_BE
+
+    GEN_FULL_BE & GEN_CPL_BE & GEN_CPMK_BE & GEN_WEEKLY_BE & GEN_REF_BE --> BUILD_PROMPT
+    BUILD_PROMPT --> CALL_OPENAI
+    CALL_OPENAI --> RECV_AI
+    RECV_AI --> PARSE_JSON
+    PARSE_JSON --> VALIDATE_JSON
+    VALIDATE_JSON -->|Tidak| RETRY
+    RETRY --> CALL_OPENAI
+    VALIDATE_JSON -->|Ya| RETURN_JSON
+
+    RETURN_JSON --> PARSE_RESP
+    PARSE_RESP --> NORM_DATA
+    NORM_DATA --> UPDATE_STATE
+    UPDATE_STATE --> SAVE_LS
+    SAVE_LS --> CLEAR_LOADING
+    CLEAR_LOADING --> SHOW_SUCCESS
+
+    style FRONTEND_STEP fill:#e8f5e9,stroke:#4CAF50
+    style NEXTJS_API fill:#e3f2fd,stroke:#2196F3
+    style BACKEND_GEN fill:#fff3e0,stroke:#FF9800
+    style AI_FLOW fill:#f3e5f5,stroke:#9C27B0
+    style RESPONSE_STEP fill:#e0f2f1,stroke:#009688
+```
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ FLOWCHART 4 — ALUR EXPORT DOCX
+ Jenis: flowchart TD (Top-Down)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+```mermaid
+flowchart TD
+    START(["👤 User klik\n'Export DOCX'"])
+
+    subgraph FE_EXP["🖥️ Frontend — RPSEditor.tsx"]
+        SET_EXP["Set isExporting = true"]
+        BUILD_EXP["Bangun Export Payload:\n{rpsData: RPSData, meta: Metadata}"]
+        FETCH_EXP["POST /api/export\n(120 detik timeout)"]
+        RECV_BLOB["Terima Blob (DOCX binary)"]
+        CREATE_URL["createObjectURL(blob)"]
+        TRIGGER_DL["Trigger Download:\n<a href=url download='RPS_NamaMK.docx'>"]
+        CLEAR_EXP["Set isExporting = false"]
+        SUCCESS_EXP["✅ File berhasil diunduh"]
+    end
+
+    subgraph NEXTJS_EXP["📡 Next.js API Route\n/api/export/route.ts"]
+        PARSE_EXP["Parse {rpsData, meta}"]
+        VALIDATE_EXP{"rpsData\nada?"}
+        ERR_MISS["Return 400:\n'RPS data is required'"]
+        SAVE_LOG["saveExportJSON()\nSimpan ke logs/"]
+        MERGE_META["Merge Metadata:\nDefault + incoming meta\n(koordinatorMK, GPM,\nketuaProdi, dekan)"]
+        MAP_PY["Convert ke Python format:\n• identitas, otoritas\n• cpl[], cpmk[], ik[]\n• minggu[], referensi[]"]
+        POST_PY["POST :2001/export\n{rps_data, meta}"]
+        RECV_B64["Terima base64 DOCX"]
+        DECODE_B64["Buffer.from(base64_str, 'base64')"]
+        RETURN_BLOB["Return NextResponse\nContent-Type: application/vnd.openxmlformats...\nContent-Disposition: attachment"]
+    end
+
+    subgraph PY_EXP["🐍 Backend Python\n/export handler"]
+        RECV_PY["Terima {rps_data, meta}"]
+        INIT_DOCX["Init JSONToDocx\nLoad template .docx"]
+        FILL_IDENT["Isi Halaman Identitas:\n• Nama, Kode, SKS\n• Semester, Status\n• Prasyarat"]
+        FILL_OTH["Isi Otoritas:\n• Koordinator MK\n• Koordinator GPM\n• Ketua Prodi, Dekan"]
+        FILL_CPL["Isi Tabel CPL"]
+        FILL_IK["Isi Tabel IK\n(Indikator Kinerja)"]
+        FILL_CPMK["Isi Tabel CPMK\n+ Bobot Penilaian (N1-N5)"]
+        PRUNE_COL["Hapus Kolom CPMK Berlebih\n(prune_unused_cpmk_columns)"]
+        FILL_MINGGU["Isi Tabel Rencana Mingguan\n(16 minggu: 14 pertemuan + UTS + UAS)"]
+        FILL_REF["Isi Tabel Referensi"]
+        SAVE_DOCX["Save ke temp file"]
+        ENCODE_B64["Encode DOCX → base64"]
+        RETURN_PY["Return {docx: base64_string, filename}"]
+    end
+
+    START --> SET_EXP
+    SET_EXP --> BUILD_EXP
+    BUILD_EXP --> FETCH_EXP
+
+    FETCH_EXP --> PARSE_EXP
+    PARSE_EXP --> VALIDATE_EXP
+    VALIDATE_EXP -->|Tidak| ERR_MISS
+    VALIDATE_EXP -->|Ya| SAVE_LOG
+    SAVE_LOG --> MERGE_META
+    MERGE_META --> MAP_PY
+    MAP_PY --> POST_PY
+
+    POST_PY --> RECV_PY
+    RECV_PY --> INIT_DOCX
+    INIT_DOCX --> FILL_IDENT
+    FILL_IDENT --> FILL_OTH
+    FILL_OTH --> FILL_CPL
+    FILL_CPL --> FILL_IK
+    FILL_IK --> FILL_CPMK
+    FILL_CPMK --> PRUNE_COL
+    PRUNE_COL --> FILL_MINGGU
+    FILL_MINGGU --> FILL_REF
+    FILL_REF --> SAVE_DOCX
+    SAVE_DOCX --> ENCODE_B64
+    ENCODE_B64 --> RETURN_PY
+
+    RETURN_PY --> RECV_B64
+    RECV_B64 --> DECODE_B64
+    DECODE_B64 --> RETURN_BLOB
+
+    RETURN_BLOB --> RECV_BLOB
+    RECV_BLOB --> CREATE_URL
+    CREATE_URL --> TRIGGER_DL
+    TRIGGER_DL --> CLEAR_EXP
+    CLEAR_EXP --> SUCCESS_EXP
+
+    style FE_EXP fill:#e8f5e9,stroke:#4CAF50
+    style NEXTJS_EXP fill:#e3f2fd,stroke:#2196F3
+    style PY_EXP fill:#fce4ec,stroke:#E91E63
+```
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ FLOWCHART 5 — DATA MODEL / STRUKTUR DATA RPS
+ Jenis: flowchart LR (Left-Right / Data Model)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+```mermaid
+flowchart LR
+    RPS["📄 RPSData\n(root)"]
+
+    subgraph ID_BLK["Identitas"]
+        IDENT["Identitas\n• kode: string\n• nama: string\n• sks: number\n• semester: number\n• status: string\n• prasyarat: string"]
+    end
+
+    subgraph INST_BLK["Institusi"]
+        INST["Institusi\n• programStudi\n• fakultas\n• universitas"]
+    end
+
+    subgraph OTH_BLK["Otoritas"]
+        OTOR["Otoritas"]
+        P1["Personil\nkoordinatorMK\n(nama, nip, jabatan)"]
+        P2["Personil\nkoordinatorGPM"]
+        P3["Personil\nketuaProdi"]
+        P4["Personil\ndekan"]
+        OTOR --> P1
+        OTOR --> P2
+        OTOR --> P3
+        OTOR --> P4
+    end
+
+    subgraph CPL_BLK["CPL — Array"]
+        CPL["CPL[]\n• kode: 'CPL 3'\n• pernyataan: string"]
+    end
+
+    subgraph IK_BLK["IK — Array"]
+        IK["IK[]\n• kode: 'IK 3-1'\n• pernyataan: string\n• mapping_cpl: 'CPL 3'\n• mapping_cpmk: 'CPMK 3-1'"]
+    end
+
+    subgraph CPMK_BLK["CPMK — Array"]
+        CPMK["CPMK[]\n• kode: 'CPMK 3-1'\n• pernyataan: string\n• mapping_cpl: 'CPL 3'\n• N1: partisipatif 20%\n• N2: PBL/CBL 30%\n• N3: kuis 10%\n• N4: UTS 20%\n• N5: UAS 20%\n• N_cpmk: total bobot"]
+    end
+
+    subgraph MINGGU_BLK["Rencana Mingguan — Array 16 minggu"]
+        MINGGU["Minggu[]\n• mingguKe: 1-16\n• kemampuanAkhir: CPMK/UTS/UAS\n• bahanKajian: string\n• metodePembelajaran:\n  - metode: TM SCL/CBL/PBL/PjBL\n  - deskripsi: string (min 5 kata)\n  - aktivitas: string (min 5 kata)\n• waktu: string\n• pengalamanBelajar: string\n• penilaian:\n  - kriteria: string\n  - bobotMateri: number"]
+    end
+
+    subgraph REF_BLK["Referensi — Array"]
+        REF["Referensi[]\nstring[]"]
+    end
+
+    subgraph DESC_BLK["Deskripsi"]
+        DESC["deskripsi: string\n(3-5 kalimat)\n\ndeskripsiSingkat: string"]
+    end
+
+    RPS --> ID_BLK
+    RPS --> INST_BLK
+    RPS --> OTH_BLK
+    RPS --> DESC_BLK
+    RPS --> CPL_BLK
+    RPS --> IK_BLK
+    RPS --> CPMK_BLK
+    RPS --> MINGGU_BLK
+    RPS --> REF_BLK
+
+    CPL_BLK -->|"kodeCPL ↔ mapping_cpl"| IK_BLK
+    CPL_BLK -->|"kodeCPL ↔ mapping_cpl"| CPMK_BLK
+    CPMK_BLK -->|"kode ↔ mapping_cpmk"| IK_BLK
+    CPMK_BLK -->|"kode ↔ kemampuanAkhir"| MINGGU_BLK
+
+    style ID_BLK fill:#e8f5e9,stroke:#4CAF50
+    style INST_BLK fill:#e3f2fd,stroke:#2196F3
+    style OTH_BLK fill:#fff3e0,stroke:#FF9800
+    style CPL_BLK fill:#f3e5f5,stroke:#9C27B0
+    style IK_BLK fill:#fce4ec,stroke:#E91E63
+    style CPMK_BLK fill:#e0f7fa,stroke:#00BCD4
+    style MINGGU_BLK fill:#f1f8e9,stroke:#8BC34A
+    style REF_BLK fill:#fafafa,stroke:#9E9E9E
+    style DESC_BLK fill:#fff8e1,stroke:#FFC107
+```
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ FLOWCHART 6 — PEMILIHAN TIPE GENERATE (Partial Generate)
+ Jenis: flowchart LR (Left-Right)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+```mermaid
+flowchart LR
+    INPUT["Input: type\n(dari Frontend)"]
+
+    D1{type = ?}
+
+    subgraph FULL["full"]
+        F1["generateRpsJson()\n↓\nBuat prompt lengkap:\ndeskripsi + cpl + ik\n+ cpmk + minggu\n+ referensi"]
+        F1_OUT["RPSData lengkap\n(semua field)"]
+    end
+
+    subgraph DESC["description"]
+        D2["generateDescription()\n↓\nPrompt:\nDeskripsikan MK\ndalam 3-5 kalimat"]
+        D2_OUT["{deskripsi: string}"]
+    end
+
+    subgraph CPL_T["cpl"]
+        C1["generateCPL()\n↓\nPrompt:\nDaftar CPL relevan\nuntuk MK ini"]
+        C1_OUT["{cpl: CPL[],\nik: IK[]}"]
+    end
+
+    subgraph CPMK_T["cpmk"]
+        CK1["generateCPMK()\n↓\nPrompt:\nBuat CPMK dari CPL\nyang sudah ada"]
+        CK1_OUT["{cpmk: CPMK[]}"]
+    end
+
+    subgraph WEEKLY["weeklyPlan"]
+        W1["generateWeeklyPlan()\n↓\nPrompt:\n16 minggu pembelajaran\n(termasuk UTS & UAS)"]
+        W1_OUT["{minggu: Minggu[16]}"]
+    end
+
+    subgraph REFS["references"]
+        R1["generateReferences()\n↓\nPrompt:\nDaftar buku/jurnal\nrelevan"]
+        R1_OUT["{referensi: string[]}"]
+    end
+
+    MERGE["Merge ke RPSData\n(update state di Frontend)"]
+
+    INPUT --> D1
+    D1 -->|full| FULL
+    D1 -->|description| DESC
+    D1 -->|cpl| CPL_T
+    D1 -->|cpmk| CPMK_T
+    D1 -->|weeklyPlan| WEEKLY
+    D1 -->|references| REFS
+
+    F1 --> F1_OUT
+    D2 --> D2_OUT
+    C1 --> C1_OUT
+    CK1 --> CK1_OUT
+    W1 --> W1_OUT
+    R1 --> R1_OUT
+
+    F1_OUT & D2_OUT & C1_OUT & CK1_OUT & W1_OUT & R1_OUT --> MERGE
+
+    style FULL fill:#f3e5f5,stroke:#9C27B0
+    style DESC fill:#e8f5e9,stroke:#4CAF50
+    style CPL_T fill:#e3f2fd,stroke:#2196F3
+    style CPMK_T fill:#fff3e0,stroke:#FF9800
+    style WEEKLY fill:#fce4ec,stroke:#E91E63
+    style REFS fill:#e0f7fa,stroke:#00BCD4
+```
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ FLOWCHART 7 — ALUR LOAD API KEY (OpenAI Auth)
+ Jenis: flowchart TD (Top-Down)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+```mermaid
+flowchart TD
+    START(["AIToJSON Constructor\ndipanggil"])
+
+    CHECK_ENV{"1. Env Var\nOPENAI_API_KEY\nada?"}
+    USE_ENV["✅ Gunakan dari\nenvironment variable"]
+
+    CHECK_DOTENV{".env atau\n.env.local\nada di direktori?"}
+    PARSE_FILE["Parse file baris-per-baris\ncari OPENAI_API_KEY=..."]
+    FOUND_FILE{"Key\nditemukan?"}
+    USE_FILE["✅ Gunakan dari\nfile .env / .env.local"]
+
+    CHECK_TXT{"api_openai.txt\nada?"}
+    USE_TXT["✅ Gunakan dari\napi_openai.txt"]
+
+    ERR_NOKEY["❌ API Key tidak ditemukan\nclient = null\nhasClient() = false"]
+
+    INIT_CLIENT["Buat OpenAI Client\n(timeout: 10 menit)"]
+    READY["🟢 AIToJSON siap\nhasClient() = true"]
+
+    CHECK_REQ{"Saat /generate\ndipanggil"}
+    ERR_REQ["Throw Error:\n'No OpenAI client available'"]
+    DO_GEN["Lanjut Generate"]
+
+    START --> CHECK_ENV
+    CHECK_ENV -->|Ya| USE_ENV
+    CHECK_ENV -->|Tidak| CHECK_DOTENV
+
+    CHECK_DOTENV -->|Ada| PARSE_FILE
+    PARSE_FILE --> FOUND_FILE
+    FOUND_FILE -->|Ya| USE_FILE
+    FOUND_FILE -->|Tidak| CHECK_TXT
+
+    CHECK_DOTENV -->|Tidak ada| CHECK_TXT
+    CHECK_TXT -->|Ada| USE_TXT
+    CHECK_TXT -->|Tidak ada| ERR_NOKEY
+
+    USE_ENV & USE_FILE & USE_TXT --> INIT_CLIENT
+    INIT_CLIENT --> READY
+
+    READY --> CHECK_REQ
+    ERR_NOKEY --> CHECK_REQ
+    CHECK_REQ -->|hasClient = false| ERR_REQ
+    CHECK_REQ -->|hasClient = true| DO_GEN
+
+    style ERR_NOKEY fill:#ffcdd2,stroke:#f44336
+    style READY fill:#c8e6c9,stroke:#4CAF50
+    style ERR_REQ fill:#ffcdd2,stroke:#f44336
+    style DO_GEN fill:#c8e6c9,stroke:#4CAF50
+```
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ FLOWCHART 8 — SERVER MANAGER (server.sh dengan PM2)
+ Jenis: flowchart TD (Top-Down)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+```mermaid
+flowchart TD
+    START(["bash server.sh\n[opsional: argumen 1-4]"])
+
+    ARG{"Argumen\npassed?"}
+    MENU["Tampilkan Menu Interaktif"]
+    READ_OPT["Baca pilihan user"]
+
+    OPT{Pilihan = ?}
+
+    subgraph OPT1["Opsi 1 — Start NPM Backend + Frontend"]
+        BUILD_NPM["cd backendNpm && npm run build\n(TypeScript → JS)"]
+        START_BE["pm2 start\nrps-backend\n:2001"]
+        START_FE["pm2 start\nrps-frontend\n:2000"]
+        HEALTH["Cek Health Check\ncurl :2001/health\ncurl :2000"]
+        OK1["✅ Semua berjalan"]
+    end
+
+    subgraph OPT2["Opsi 2 — Stop Kill All (Force)"]
+        KILL_ALL["pm2 delete rps-backend\npm2 delete rps-frontend"]
+        OK2["✅ Semua proses dihentikan"]
+    end
+
+    subgraph OPT3["Opsi 3 — Stop Graceful"]
+        STOP_ALL["pm2 stop rps-backend\npm2 stop rps-frontend"]
+        OK3["✅ Stop graceful"]
+    end
+
+    subgraph OPT4["Opsi 4 — Status & Health Check"]
+        PM2_LIST["pm2 list"]
+        CHECK_PORTS["Cek Port :2000 & :2001\n(ss -tln)"]
+        CHECK_NGINX["Cek Nginx Status"]
+        CURL_HEALTH["curl /health backend\ncurl frontend"]
+        STATUS_OK["Tampilkan Status Report"]
+    end
+
+    ENV_CHECK["Load .env\n(OPENAI_API_KEY, PORT, dll)"]
+
+    START --> ENV_CHECK
+    ENV_CHECK --> ARG
+    ARG -->|Ada| OPT
+    ARG -->|Tidak ada| MENU
+    MENU --> READ_OPT
+    READ_OPT --> OPT
+
+    OPT -->|1| OPT1
+    OPT -->|2| OPT2
+    OPT -->|3| OPT3
+    OPT -->|4| OPT4
+
+    BUILD_NPM --> START_BE
+    START_BE --> START_FE
+    START_FE --> HEALTH
+    HEALTH --> OK1
+
+    KILL_ALL --> OK2
+    STOP_ALL --> OK3
+
+    PM2_LIST --> CHECK_PORTS
+    CHECK_PORTS --> CHECK_NGINX
+    CHECK_NGINX --> CURL_HEALTH
+    CURL_HEALTH --> STATUS_OK
+
+    style OPT1 fill:#e8f5e9,stroke:#4CAF50
+    style OPT2 fill:#ffcdd2,stroke:#f44336
+    style OPT3 fill:#fff3e0,stroke:#FF9800
+    style OPT4 fill:#e3f2fd,stroke:#2196F3
+```
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ FLOWCHART 9 — SEQUENCE DIAGRAM: Full Interaksi Antar Layer
+ Jenis: sequenceDiagram
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+```mermaid
+sequenceDiagram
+    actor User as 👤 User / Dosen
+    participant FE as 🖥️ Frontend<br/>Next.js :2000
+    participant LS as 💾 LocalStorage
+    participant GEN_API as 📡 /api/generate<br/>Next.js Route
+    participant EXP_API as 📡 /api/export<br/>Next.js Route
+    participant BE as ⚙️ Backend Node.js<br/>:2001
+    participant OAI as 🤖 OpenAI API
+    participant DOCX as 📄 DOCX Template
+
+    User->>FE: Buka Aplikasi
+    FE->>LS: Cek data tersimpan
+    LS-->>FE: RPSData (jika ada)
+    FE-->>User: Tampilkan Form RPSEditor
+
+    Note over User,FE: Fase 1: Generate AI
+
+    User->>FE: Klik "Generate RPS Lengkap"
+    FE->>GEN_API: POST /api/generate<br/>{type:'full', identitas, jenisMK}
+    GEN_API->>BE: POST :2001/generate<br/>{courseName, courseCode, sks, ...}
+    BE->>OAI: Chat Completion Request<br/>(prompt + JSON schema)
+    OAI-->>BE: JSON Response (RPSData)
+    BE-->>GEN_API: {deskripsi, cpl, cpmk, ik, minggu, referensi}
+    GEN_API-->>FE: Normalized RPSData
+    FE->>LS: Auto-save RPSData
+    FE-->>User: ✅ Tampilkan data di Form
+
+    Note over User,FE: Fase 2: Edit Manual
+
+    User->>FE: Edit data di Tab (CPL/CPMK/dll)
+    FE->>LS: Auto-save setiap perubahan
+    FE-->>User: Update tampilan real-time
+
+    Note over User,FE: Fase 3: Export DOCX
+
+    User->>FE: Klik "Download DOCX"
+    FE->>EXP_API: POST /api/export<br/>{rpsData, meta}
+    EXP_API->>EXP_API: Merge Meta + Defaults
+    EXP_API->>BE: POST :2001/export<br/>{rps_data, meta}
+    BE->>DOCX: Load template .docx
+    DOCX-->>BE: Template loaded
+    BE->>BE: Fill tabel (CPL, IK, CPMK,<br/>Minggu, Referensi)
+    BE->>BE: Encode DOCX → base64
+    BE-->>EXP_API: {docx: base64, filename}
+    EXP_API->>EXP_API: decode base64 → Buffer
+    EXP_API-->>FE: Blob (application/vnd.openxmlformats...)
+    FE->>FE: createObjectURL(blob)
+    FE-->>User: 🔽 Download RPS_NamaMK.docx
+```
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ FLOWCHART 10 — STATE MACHINE: Status Generate
+ Jenis: stateDiagram-v2
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+```mermaid
+stateDiagram-v2
+    [*] --> Idle : Aplikasi dibuka
+
+    Idle --> WaitingInput : User membuka form
+
+    state WaitingInput {
+        [*] --> FormKosong : createEmptyRPS()
+        FormKosong --> FormTerisi : User mengetik / load JSON
+        FormTerisi --> FormTerisi : Edit tiap field
+    }
+
+    WaitingInput --> Generating : Klik "Generate AI"
+
+    state Generating {
+        [*] --> SendingRequest : POST /api/generate
+        SendingRequest --> WaitingOpenAI : Backend meneruskan ke OpenAI
+        WaitingOpenAI --> ParsingJSON : OpenAI merespons
+        ParsingJSON --> NormalizingData : JSON valid
+        ParsingJSON --> Retrying : JSON tidak valid
+        Retrying --> WaitingOpenAI : Retry request
+        NormalizingData --> [*]
+    }
+
+    Generating --> DataReady : Generate berhasil
+    Generating --> ErrorState : Timeout / API error / no key
+
+    DataReady --> WaitingInput : Lanjut edit
+    ErrorState --> WaitingInput : User dismiss error
+
+    WaitingInput --> Exporting : Klik "Export DOCX"
+
+    state Exporting {
+        [*] --> SendExportReq : POST /api/export
+        SendExportReq --> FillingTemplate : Backend fill template DOCX
+        FillingTemplate --> EncodingB64 : Semua tabel terisi
+        EncodingB64 --> DecodingBlob : Frontend decode base64
+        DecodingBlob --> TriggeringDownload : createObjectURL
+        TriggeringDownload --> [*]
+    }
+
+    Exporting --> Downloaded : File berhasil diunduh
+    Exporting --> ErrorState : Export gagal
+    Downloaded --> WaitingInput : Kembali ke form
+
+    WaitingInput --> Saved : Auto-save ke LocalStorage
+    Saved --> WaitingInput : (background)
+
+    WaitingInput --> [*] : Tutup browser
+```
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ FLOWCHART 11 — ALUR VALIDASI DATA RPS (Aturan Bisnis)
+ Jenis: flowchart TD (Top-Down)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+```mermaid
+flowchart TD
+    START(["Data RPS selesai\ndigenerate / diedit"])
+
+    subgraph VALIDATE["🔍 Validasi Aturan Bisnis"]
+        V1{"Nama MK\nterisi?"}
+        V2{"Jumlah CPL\n3-10?"}
+        V3{"Jumlah CPMK\n3-10?"}
+        V4{"CPMK → CPL\nmapping valid?"}
+        V5{"IK → CPMK\nmapping valid?"}
+        V6{"Total N dari semua CPMK:\nN1=20%, N2=30%\nN3=10%, N4=20%\nN5=20%?"}
+        V7{"Total bobotMateri\n16 minggu = 100%?"}
+        V8{"Minggu 8 = UTS\nMinggu 16 = UAS?"}
+        V9{"Setiap minggu\n(non UTS/UAS) punya:\nbahanKajian, metode,\naktivitas, pengalamanBelajar,\nkriteria, bobotMateri?"}
+    end
+
+    ERR1["❌ Nama MK wajib diisi"]
+    ERR2["❌ CPL harus 3-10 item"]
+    ERR3["❌ CPMK harus 3-10 item"]
+    ERR4["❌ Mapping CPL tidak valid"]
+    ERR5["❌ Mapping CPMK tidak valid"]
+    ERR6["❌ Total bobot CPMK tidak 100%"]
+    ERR7["❌ Total bobot minggu tidak 100%"]
+    ERR8["❌ UTS/UAS tidak pada posisi yang benar"]
+    ERR9["❌ Field minggu tidak lengkap"]
+
+    VALID["✅ Data Valid\nSiap Export"]
+
+    START --> V1
+    V1 -->|Tidak| ERR1
+    V1 -->|Ya| V2
+    V2 -->|Tidak| ERR2
+    V2 -->|Ya| V3
+    V3 -->|Tidak| ERR3
+    V3 -->|Ya| V4
+    V4 -->|Tidak| ERR4
+    V4 -->|Ya| V5
+    V5 -->|Tidak| ERR5
+    V5 -->|Ya| V6
+    V6 -->|Tidak| ERR6
+    V6 -->|Ya| V7
+    V7 -->|Tidak| ERR7
+    V7 -->|Ya| V8
+    V8 -->|Tidak| ERR8
+    V8 -->|Ya| V9
+    V9 -->|Tidak| ERR9
+    V9 -->|Ya| VALID
+
+    ERR1 & ERR2 & ERR3 & ERR4 & ERR5 & ERR6 & ERR7 & ERR8 & ERR9 --> START
+
+    style VALID fill:#c8e6c9,stroke:#4CAF50
+    style ERR1 fill:#ffcdd2,stroke:#f44336
+    style ERR2 fill:#ffcdd2,stroke:#f44336
+    style ERR3 fill:#ffcdd2,stroke:#f44336
+    style ERR4 fill:#ffcdd2,stroke:#f44336
+    style ERR5 fill:#ffcdd2,stroke:#f44336
+    style ERR6 fill:#ffcdd2,stroke:#f44336
+    style ERR7 fill:#ffcdd2,stroke:#f44336
+    style ERR8 fill:#ffcdd2,stroke:#f44336
+    style ERR9 fill:#ffcdd2,stroke:#f44336
+```
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ FLOWCHART 12 — ALUR LOGGING & MONITORING
+ Jenis: flowchart LR (Left-Right)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+```mermaid
+flowchart LR
+    REQ["Setiap\nHTTP Request"]
+
+    subgraph LOG_FLOW["📝 Logging Pipeline"]
+        LR1["logRequest()\n• path\n• body (sanitized)\n• IP address\n• timestamp"]
+        LR2["Request Handler\nExecution"]
+        LR3["logResponse()\n• path\n• status code\n• duration ms"]
+        LR4["logPerformanceMetrics()\n• throughput\n• avg latency"]
+    end
+
+    subgraph LOG_DEST["💾 Log Destinations"]
+        CONSOLE["Console stdout\n(PM2 captures)"]
+        LOG_FILE["logs/\nrps-[date].log\n(rotate harian)"]
+        EXPORT_JSON["logs/exports/\nrps-export-[timestamp].json\n(setiap export)"]
+    end
+
+    subgraph LOG_LEVELS["📊 Log Levels"]
+        DEBUG["DEBUG\n(detail request body)"]
+        INFO["INFO\n(normal operations)"]
+        WARN["WARN\n(slow responses >5s)"]
+        ERROR["ERROR\n(exceptions, AI errors)"]
+    end
+
+    PM2_LOG["PM2 Log Aggregator\nrps-backend-out.log\nrps-backend-err.log"]
+
+    REQ --> LR1
+    LR1 --> LR2
+    LR2 --> LR3
+    LR3 --> LR4
+
+    LR1 & LR2 & LR3 & LR4 --> CONSOLE
+    LR1 & LR2 & LR3 & LR4 --> LOG_FILE
+
+    LR2 -->|Export berhasil| EXPORT_JSON
+
+    CONSOLE --> PM2_LOG
+
+    LR1 --> DEBUG
+    LR2 --> INFO
+    LR3 --> WARN
+    LR4 --> ERROR
+
+    style LOG_FLOW fill:#e3f2fd,stroke:#2196F3
+    style LOG_DEST fill:#e8f5e9,stroke:#4CAF50
+    style LOG_LEVELS fill:#fff3e0,stroke:#FF9800
+```
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ RINGKASAN JENIS FLOWCHART YANG DIGUNAKAN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  No  | Flowchart                      | Jenis Mermaid       | Arah
+ ─────┼────────────────────────────────┼─────────────────────┼──────────
+  1   | Arsitektur Sistem              | flowchart TD        | Atas→Bawah
+  2   | Alur Pengguna (User Journey)   | flowchart TD        | Atas→Bawah
+  3   | Generate RPS Lengkap          | flowchart TD        | Atas→Bawah
+  4   | Export DOCX                   | flowchart TD        | Atas→Bawah
+  5   | Data Model RPS                | flowchart LR        | Kiri→Kanan
+  6   | Pemilihan Tipe Generate        | flowchart LR        | Kiri→Kanan
+  7   | Load API Key OpenAI            | flowchart TD        | Atas→Bawah
+  8   | Server Manager (PM2)           | flowchart TD        | Atas→Bawah
+  9   | Sequence Antar Layer           | sequenceDiagram     | Waktu→Bawah
+  10  | State Machine Generate         | stateDiagram-v2     | State→State
+  11  | Validasi Aturan Bisnis         | flowchart TD        | Atas→Bawah
+  12  | Logging & Monitoring           | flowchart LR        | Kiri→Kanan
+ ─────┴────────────────────────────────┴─────────────────────┴──────────
+
+  Total: 12 Flowchart dengan 5 jenis Mermaid berbeda
+         Paste tiap blok ```mermaid ... ``` ke:
+         • https://mermaid.live
+         • VS Code Extension: Mermaid Preview
+         • GitHub Markdown (render otomatis)

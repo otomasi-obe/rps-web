@@ -6,6 +6,13 @@ import * as dotenv from 'dotenv';
 import * as os from 'os';
 import { AIToJSON, RPSData } from '../aitojson/index.js';
 import { JSONToDocx, Metadata } from '../jsontodoc/index.js';
+import {
+  logger,
+  logRequest,
+  logResponse,
+  saveExportJson,
+  logPerformanceMetrics,
+} from './logger.js';
 
 dotenv.config();
 dotenv.config({ path: '.env.local' });
@@ -31,56 +38,22 @@ export interface GenerateRequest extends Request {
 
 export interface ExportRequest extends Request {
   body: {
-    rpsData: RPSData;
-    meta: Metadata;
+    rpsData?: RPSData;
+    meta?: Metadata;
+    [key: string]: any;
   };
 }
 
-// Logger utility
-class Logger {
-  private logsDir: string;
-
-  constructor() {
-    this.logsDir = path.join(process.cwd(), 'logs');
-    if (!fs.existsSync(this.logsDir)) {
-      fs.mkdirSync(this.logsDir, { recursive: true });
-    }
-  }
-
-  log(message: string, level: 'info' | 'warn' | 'error' = 'info'): void {
-    const timestamp = new Date().toISOString();
-    const logMessage = `[${timestamp}] [${level.toUpperCase()}] ${message}`;
-    console.log(logMessage);
-
-    // Write to daily log file
-    const today = new Date().toISOString().split('T')[0];
-    const logFile = path.join(this.logsDir, `npm_api_${today}.log`);
-    fs.appendFileSync(logFile, logMessage + '\n', 'utf-8');
-  }
-
-  info(message: string): void {
-    this.log(message, 'info');
-  }
-
-  warn(message: string): void {
-    this.log(message, 'warn');
-  }
-
-  error(message: string): void {
-    this.log(message, 'error');
-  }
-}
-
 // Global instances
-const logger = new Logger();
 let aiGenerator: AIToJSON | null = null;
 
 function getGenerator(): AIToJSON {
   if (!aiGenerator) {
-    aiGenerator = new AIToJSON();
-    if (!aiGenerator) {
+    const generator = new AIToJSON();
+    if (!generator.hasClient()) {
       throw new Error('Failed to initialize AI generator: No OpenAI client available');
     }
+    aiGenerator = generator;
     console.log('✅ AI generator initialized successfully');
   }
   return aiGenerator;
@@ -117,10 +90,12 @@ export class RPSAPIServer {
     // Request logging
     this.app.use((req: Request, res: Response, next: NextFunction) => {
       const startTime = Date.now();
+      logRequest(req.path, req.body, req.ip || 'unknown');
       console.log(`📨 ${req.method} ${req.path}`);
 
       res.on('finish', () => {
         const duration = Date.now() - startTime;
+        logResponse(req.path, res.statusCode, duration);
         console.log(`✅ ${req.method} ${req.path} - ${res.statusCode} (${duration}ms)`);
       });
 
@@ -150,6 +125,7 @@ export class RPSAPIServer {
     this.app.post('/generate', async (req: GenerateRequest, res: Response) => {
       try {
         const startTime = Date.now();
+        logRequest('/generate', req.body, req.ip || 'unknown');
         const generateType = req.body.type || 'full';
         const courseName = req.body.courseName || 'Mata Kuliah';
         const courseCode = req.body.courseCode || 'MK001';
@@ -244,8 +220,10 @@ export class RPSAPIServer {
         }
 
         const duration = Date.now() - startTime;
+        logResponse('/generate', 200, duration);
         logger.info(`✅ Generated ${generateType} in ${duration}ms for ${courseName}`);
       } catch (error: any) {
+        logResponse('/generate', 500, 0, error.message || 'Generation failed');
         logger.error(`❌ Generate error: ${error.message}`);
         res.status(500).json({ error: error.message || 'Generation failed' });
       }
@@ -255,6 +233,7 @@ export class RPSAPIServer {
     this.app.post('/export', async (req: ExportRequest, res: Response) => {
       try {
         const startTime = Date.now();
+        logRequest('/export', req.body, req.ip || 'unknown');
         console.log('\n📄 Starting DOCX export...');
 
         const body = req.body as any;
@@ -296,6 +275,21 @@ export class RPSAPIServer {
 
         console.log(`📋 rpsData keys: ${Object.keys(rpsData).join(', ')}`);
         console.log(`📋 meta keys: ${Object.keys(meta).join(', ')}`);
+        console.log('📋 Authority data:');
+        console.log(`   - koordinatorMK: ${JSON.stringify(meta.koordinatorMK || {})}`);
+        console.log(`   - koordinatorGPM: ${JSON.stringify(meta.koordinatorGPM || {})}`);
+        console.log(`   - ketuaProdi: ${JSON.stringify(meta.ketuaProdi || {})}`);
+        console.log(`   - dekan: ${JSON.stringify(meta.dekan || {})}`);
+        console.log('📦 Data counts:');
+        console.log(`   - CPL: ${Array.isArray(rpsData.cpl) ? rpsData.cpl.length : 0}`);
+        console.log(`   - CPMK: ${Array.isArray(rpsData.cpmk) ? rpsData.cpmk.length : 0}`);
+        console.log(`   - IK: ${Array.isArray(rpsData.ik) ? rpsData.ik.length : 0}`);
+        console.log(`   - Minggu: ${Array.isArray(rpsData.minggu) ? rpsData.minggu.length : 0}`);
+        console.log(`   - Referensi: ${Array.isArray(rpsData.referensi) ? rpsData.referensi.length : 0}`);
+
+        if (!rpsData || typeof rpsData !== 'object' || Array.isArray(rpsData)) {
+          throw new Error(`Invalid rpsData: expected object, got ${typeof rpsData}`);
+        }
 
         // Prepare metadata with defaults
         const finalMeta: Metadata = {
@@ -308,8 +302,20 @@ export class RPSAPIServer {
           ...meta,
         };
 
-        // Get template path
-        const templatePath = process.env.TEMPLATE_PATH || path.join(process.cwd(), '../../public/RPS.docx');
+        const jsonPath = saveExportJson(rpsData, finalMeta as Record<string, unknown>, 'docx_export');
+
+        // Get template path from env or known workspace locations.
+        const candidateTemplatePaths = [
+          process.env.TEMPLATE_PATH,
+          path.join(process.cwd(), '../../public/RPS.docx'),
+          path.join(process.cwd(), '../public/RPS.docx'),
+          path.join(process.cwd(), 'public/RPS.docx'),
+        ].filter((p): p is string => Boolean(p));
+
+        const templatePath = candidateTemplatePaths.find((p) => fs.existsSync(p));
+        if (!templatePath) {
+          throw new Error(`Template not found. Checked: ${candidateTemplatePaths.join(', ')}`);
+        }
 
         // Create temp file for output
         const tempFilePath = path.join(
@@ -338,6 +344,14 @@ export class RPSAPIServer {
         };
 
         const duration = Date.now() - startTime;
+        logPerformanceMetrics({
+          total_time_ms: duration,
+          file_size_bytes: docxBytes.length,
+          file_size_mb: docxBytes.length / 1024 / 1024,
+          course: finalMeta.nama || 'Unknown',
+          json_saved: jsonPath !== null,
+        });
+        logResponse('/export', 200, duration);
         logger.info(`✅ Exported DOCX in ${duration}ms for ${finalMeta.nama}`);
 
         // Cleanup temp file
@@ -347,6 +361,7 @@ export class RPSAPIServer {
 
         res.json(response);
       } catch (error: any) {
+        logResponse('/export', 500, 0, error.message || 'Export failed');
         logger.error(`❌ Export error: ${error.message}`);
         res.status(500).json({ error: error.message || 'Export failed' });
       }
